@@ -59,7 +59,6 @@
   <build_depend>roscpp_serialization</build_depend>
   <build_depend>rostime</build_depend>
   <build_depend>std_msgs</build_depend>
-  <depend>image_transport</depend>
   <depend>soft20</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
