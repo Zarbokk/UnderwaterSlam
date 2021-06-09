@@ -59,9 +59,6 @@
   <build_depend>roscpp_serialization</build_depend>
   <build_depend>rostime</build_depend>
   <build_depend>std_msgs</build_depend>
-  <depend>gazebo_dev</depend>
-  <depend>gazebo_plugins</depend>
-  <depend>gazebo_ros</depend>
   <depend>image_transport</depend>
   <depend>soft20</depend>
 

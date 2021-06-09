@@ -10,10 +10,9 @@ project(underwaterslam)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg gazebo_dev gazebo_plugins gazebo_ros roscpp image_transport pcl_ros soft20)
+find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg  roscpp image_transport pcl_ros soft20)
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenCV REQUIRED)
-find_package (gazebo REQUIRED)
 find_package(PCL 1.10 REQUIRED COMPONENTS common io visualization)
 #find_package(soft20 REQUIRED)
 ## System dependencies are found with CMake's conventions
@@ -115,9 +114,6 @@ catkin_package(
   LIBRARIES
     image_sonar_ros_plugin
   CATKIN_DEPENDS
-        gazebo_dev
-        gazebo_plugins
-        gazebo_ros
         image_transport
 #  DEPENDS system_lib
 )
@@ -131,11 +127,8 @@ catkin_package(
 include_directories(
 include
         ${catkin_INCLUDE_DIRS}
-        ${GAZEBO_INCLUDE_DIRS}
-        ${GAZEBO_MSG_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIR}
         ${OpenCV_INCLUDE_DIRS}
-        ${GAZEBO_LIBRARY_DIRS}
 )
 
 
