@@ -258,3 +258,6 @@ target_link_libraries(soft20TestFile fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(correlationRotationSoft20 src/registration/correlationRotationSoft20.cpp)
 target_link_libraries(correlationRotationSoft20 fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+add_executable(hilbertMapTestFile src/testFiles/hilbertMapExample.cpp src/registration/scanRegistrationClass.cpp src/poseGraphsrc/graphSlamSaveStructure.cpp src/poseGraphsrc/edge.cpp src/poseGraphsrc/vertex.cpp src/slamTools/slamToolsRos.cpp src/json/jsoncpp.cpp src/hilbertMapssrc/hilbertMap.cpp)
+target_link_libraries(hilbertMapTestFile ${PCL_LIBRARIES} ${catkin_LIBRARIES})
