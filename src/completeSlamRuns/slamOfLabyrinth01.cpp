@@ -11,12 +11,24 @@ double noiseVelocityIntigration = 0.3;
 
 void loadCSVFiles(std::vector<std::vector<measurement>> &groundTruthSorted,
                   std::vector<std::vector<measurement>> &angularVelocitySorted,
-                  std::vector<std::vector<measurement>> &bodyVelocitySorted, std::string &folderExperiment) {
+                  std::vector<std::vector<measurement>> &bodyVelocitySorted, std::string &folderExperiment,std::string const HOME) {
 
 
-    std::ifstream fileGroundTruth("/home/tim/DataForTests/" + folderExperiment + "/groundTruth.csv");
-    std::ifstream fileAngularVelocity("/home/tim/DataForTests/" + folderExperiment + "/angularVelocity.csv");
-    std::ifstream fileBodyVelocity("/home/tim/DataForTests/" + folderExperiment + "/bodyVelocity.csv");
+    std::ifstream fileGroundTruth(HOME+"/DataForTests/" + folderExperiment + "/groundTruth.csv");
+    if (fileGroundTruth.fail()){
+        std::cout << "fileGroundTruth file not found"<< std::endl;
+        exit(-1);
+    }
+    std::ifstream fileAngularVelocity(HOME+"/DataForTests/" + folderExperiment + "/angularVelocity.csv");
+    if (fileAngularVelocity.fail()){
+        std::cout << "fileAngularVelocity file not found"<< std::endl;
+        exit(-1);
+    }
+    std::ifstream fileBodyVelocity(HOME+"/DataForTests/" + folderExperiment + "/bodyVelocity.csv");
+    if (fileBodyVelocity.fail()){
+        std::cout << "fileBodyVelocity file not found"<< std::endl;
+        exit(-1);
+    }
 
     std::vector<measurement> groundTruth = slamToolsRos::parseCSVFile(fileGroundTruth);
     std::vector<measurement> angularVelocity = slamToolsRos::parseCSVFile(fileAngularVelocity);
@@ -86,6 +98,10 @@ void debugPlotting(pcl::PointCloud<pcl::PointXYZ>::Ptr lastScan, pcl::PointCloud
 
 int
 main(int argc, char **argv) {
+
+    std::string const HOME = std::getenv("HOME") ? std::getenv("HOME") : ".";//home path
+
+
     std::string folderExperiment = "withoutRotation";// folder of experiment
     ros::init(argc, argv, "slamLabyrinth01");
     ros::start();
@@ -107,13 +123,13 @@ main(int argc, char **argv) {
     std::vector<std::vector<measurement>> groundTruthSorted;
     std::vector<std::vector<measurement>> angularVelocitySorted;
     std::vector<std::vector<measurement>> bodyVelocitySorted;
-    loadCSVFiles(groundTruthSorted, angularVelocitySorted, bodyVelocitySorted, folderExperiment);
+    loadCSVFiles(groundTruthSorted, angularVelocitySorted, bodyVelocitySorted, folderExperiment,HOME);
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr currentScan(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr lastScan(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr Final(
             new pcl::PointCloud<pcl::PointXYZ>);//@TODOoutput of matching process should be deleted later
-    pcl::io::loadPCDFile("/home/tim/DataForTests/" + folderExperiment + "/after_voxel_1.pcd",
+    pcl::io::loadPCDFile(HOME+"/DataForTests/" + folderExperiment + "/after_voxel_1.pcd",
                          *currentScan);
 
     //Matrices
@@ -165,7 +181,7 @@ main(int argc, char **argv) {
         timeCurrentGroundTruth = groundTruthSorted[currentKeyFrame][0].timeStamp;
 
         pcl::io::loadPCDFile(
-                "/home/tim/DataForTests/" + folderExperiment + "/after_voxel_" + std::to_string(currentKeyFrame) +
+                HOME+"/DataForTests/" + folderExperiment + "/after_voxel_" + std::to_string(currentKeyFrame) +
                 ".pcd",
                 *currentScan);
         pcl::transformPointCloud(*currentScan, *currentScan, transformation90Degree);
