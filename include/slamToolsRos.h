@@ -33,8 +33,9 @@ public:
     static void visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros::Publisher &publisherPath,
                                       ros::Publisher &publisherCloud, ros::Publisher &publisherMarkerArray,
                                       double sigmaScaling, ros::Publisher &publisherPathGT,
-                                      std::vector<std::vector<measurement>> &groundTruthSorted,
-                                      ros::Publisher &publisherMarkerArrayLoopClosures);
+                                      std::vector<measurement> &groundTruthSorted,
+                                      ros::Publisher &publisherMarkerArrayLoopClosures,
+                                      double plotGTToTime);
 
     static std::vector<measurement>
     parseCSVFile(std::istream &stream);//this is first line description then keyframe,x,y,z,timestamp
@@ -42,21 +43,27 @@ public:
     static std::vector<std::vector<measurement>> sortToKeyframe(std::vector<measurement> &input);
 
     static void correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cloudScan, std::vector<edge> &posDiff,
-                                            double timeStampBeginning);
+                                            double timeStampBeginning, double angleStepSize, double beginAngle,
+                                            double endAngle, bool reverseScanDirection, Eigen::Matrix4d transformationPosData2PclCoord);
 
     static void
     calculatePositionOverTime(std::vector<measurement> &angularVelocityList, std::vector<measurement> &bodyVelocityList,
                               std::vector<edge> &posOverTimeEdge,
-                              double lastTimeStamp, double currentTimeStamp,double stdDev);
+                              double lastTimeStamp, double currentTimeStamp, double stdDev);
 
     static bool detectLoopClosure(graphSlamSaveStructure &graphSaved,
                                   double sigmaScaling, double cutoffFitnessOnDetect);
 
     static std::vector<double> linspace(double start_in, double end_in, int num_in);
 
-    static void correctPointCloudAtPos(int positionToCorrect, graphSlamSaveStructure &currentGraph);
+    static void
+    correctPointCloudAtPos(int positionToCorrect, graphSlamSaveStructure &currentGraph, double angleStepSize,
+                           double beginAngle,
+                           double endAngle, bool reverseScanDirection, Eigen::Matrix4d transformationPosData2PclCoord);
 
-    static void correctEveryPointCloud(graphSlamSaveStructure &currentGraph);
+    static void correctEveryPointCloud(graphSlamSaveStructure &currentGraph, double angleStepSize,
+                                       double beginAngle,
+                                       double endAngle, bool reverseScanDirection, Eigen::Matrix4d transformationPosData2PclCoord);
 
     static void recalculatePCLEdges(graphSlamSaveStructure &currentGraph);
 };

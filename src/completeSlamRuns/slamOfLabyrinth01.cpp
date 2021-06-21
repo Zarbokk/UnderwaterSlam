@@ -9,7 +9,7 @@ double scalingAllg = 0.25;
 double sigmaScaling = 2;
 double noiseVelocityIntigration = 0.3;
 
-void loadCSVFiles(std::vector<std::vector<measurement>> &groundTruthSorted,
+void loadCSVFiles(std::vector<measurement> &groundTruthSorted,
                   std::vector<std::vector<measurement>> &angularVelocitySorted,
                   std::vector<std::vector<measurement>> &bodyVelocitySorted, std::string &folderExperiment,std::string const HOME) {
 
@@ -30,10 +30,10 @@ void loadCSVFiles(std::vector<std::vector<measurement>> &groundTruthSorted,
         exit(-1);
     }
 
-    std::vector<measurement> groundTruth = slamToolsRos::parseCSVFile(fileGroundTruth);
+    groundTruthSorted = slamToolsRos::parseCSVFile(fileGroundTruth);
     std::vector<measurement> angularVelocity = slamToolsRos::parseCSVFile(fileAngularVelocity);
     std::vector<measurement> bodyVelocity = slamToolsRos::parseCSVFile(fileBodyVelocity);
-    groundTruthSorted = slamToolsRos::sortToKeyframe(groundTruth);
+    //groundTruthSorted = slamToolsRos::sortToKeyframe(groundTruth);
     angularVelocitySorted = slamToolsRos::sortToKeyframe(angularVelocity);
     angularVelocitySorted.pop_back();
     bodyVelocitySorted = slamToolsRos::sortToKeyframe(bodyVelocity);
@@ -120,7 +120,7 @@ main(int argc, char **argv) {
 
 
 
-    std::vector<std::vector<measurement>> groundTruthSorted;
+    std::vector<measurement> groundTruthSorted;
     std::vector<std::vector<measurement>> angularVelocitySorted;
     std::vector<std::vector<measurement>> bodyVelocitySorted;
     loadCSVFiles(groundTruthSorted, angularVelocitySorted, bodyVelocitySorted, folderExperiment,HOME);
@@ -146,8 +146,8 @@ main(int argc, char **argv) {
     std::vector<vertex> posDiffOverTimeVertices;
     std::vector<edge> posDiffOverTimeEdges;
 
-    double lastTimeKeyFrame = groundTruthSorted[0][0].timeStamp;//280
-    double timeCurrentGroundTruth = groundTruthSorted[1][0].timeStamp;//290
+    double lastTimeKeyFrame = groundTruthSorted[0].timeStamp;//280
+    double timeCurrentGroundTruth = groundTruthSorted[1].timeStamp;//290
     double fitnessScore;
     bool debug = true;
 
@@ -179,7 +179,7 @@ main(int argc, char **argv) {
         //for (int currentKeyFrame = 2; currentKeyFrame < 100; currentKeyFrame++) {
             *lastScan = *graphSaved.getVertexList().back().getPointCloudCorrected();
             lastTimeKeyFrame = timeCurrentGroundTruth;
-            timeCurrentGroundTruth = groundTruthSorted[currentKeyFrame][0].timeStamp;
+            timeCurrentGroundTruth = groundTruthSorted[currentKeyFrame].timeStamp;
 
             pcl::io::loadPCDFile(
                     HOME+"/DataForTests/" + folderExperiment + "/after_voxel_" + std::to_string(currentKeyFrame) +
@@ -190,7 +190,7 @@ main(int argc, char **argv) {
             //forward calculate pose(relative)(with velocities) add edges+vertexes
             slamToolsRos::calculatePositionOverTime(angularVelocitySorted[currentKeyFrame],
                                                     bodyVelocitySorted[currentKeyFrame],
-                                                    posDiffOverTimeEdges, lastTimeKeyFrame, timeCurrentGroundTruth,0.8);// was 0.8
+                                                    posDiffOverTimeEdges, lastTimeKeyFrame, timeCurrentGroundTruth,0.5);// was 0.8
             //sort in posDiffOverTime and calculate vertices to be added
             appendEdgesToGraph(graphSaved, posDiffOverTimeEdges);
             graphSaved.getVertexList().back().setPointCloudRaw(currentScan);
@@ -230,7 +230,7 @@ main(int argc, char **argv) {
 
             slamToolsRos::visualizeCurrentGraph(graphSaved, publisherPathOverTime, publisherKeyFrameClouds,
                                                 publisherMarkerArray, sigmaScaling, publisherPathOverTimeGT,
-                                                groundTruthSorted, publisherMarkerArrayLoopClosures);
+                                                groundTruthSorted, publisherMarkerArrayLoopClosures,lastTimeKeyFrame);
             std::cout << "next: " << currentKeyFrame << std::endl;
         }else{exit(-1);}
     }
@@ -238,7 +238,7 @@ main(int argc, char **argv) {
     graphSaved.optimizeGraphWithSlam(false, holdStill);
     slamToolsRos::visualizeCurrentGraph(graphSaved, publisherPathOverTime, publisherKeyFrameClouds,
                                         publisherMarkerArray, sigmaScaling, publisherPathOverTimeGT,
-                                        groundTruthSorted, publisherMarkerArrayLoopClosures);
+                                        groundTruthSorted, publisherMarkerArrayLoopClosures,timeCurrentGroundTruth);
 
     for (int i = 0; i < 1; i++) {
         //correct all point clouds
@@ -251,13 +251,13 @@ main(int argc, char **argv) {
         //show
         slamToolsRos::visualizeCurrentGraph(graphSaved, publisherPathOverTime, publisherKeyFrameClouds,
                                             publisherMarkerArray, sigmaScaling, publisherPathOverTimeGT,
-                                            groundTruthSorted, publisherMarkerArrayLoopClosures);
+                                            groundTruthSorted, publisherMarkerArrayLoopClosures,timeCurrentGroundTruth);
         //optimize again
         graphSaved.optimizeGraphWithSlam(false, holdStill);
         //show
         slamToolsRos::visualizeCurrentGraph(graphSaved, publisherPathOverTime, publisherKeyFrameClouds,
                                             publisherMarkerArray, sigmaScaling, publisherPathOverTimeGT,
-                                            groundTruthSorted, publisherMarkerArrayLoopClosures);
+                                            groundTruthSorted, publisherMarkerArrayLoopClosures,timeCurrentGroundTruth);
     }
 
     graphSaved.saveGraphJson("testfile.json");

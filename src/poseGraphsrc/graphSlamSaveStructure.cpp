@@ -1408,6 +1408,10 @@ bool graphSlamSaveStructure::createSubGraphBetweenCell(int vertexIndexFrom, int 
 
 void
 graphSlamSaveStructure::calculateCovarianceInCloseProximity() {//@TODO calculate the covariance CORRECT only for the current cell.(last) and connected Cells
+
+    if(!this->hasHierachicalGraph){
+        return;
+    }
     // get vertex numbers that are of interest:
     int i = 0;
     graphSlamSaveStructure *currentHierachicalGraph = this->hierachicalGraph;
