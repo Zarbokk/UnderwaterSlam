@@ -75,7 +75,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.10000000149011612
+      Size (m): 0.20000000298023224
       Style: Flat Squares
       Topic: /lastPCL
       Unreliable: false
@@ -146,7 +146,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 21.09628677368164
+      Distance: 144.8479766845703
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -164,7 +164,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.3597965240478516
       Target Frame: <Fixed Frame>
-      Yaw: 3.3385462760925293
+      Yaw: 3.3135457038879395
     Saved: ~
 Window Geometry:
   Displays:
@@ -183,4 +183,4 @@ Window Geometry:
     collapsed: true
   Width: 960
   X: 960
-  Y: 551
+  Y: 481

@@ -75,7 +75,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.10000000149011612
+      Size (m): 0.20000000298023224
       Style: Flat Squares
       Topic: /beforeCorrection
       Unreliable: false
@@ -146,7 +146,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 93.41561889648438
+      Distance: 122.06105041503906
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -183,4 +183,4 @@ Window Geometry:
     collapsed: true
   Width: 960
   X: 0
-  Y: 551
+  Y: 481
