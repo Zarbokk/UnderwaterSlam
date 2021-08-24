@@ -312,7 +312,7 @@ main(int argc, char **argv) {
     graphSaved.initiallizeSubGraphs(subgraphs);
 
     for (int currentKeyFrame = startKeyFrame + 2;
-         currentKeyFrame<keyFramesTimeStampesSorted.size()-1; currentKeyFrame++) {//keyFramesTimeStampesSorted.size()-1  || 50
+         currentKeyFrame<50; currentKeyFrame++) {//keyFramesTimeStampesSorted.size()-1  || 50
         if (ros::ok()) {
 //            if(currentKeyFrame == 32)
 //            {
@@ -399,7 +399,7 @@ main(int argc, char **argv) {
                                         publisherMarkerArray, sigmaScaling, publisherPathOverTimeGT,
                                         groundTruthSorted, publisherMarkerArrayLoopClosures, timeCurrentGroundTruth);
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 1; i++) {
         //correct all point clouds
         slamToolsRos::correctEveryPointCloud(graphSaved, 2 * M_PI / 200, 0, 2 * M_PI, true,transformationImu2PCL);
         //recalculate the edges
@@ -421,7 +421,7 @@ main(int argc, char **argv) {
                                             timeCurrentGroundTruth);
     }
 
-    graphSaved.saveGraphJson(HOME + "/DataForTests/" + folderExperiment + "outputSlam.json");
-
+    graphSaved.saveGraphJson(HOME + "/DataForTests/" + folderExperiment + "/outputSlam.json");
+    std::cout << "done saving outputSlam: " << std::endl;
     return (0);
 }

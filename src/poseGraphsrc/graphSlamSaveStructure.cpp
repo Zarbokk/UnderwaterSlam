@@ -1552,7 +1552,7 @@ void graphSlamSaveStructure::saveGraphJson(std::string nameSavingFile){
     outputText["keyFrames"] = keyFrames;
 
     std::ofstream ifs;
-    ifs.open("/home/tim/DataForTests/DataFromSimulationJson/"+nameSavingFile);
+    ifs.open(nameSavingFile);
     ifs << outputText << '\n';
     ifs.close();
 }
