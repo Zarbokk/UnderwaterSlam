@@ -26,6 +26,23 @@ struct measurement {
     double z;
     double timeStamp;
 };
+struct ImuData {
+    double ax;//linear acceleration
+    double ay;//linear acceleration
+    double az;//linear acceleration
+    double wx;//angular velocity
+    double wy;//angular velocity
+    double wz;//angular velocity
+    double timeStamp;
+};
+
+struct DvlData {
+    double vx; // linear body velocity
+    double vy; // linear body velocity
+    double vz; // linear body velocity
+    double height; // above sea
+    double timeStamp;
+};
 
 class slamToolsRos {
 
@@ -33,7 +50,7 @@ public:
     static void visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros::Publisher &publisherPath,
                                       ros::Publisher &publisherCloud, ros::Publisher &publisherMarkerArray,
                                       double sigmaScaling, ros::Publisher &publisherPathGT,
-                                      std::vector<measurement> &groundTruthSorted,
+                                      std::vector<measurement> *groundTruthSorted,
                                       ros::Publisher &publisherMarkerArrayLoopClosures,
                                       double plotGTToTime);
 
@@ -44,12 +61,20 @@ public:
 
     static void correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cloudScan, std::vector<edge> &posDiff,
                                             double timeStampBeginning, double angleStepSize, double beginAngle,
-                                            double endAngle, bool reverseScanDirection, Eigen::Matrix4d transformationPosData2PclCoord);
+                                            double endAngle, bool reverseScanDirection,
+                                            Eigen::Matrix4d transformationPosData2PclCoord);
 
     static void
-    calculatePositionOverTime(std::vector<measurement> &angularVelocityList, std::vector<measurement> &bodyVelocityList,
+    calculatePositionOverTime(std::deque<ImuData> &angularVelocityList, std::deque<DvlData> &bodyVelocityList,
                               std::vector<edge> &posOverTimeEdge,
-                              double lastTimeStamp, double currentTimeStamp, double stdDev);
+                              double lastScanTimeStamp, double currentScanTimeStamp, double noiseAddedStdDiv);
+
+    static void
+    debugPlotting(pcl::PointCloud<pcl::PointXYZ>::Ptr lastScan, pcl::PointCloud<pcl::PointXYZ>::Ptr afterRegistration,
+                  pcl::PointCloud<pcl::PointXYZ>::Ptr currentScanBeforeCorrection,
+                  pcl::PointCloud<pcl::PointXYZ>::Ptr currentScanAfterCorrection, ros::Publisher &publisherLastPCL,
+                  ros::Publisher &publisherRegistrationPCL, ros::Publisher &publisherBeforeCorrection,
+                  ros::Publisher &publisherAfterCorrection);
 
     static bool detectLoopClosure(graphSlamSaveStructure &graphSaved,
                                   double sigmaScaling, double cutoffFitnessOnDetect);
@@ -63,9 +88,17 @@ public:
 
     static void correctEveryPointCloud(graphSlamSaveStructure &currentGraph, double angleStepSize,
                                        double beginAngle,
-                                       double endAngle, bool reverseScanDirection, Eigen::Matrix4d transformationPosData2PclCoord);
+                                       double endAngle, bool reverseScanDirection,
+                                       Eigen::Matrix4d transformationPosData2PclCoord);
 
     static void recalculatePCLEdges(graphSlamSaveStructure &currentGraph);
+
+    static void appendEdgesToGraph(graphSlamSaveStructure
+                                   &currentGraph,
+                                   std::vector<edge> &listOfEdges,
+                                   double noiseVelocityIntigration,
+                                   double scalingAngle
+    );
 };
 
 

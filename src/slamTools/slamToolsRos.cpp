@@ -7,7 +7,7 @@
 void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros::Publisher &publisherPath,
                                          ros::Publisher &publisherCloud, ros::Publisher &publisherMarkerArray,
                                          double sigmaScaling, ros::Publisher &publisherPathGT,
-                                         std::vector<measurement> &groundTruthSorted,
+                                         std::vector<measurement> *groundTruthSorted,
                                          ros::Publisher &publisherMarkerArrayLoopClosures,
                                          double plotGTToTime) {
 
@@ -16,7 +16,7 @@ void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros
     Eigen::Matrix4d currentTransformation, completeTransformation;
     pcl::PointCloud<pcl::PointXYZ> completeCloudWithPos;
     visualization_msgs::MarkerArray markerArray;
-    int i = 0;
+    int k = 0;
     std::vector<vertex> vertexList = graphSaved.getVertexList();
     for (const auto &vertexElement : vertexList) {
 
@@ -63,8 +63,8 @@ void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros
         //currentMarker.lifetime.sec = 10;
 
         currentMarker.type = 2;
-        currentMarker.id = i;
-        i++;
+        currentMarker.id = k;
+        k++;
 
         markerArray.markers.push_back(currentMarker);
 
@@ -80,26 +80,29 @@ void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros
 
     //int timeToPrintGT = plotGTToTime;// (int) (graphSaved.getVertexList().size() / 9) + 1;
     //calculate path GT
-    nav_msgs::Path posOverTimeGT;
-    posOverTimeGT.header.frame_id = "map_ned";
-    //for (int i = 0; i < numberOfKeyframes; i++) {
-    for (auto &posList:groundTruthSorted) {
-        geometry_msgs::PoseStamped pos;
-        pos.pose.position.x = posList.y - groundTruthSorted[0].y;
-        pos.pose.position.y = posList.x - groundTruthSorted[0].x;
-        pos.pose.position.z = 0;
-        pos.pose.orientation.x = 0;
-        pos.pose.orientation.y = 0;
-        pos.pose.orientation.z = 0;
-        pos.pose.orientation.w = 1;
-        posOverTimeGT.poses.push_back(pos);
-        if (plotGTToTime < posList.timeStamp) {
-            break;
-        }
-    }
-    //}
-    publisherPathGT.publish(posOverTimeGT);
+    if(groundTruthSorted!=NULL){
 
+
+        nav_msgs::Path posOverTimeGT;
+        posOverTimeGT.header.frame_id = "map_ned";
+
+        for(int i = 0 ; i<groundTruthSorted->size() ; i++){
+        //for (auto &posList:groundTruthSorted) {
+            geometry_msgs::PoseStamped pos;
+            pos.pose.position.x = groundTruthSorted[i].data()->y - groundTruthSorted[0].data()->y;
+            pos.pose.position.y = groundTruthSorted[i].data()->x - groundTruthSorted[0].data()->x;
+            pos.pose.position.z = 0;
+            pos.pose.orientation.x = 0;
+            pos.pose.orientation.y = 0;
+            pos.pose.orientation.z = 0;
+            pos.pose.orientation.w = 1;
+            posOverTimeGT.poses.push_back(pos);
+            if (plotGTToTime < groundTruthSorted[i].data()->timeStamp) {
+                break;
+            }
+        }
+        publisherPathGT.publish(posOverTimeGT);
+    }
     //create marker for evey loop closure
     visualization_msgs::MarkerArray markerArrowsArray;
     int j = 0;
@@ -415,7 +418,8 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
 //        currentTransformation.block<3, 3>(0,
 //                                          0) *= tmp2;//this is an correction factor, because PX4 thinks it drives forward, while it is twisted
         //@TODO not sure if correct
-        currentTransformation.block<4, 1>(0, 3) = transformationPosData2PclCoord * currentTransformation.block<4, 1>(0, 3);
+        currentTransformation.block<4, 1>(0, 3) =
+                transformationPosData2PclCoord * currentTransformation.block<4, 1>(0, 3);
         listOfTransformations.push_back(currentTransformation);
     }
 
@@ -448,9 +452,6 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
         //fill point
         cloud.push_back(point);
     }
-
-
-
 
 
     pcl::transformPointCloud(cloud, cloud, transformationPosData2PclCoord);
@@ -500,21 +501,21 @@ std::vector<double> slamToolsRos::linspace(double start_in, double end_in, int n
     return linspaced;
 }
 
-void slamToolsRos::calculatePositionOverTime(std::vector<measurement> &angularVelocityList,
-                                             std::vector<measurement> &bodyVelocityList,
+void slamToolsRos::calculatePositionOverTime(std::deque<ImuData> &angularVelocityList,
+                                             std::deque<DvlData> &bodyVelocityList,
                                              std::vector<edge> &posOverTimeEdge,
-                                             double lastTimeStamp,
-                                             double currentTimeStamp,
-                                             double stdDev) {//last then current
+                                             double lastScanTimeStamp,
+                                             double currentScanTimeStamp,
+                                             double noiseAddedStdDiv) {//last then current
     posOverTimeEdge.clear();
-    std::vector<double> timeSteps = slamToolsRos::linspace(lastTimeStamp, currentTimeStamp,
-                                                           10);// could be changed this is the number of pos between the scans
+    std::vector<double> timeSteps = slamToolsRos::linspace(lastScanTimeStamp, currentScanTimeStamp,
+                                                           10);// could be changed this is the number of pos+1 between the scans(10th is the scan itself)
     std::vector<double> angularX;
     std::vector<double> angularY;
     std::vector<double> angularZ;
     for (int i = 1;
-         i < timeSteps.size(); i++) {//calculate angular between lastTimeKeyFrame and timeCurrentGroundTruth
-        std::vector<measurement> measurementsOfInterest;
+         i < timeSteps.size(); i++) {//calculate angular between lastScanTimeStamp and currentScanTimeStamp
+        std::vector<ImuData> measurementsOfInterest;
         for (int j = 0; j < angularVelocityList.size(); j++) {
             if (timeSteps[i - 1] <= angularVelocityList[j].timeStamp &&
                 timeSteps[i] > angularVelocityList[j].timeStamp) {
@@ -529,33 +530,33 @@ void slamToolsRos::calculatePositionOverTime(std::vector<measurement> &angularVe
             for (int j = 0; j < measurementsOfInterest.size(); j++) {
                 if (j == measurementsOfInterest.size() - 1) {
                     integratorX +=
-                            measurementsOfInterest[j].x * (timeSteps[i] - measurementsOfInterest[j - 1].timeStamp);
+                            measurementsOfInterest[j].wx * (timeSteps[i] - measurementsOfInterest[j - 1].timeStamp);
                     integratorY +=
-                            measurementsOfInterest[j].y * (timeSteps[i] - measurementsOfInterest[j - 1].timeStamp);
+                            measurementsOfInterest[j].wy * (timeSteps[i] - measurementsOfInterest[j - 1].timeStamp);
                     integratorZ +=
-                            measurementsOfInterest[j].z * (timeSteps[i] - measurementsOfInterest[j - 1].timeStamp);
+                            measurementsOfInterest[j].wz * (timeSteps[i] - measurementsOfInterest[j - 1].timeStamp);
                 } else {
                     if (j == 0) {
                         integratorX +=
-                                measurementsOfInterest[j].x * (measurementsOfInterest[j].timeStamp - timeSteps[i - 1]);
+                                measurementsOfInterest[j].wx * (measurementsOfInterest[j].timeStamp - timeSteps[i - 1]);
                         integratorY +=
-                                measurementsOfInterest[j].y * (measurementsOfInterest[j].timeStamp - timeSteps[i - 1]);
+                                measurementsOfInterest[j].wy * (measurementsOfInterest[j].timeStamp - timeSteps[i - 1]);
                         integratorZ +=
-                                measurementsOfInterest[j].z * (measurementsOfInterest[j].timeStamp - timeSteps[i - 1]);
+                                measurementsOfInterest[j].wz * (measurementsOfInterest[j].timeStamp - timeSteps[i - 1]);
                     } else {
-                        integratorX += (measurementsOfInterest[j].x + measurementsOfInterest[j - 1].x) / 2 *
+                        integratorX += (measurementsOfInterest[j].wx + measurementsOfInterest[j - 1].wx) / 2 *
                                        (measurementsOfInterest[j].timeStamp - measurementsOfInterest[j - 1].timeStamp);
-                        integratorY += (measurementsOfInterest[j].y + measurementsOfInterest[j - 1].y) / 2 *
+                        integratorY += (measurementsOfInterest[j].wy + measurementsOfInterest[j - 1].wy) / 2 *
                                        (measurementsOfInterest[j].timeStamp - measurementsOfInterest[j - 1].timeStamp);
-                        integratorZ += (measurementsOfInterest[j].z + measurementsOfInterest[j - 1].z) / 2 *
+                        integratorZ += (measurementsOfInterest[j].wz + measurementsOfInterest[j - 1].wz) / 2 *
                                        (measurementsOfInterest[j].timeStamp - measurementsOfInterest[j - 1].timeStamp);
                     }
                 }
             }
         } else {//only one velocity measurement exists
-            integratorX = measurementsOfInterest[0].x * (timeSteps[i] - timeSteps[i - 1]);
-            integratorY = measurementsOfInterest[0].y * (timeSteps[i] - timeSteps[i - 1]);
-            integratorZ = measurementsOfInterest[0].z * (timeSteps[i] - timeSteps[i - 1]);
+            integratorX = measurementsOfInterest[0].wx * (timeSteps[i] - timeSteps[i - 1]);
+            integratorY = measurementsOfInterest[0].wy * (timeSteps[i] - timeSteps[i - 1]);
+            integratorZ = measurementsOfInterest[0].wz * (timeSteps[i] - timeSteps[i - 1]);
         }
         angularX.push_back(integratorX);
         angularY.push_back(integratorY);
@@ -563,13 +564,13 @@ void slamToolsRos::calculatePositionOverTime(std::vector<measurement> &angularVe
     }
 
     std::default_random_engine generator;
-    std::normal_distribution<double> dist(0, stdDev);
+    std::normal_distribution<double> dist(0, noiseAddedStdDiv);
     std::vector<double> linearX;
     std::vector<double> linearY;
     std::vector<double> linearZ;
     for (int i = 1;
-         i < timeSteps.size(); i++) {//calculate that between lastTimeKeyFrame and timeCurrentGroundTruth
-        std::vector<measurement> measurementsOfInterest;
+         i < timeSteps.size(); i++) {//calculate that between lastScanTimeStamp and currentScanTimeStamp
+        std::vector<DvlData> measurementsOfInterest;
         for (int j = 0; j < bodyVelocityList.size(); j++) {
             if (timeSteps[i - 1] <= bodyVelocityList[j].timeStamp &&
                 timeSteps[i] > bodyVelocityList[j].timeStamp) {
@@ -584,43 +585,43 @@ void slamToolsRos::calculatePositionOverTime(std::vector<measurement> &angularVe
         if (measurementsOfInterest.size() > 1) {
             for (int j = 0; j < measurementsOfInterest.size(); j++) {
                 if (j == measurementsOfInterest.size() - 1) {
-                    integratorX += (dist(generator) + measurementsOfInterest[j].x) *
+                    integratorX += (dist(generator) + measurementsOfInterest[j].vx) *
                                    (timeSteps[i] - measurementsOfInterest[j - 1].timeStamp);
-                    integratorY += (dist(generator) + measurementsOfInterest[j].y) *
+                    integratorY += (dist(generator) + measurementsOfInterest[j].vy) *
                                    (timeSteps[i] - measurementsOfInterest[j - 1].timeStamp);
-                    integratorZ += (dist(generator) + measurementsOfInterest[j].z) *
+                    integratorZ += (dist(generator) + measurementsOfInterest[j].vz) *
                                    (timeSteps[i] - measurementsOfInterest[j - 1].timeStamp);
                 } else {
                     if (j == 0) {
                         integratorX +=
-                                (dist(generator) + measurementsOfInterest[j].x) *
+                                (dist(generator) + measurementsOfInterest[j].vx) *
                                 (measurementsOfInterest[j].timeStamp - timeSteps[i - 1]);
                         integratorY +=
-                                (dist(generator) + measurementsOfInterest[j].y) *
+                                (dist(generator) + measurementsOfInterest[j].vy) *
                                 (measurementsOfInterest[j].timeStamp - timeSteps[i - 1]);
                         integratorZ +=
-                                (dist(generator) + measurementsOfInterest[j].z) *
+                                (dist(generator) + measurementsOfInterest[j].vz) *
                                 (measurementsOfInterest[j].timeStamp - timeSteps[i - 1]);
                     } else {
                         integratorX +=
                                 (dist(generator) +
-                                 (measurementsOfInterest[j].x + measurementsOfInterest[j - 1].x) / 2) *
+                                 (measurementsOfInterest[j].vx + measurementsOfInterest[j - 1].vx) / 2) *
                                 (measurementsOfInterest[j].timeStamp - measurementsOfInterest[j - 1].timeStamp);
                         integratorY +=
                                 (dist(generator) +
-                                 (measurementsOfInterest[j].y + measurementsOfInterest[j - 1].y) / 2) *
+                                 (measurementsOfInterest[j].vy + measurementsOfInterest[j - 1].vy) / 2) *
                                 (measurementsOfInterest[j].timeStamp - measurementsOfInterest[j - 1].timeStamp);
                         integratorZ +=
                                 (dist(generator) +
-                                 (measurementsOfInterest[j].z + measurementsOfInterest[j - 1].z) / 2) *
+                                 (measurementsOfInterest[j].vz + measurementsOfInterest[j - 1].vz) / 2) *
                                 (measurementsOfInterest[j].timeStamp - measurementsOfInterest[j - 1].timeStamp);
                     }
                 }
             }
         } else {//only one velocity measurement exists
-            integratorX = measurementsOfInterest[0].x * (timeSteps[i] - timeSteps[i - 1]);
-            integratorY = measurementsOfInterest[0].y * (timeSteps[i] - timeSteps[i - 1]);
-            integratorZ = measurementsOfInterest[0].z * (timeSteps[i] - timeSteps[i - 1]);
+            integratorX = measurementsOfInterest[0].vx * (timeSteps[i] - timeSteps[i - 1]);
+            integratorY = measurementsOfInterest[0].vy * (timeSteps[i] - timeSteps[i - 1]);
+            integratorZ = measurementsOfInterest[0].vz * (timeSteps[i] - timeSteps[i - 1]);
         }
         linearX.push_back(integratorX);
         linearY.push_back(integratorY);
@@ -723,4 +724,60 @@ bool slamToolsRos::detectLoopClosure(graphSlamSaveStructure &graphSaved,
 
     }
     return false;
+}
+
+void slamToolsRos::appendEdgesToGraph(graphSlamSaveStructure &currentGraph,
+                                      std::vector<edge> &listOfEdges, double noiseVelocityIntigration,
+                                      double scalingAngle) {// adds edges to the graph and create vertex, which are represented by edges
+    int i = 1;
+    for (auto &currentEdge : listOfEdges) {
+        vertex lastVertex = currentGraph.getVertexList().back();
+        Eigen::Matrix4d tmpTransformation = lastVertex.getTransformation();
+        tmpTransformation = tmpTransformation * currentEdge.getTransformation();
+        Eigen::Vector3d pos = tmpTransformation.block<3, 1>(0, 3);
+        Eigen::Matrix3d rotM = tmpTransformation.block<3, 3>(0, 0);
+        Eigen::Quaterniond rot(rotM);
+
+        currentGraph.addVertex(lastVertex.getVertexNumber() + 1, pos, rot, lastVertex.getCovariancePosition(),
+                               lastVertex.getCovarianceQuaternion(), currentEdge.getTimeStamp(),
+                               graphSlamSaveStructure::INTEGRATED_POS_USAGE);
+        currentGraph.addEdge(lastVertex.getVertexNumber(), lastVertex.getVertexNumber() + 1,
+                             currentEdge.getPositionDifference(), currentEdge.getRotationDifference(),
+                             Eigen::Vector3d(noiseVelocityIntigration, noiseVelocityIntigration, 0),
+                             scalingAngle * noiseVelocityIntigration, graphSlamSaveStructure::INTEGRATED_POS_USAGE);
+//        graphSaved.getVertexList().back().setTypeOfVertex(
+//                graphSlamSaveStructure::INTEGRATED_POS_USAGE);//1 for vertex defined by dead reckoning
+        i++;
+    }
+}
+
+
+void slamToolsRos::debugPlotting(pcl::PointCloud<pcl::PointXYZ>::Ptr lastScan, pcl::PointCloud<pcl::PointXYZ>::Ptr afterRegistration,
+                   pcl::PointCloud<pcl::PointXYZ>::Ptr currentScanBeforeCorrection,
+                   pcl::PointCloud<pcl::PointXYZ>::Ptr currentScanAfterCorrection,
+                   ros::Publisher &publisherLastPCL,
+                   ros::Publisher &publisherRegistrationPCL,
+                   ros::Publisher &publisherBeforeCorrection,
+                   ros::Publisher &publisherAfterCorrection) {
+
+    sensor_msgs::PointCloud2 lastPCLMsg;
+    pcl::toROSMsg(*lastScan, lastPCLMsg);
+    lastPCLMsg.header.frame_id = "map_ned";
+    publisherLastPCL.publish(lastPCLMsg);
+
+    sensor_msgs::PointCloud2 afterRegistrationMsg;
+    pcl::toROSMsg(*afterRegistration, afterRegistrationMsg);
+    afterRegistrationMsg.header.frame_id = "map_ned";
+    publisherRegistrationPCL.publish(afterRegistrationMsg);
+
+    sensor_msgs::PointCloud2 beforeCorrectionMsg;
+    pcl::toROSMsg(*currentScanBeforeCorrection, beforeCorrectionMsg);
+    beforeCorrectionMsg.header.frame_id = "map_ned";
+    publisherBeforeCorrection.publish(beforeCorrectionMsg);
+
+    sensor_msgs::PointCloud2 afterCorrectionMsg;
+    pcl::toROSMsg(*currentScanAfterCorrection, afterCorrectionMsg);
+    afterCorrectionMsg.header.frame_id = "map_ned";
+    publisherAfterCorrection.publish(afterCorrectionMsg);
+
 }
