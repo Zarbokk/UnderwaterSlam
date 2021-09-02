@@ -116,7 +116,7 @@ private:
         slamToolsRos::calculatePositionOverTime(lastImuData,
                                                 lastDvlData,
                                                 this->posDiffOverTimeEdges, this->timeLastFullScan,
-                                                this->timeCurrentFullScan, 0.1);
+                                                this->timeCurrentFullScan, 0.1,20);
         slamToolsRos::appendEdgesToGraph(this->graphSaved, posDiffOverTimeEdges, 0.3, 0.25);
         this->graphSaved.getVertexList().back().setPointCloudRaw(this->currentScan);
         //correct the scan depending on the Imu and Velocity callback
@@ -197,7 +197,7 @@ private:
         imuFree.lock();
         this->imuDataList.push_back(currentImuDataPoint);
 
-        while (this->imuDataList[0].timeStamp < this->timeLastFullScan) {
+        while (this->imuDataList[0].timeStamp < this->timeLastFullScan-1.0f) {
             if (this->imuDataList.size() == 0) {
                 break;
             }
@@ -219,7 +219,7 @@ private:
         currentDvlDataPoint.timeStamp = msg->header.stamp.toSec();
         this->dvlFree.lock();
         this->dvlDataList.push_back(currentDvlDataPoint);
-        while (this->dvlDataList[0].timeStamp < this->timeLastFullScan) {
+        while (this->dvlDataList[0].timeStamp < this->timeLastFullScan-1.0f) {
             if (this->dvlDataList.size() == 0) {
                 break;
             }

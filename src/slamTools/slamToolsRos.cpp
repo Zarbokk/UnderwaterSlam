@@ -18,7 +18,7 @@ void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros
     visualization_msgs::MarkerArray markerArray;
     int k = 0;
     std::vector<vertex> vertexList = graphSaved.getVertexList();
-    for (const auto &vertexElement : vertexList) {
+    for (const auto &vertexElement: vertexList) {
 
         pcl::PointCloud<pcl::PointXYZ> currentScanTransformed;
         completeTransformation << 1, 0, 0, vertexElement.getPositionVertex().x(),
@@ -80,14 +80,14 @@ void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros
 
     //int timeToPrintGT = plotGTToTime;// (int) (graphSaved.getVertexList().size() / 9) + 1;
     //calculate path GT
-    if(groundTruthSorted!=NULL){
+    if (groundTruthSorted != NULL) {
 
 
         nav_msgs::Path posOverTimeGT;
         posOverTimeGT.header.frame_id = "map_ned";
 
-        for(int i = 0 ; i<groundTruthSorted->size() ; i++){
-        //for (auto &posList:groundTruthSorted) {
+        for (int i = 0; i < groundTruthSorted->size(); i++) {
+            //for (auto &posList:groundTruthSorted) {
             geometry_msgs::PoseStamped pos;
             pos.pose.position.x = groundTruthSorted[i].data()->y - groundTruthSorted[0].data()->y;
             pos.pose.position.y = groundTruthSorted[i].data()->x - groundTruthSorted[0].data()->x;
@@ -180,7 +180,7 @@ std::vector<std::vector<measurement>> slamToolsRos::sortToKeyframe(std::vector<m
     std::vector<std::vector<measurement>> output;
     std::vector<measurement> tmp1;
     output.push_back(tmp1);
-    for (auto currentMeasurement:input) {
+    for (auto currentMeasurement: input) {
         if (currentMeasurement.keyframe != currentKeyframe) {//new keyframe reached
             std::vector<measurement> tmp;
             currentKeyframe = currentMeasurement.keyframe;
@@ -506,10 +506,10 @@ void slamToolsRos::calculatePositionOverTime(std::deque<ImuData> &angularVelocit
                                              std::vector<edge> &posOverTimeEdge,
                                              double lastScanTimeStamp,
                                              double currentScanTimeStamp,
-                                             double noiseAddedStdDiv) {//last then current
+                                             double noiseAddedStdDiv, int numberOfEdges) {//last then current
     posOverTimeEdge.clear();
     std::vector<double> timeSteps = slamToolsRos::linspace(lastScanTimeStamp, currentScanTimeStamp,
-                                                           10);// could be changed this is the number of pos+1 between the scans(10th is the scan itself)
+                                                           numberOfEdges);// could be changed this is the number of pos+1 between the scans(10th is the scan itself)
     std::vector<double> angularX;
     std::vector<double> angularY;
     std::vector<double> angularZ;
@@ -678,7 +678,7 @@ bool slamToolsRos::detectLoopClosure(graphSlamSaveStructure &graphSaved,
 //        }
         int loopclosureNumber = 0;
         bool foundLoopClosure = false;
-        for (const auto &has2beCheckedElemenet : has2beChecked) {
+        for (const auto &has2beCheckedElemenet: has2beChecked) {
             double fitnessScore;
             Eigen::Matrix4d currentTransformation, guess;
             guess = graphSaved.getVertexList().back().getTransformation().inverse() *
@@ -730,7 +730,7 @@ void slamToolsRos::appendEdgesToGraph(graphSlamSaveStructure &currentGraph,
                                       std::vector<edge> &listOfEdges, double noiseVelocityIntigration,
                                       double scalingAngle) {// adds edges to the graph and create vertex, which are represented by edges
     int i = 1;
-    for (auto &currentEdge : listOfEdges) {
+    for (auto &currentEdge: listOfEdges) {
         vertex lastVertex = currentGraph.getVertexList().back();
         Eigen::Matrix4d tmpTransformation = lastVertex.getTransformation();
         tmpTransformation = tmpTransformation * currentEdge.getTransformation();
@@ -752,13 +752,14 @@ void slamToolsRos::appendEdgesToGraph(graphSlamSaveStructure &currentGraph,
 }
 
 
-void slamToolsRos::debugPlotting(pcl::PointCloud<pcl::PointXYZ>::Ptr lastScan, pcl::PointCloud<pcl::PointXYZ>::Ptr afterRegistration,
-                   pcl::PointCloud<pcl::PointXYZ>::Ptr currentScanBeforeCorrection,
-                   pcl::PointCloud<pcl::PointXYZ>::Ptr currentScanAfterCorrection,
-                   ros::Publisher &publisherLastPCL,
-                   ros::Publisher &publisherRegistrationPCL,
-                   ros::Publisher &publisherBeforeCorrection,
-                   ros::Publisher &publisherAfterCorrection) {
+void slamToolsRos::debugPlotting(pcl::PointCloud<pcl::PointXYZ>::Ptr lastScan,
+                                 pcl::PointCloud<pcl::PointXYZ>::Ptr afterRegistration,
+                                 pcl::PointCloud<pcl::PointXYZ>::Ptr currentScanBeforeCorrection,
+                                 pcl::PointCloud<pcl::PointXYZ>::Ptr currentScanAfterCorrection,
+                                 ros::Publisher &publisherLastPCL,
+                                 ros::Publisher &publisherRegistrationPCL,
+                                 ros::Publisher &publisherBeforeCorrection,
+                                 ros::Publisher &publisherAfterCorrection) {
 
     sensor_msgs::PointCloud2 lastPCLMsg;
     pcl::toROSMsg(*lastScan, lastPCLMsg);

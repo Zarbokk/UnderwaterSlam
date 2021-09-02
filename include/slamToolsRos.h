@@ -67,7 +67,7 @@ public:
     static void
     calculatePositionOverTime(std::deque<ImuData> &angularVelocityList, std::deque<DvlData> &bodyVelocityList,
                               std::vector<edge> &posOverTimeEdge,
-                              double lastScanTimeStamp, double currentScanTimeStamp, double noiseAddedStdDiv);
+                              double lastScanTimeStamp, double currentScanTimeStamp, double noiseAddedStdDiv, int numberOfEdges);
 
     static void
     debugPlotting(pcl::PointCloud<pcl::PointXYZ>::Ptr lastScan, pcl::PointCloud<pcl::PointXYZ>::Ptr afterRegistration,
