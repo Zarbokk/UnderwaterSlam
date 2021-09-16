@@ -15,10 +15,9 @@ public:
     Eigen::Vector3f rotation;
     Eigen::Vector3f velocity;
     Eigen::Vector3f angleVelocity;
-    Eigen::Vector3f covarianzPos;
-    Eigen::Vector3f covarianzRPY;
-    ros::Time timeLastPrediction;
     Eigen::MatrixXd covariance;
+    ros::Time timeLastPrediction;
+
     Eigen::VectorXd getStatexyzaxayazrpyrvelpvelyvel() {
         Eigen::VectorXd state = Eigen::VectorXd::Zero(12);
         state(0) = this->position.x();

@@ -3,7 +3,7 @@
 //
 
 #include "slamToolsRos.h"
-
+#include "generalHelpfulTools.h"
 void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros::Publisher &publisherPath,
                                          ros::Publisher &publisherCloud, ros::Publisher &publisherMarkerArray,
                                          double sigmaScaling, ros::Publisher &publisherPathGT,
@@ -364,7 +364,7 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
                         (toTimeStep - fromTimeStep) / (posDiff[j].getTimeStamp() - startTime);
                 firstTransformation.block<3, 1>(0, 3) = interpolationFactor * firstTransformation.block<3, 1>(0, 3);
                 Eigen::Matrix3d rotationMatrix = firstTransformation.block<3, 3>(0, 0);
-                Eigen::Vector3d eulerAngles = rotationMatrix.eulerAngles(0, 1, 2);
+                Eigen::Vector3d eulerAngles = rotationMatrix.eulerAngles(0, 1, 2);//
                 if (abs(eulerAngles[2]) > 2) {
                     std::cout << "big rotation" << std::endl;
                 }
