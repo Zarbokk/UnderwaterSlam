@@ -41,9 +41,16 @@ public:
         this->measurementNoiseDVL(5, 5) = 0.01;
 
         this->measurementImuVelocity = 100 * Eigen::MatrixXd::Identity(12, 12);
+        this->measurementNoiseDVL(6, 6) = 0.1;
+        this->measurementNoiseDVL(7, 7) = 0.1;
         this->measurementImuVelocity(9, 9) = 0.01;
         this->measurementImuVelocity(10, 10) = 0.01;
         this->measurementImuVelocity(11, 11) = 0.01;
+
+        this->measurementNoiseSlam = 100 * Eigen::MatrixXd::Identity(12, 12);
+        this->measurementNoiseSlam(0, 0) = 0.01;
+        this->measurementNoiseSlam(1, 1) = 0.01;
+        this->measurementNoiseSlam(8, 8) = 0.01;
 
         this->stateOfEKF.covariance = processNoise;
 
@@ -69,7 +76,7 @@ public:
 private:
     pose stateOfEKF;
     std::deque<pose> recentPoses;
-    Eigen::MatrixXd processNoise, measurementNoiseDepth, measurementNoiseDVL, measurementImuVelocity;
+    Eigen::MatrixXd processNoise, measurementNoiseDepth, measurementNoiseDVL, measurementImuVelocity, measurementNoiseSlam;
     ros::Time lastUpdateTime;
 };
 

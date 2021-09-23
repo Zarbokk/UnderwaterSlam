@@ -65,11 +65,11 @@ void ekfClass::updateSlam(double xPos, double yPos, double yaw, ros::Time timeSt
     z(1) = yPos;
     z(8) = yaw;
     Eigen::MatrixXd H = Eigen::MatrixXd::Zero(12, 12);
-    H(0, 0) = 0.1;
-    H(1, 1) = 0.1;
-    H(8, 8) = 0.1;
+    H(0, 0) = 1;
+    H(1, 1) = 1;
+    H(8, 8) = 1;
     innovation = z - H * this->stateOfEKF.getStatexyzaxayazrpyrvelpvelyvel();//also y
-    Eigen::MatrixXd S = H * this->stateOfEKF.covariance * H.transpose() + this->measurementNoiseDVL;
+    Eigen::MatrixXd S = H * this->stateOfEKF.covariance * H.transpose() + this->measurementNoiseSlam;
     Eigen::MatrixXd K = this->stateOfEKF.covariance * H.transpose() * S.inverse();
     Eigen::VectorXd newState = this->stateOfEKF.getStatexyzaxayazrpyrvelpvelyvel() + K * innovation;
     this->stateOfEKF.applyState(newState);
@@ -116,8 +116,8 @@ void ekfClass::updateIMU(double roll, double pitch, double xAngularVel, double y
 //    std::cout<< "yaw angle: "<< newState(8) << " Velocity yaw angle: "<< newState(11) << " Velocity yaw angle Measured: "<< velocityLocalAngular(2) <<std::endl;
     this->stateOfEKF.applyState(newState);
     this->stateOfEKF.covariance = (Eigen::MatrixXd::Identity(12, 12) - K * H) * this->stateOfEKF.covariance;
-    std::cout << "\n" << std::endl;
-    std::cout << this->stateOfEKF.covariance << std::endl;
+//    std::cout << "\n" << std::endl;
+//    std::cout << this->stateOfEKF.covariance << std::endl;
 }
 
 void ekfClass::updateDVL(double xVel, double yVel, double zVel, ros::Time timeStamp) {

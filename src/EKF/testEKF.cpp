@@ -15,6 +15,8 @@ public:
         subscriberIMU = n_.subscribe("mavros/imu/data", 1000, &rosClassEKF::imuCallback, this);
         subscriberDVL = n_.subscribe("mavros/local_position/velocity_body", 1000, &rosClassEKF::DVLCallback, this);
         subscriberDepth = n_.subscribe("mavros/altitude", 1000, &rosClassEKF::depthCallback, this);
+        subscriberSlamResults = n_.subscribe("slam_results", 1000, &rosClassEKF::slamCallback, this);
+
         publisherPoseEkf = n_.advertise<geometry_msgs::PoseStamped>("publisherPoseEkf", 10);
         publisherTwistEkf = n_.advertise<geometry_msgs::TwistStamped>("publisherTwistEkf", 10);
 
@@ -25,7 +27,7 @@ private:
     std::deque<mavros_msgs::Altitude::ConstPtr> depthDeque;
     std::deque<geometry_msgs::TwistStamped::ConstPtr> dvlDeque;
     ekfClass currentEkf, lastUpdateEkf;
-    ros::Subscriber subscriberIMU, subscriberDepth, subscriberDVL;
+    ros::Subscriber subscriberIMU, subscriberDepth, subscriberDVL, subscriberSlamResults;
     ros::Publisher publisherPoseEkf, publisherTwistEkf;
     std::mutex updateSlamMutex;
 
@@ -72,10 +74,10 @@ private:
     }
 
     void imuCallback(const sensor_msgs::Imu::ConstPtr &msg) {
-        updateSlamMutex.lock();
+        this->updateSlamMutex.lock();
         this->imuDeque.push_back(msg);
         this->imuCallbackHelper(msg);
-        updateSlamMutex.unlock();
+        this->updateSlamMutex.unlock();
     }
 
     void depthCallbackHelper(const mavros_msgs::Altitude::ConstPtr &msg) {
@@ -84,10 +86,10 @@ private:
     }
 
     void depthCallback(const mavros_msgs::Altitude::ConstPtr &msg) {
-        updateSlamMutex.lock();
+        this->updateSlamMutex.lock();
         this->depthDeque.push_back(msg);
         this->depthCallbackHelper(msg);
-        updateSlamMutex.unlock();
+        this->updateSlamMutex.unlock();
     }
 
     void DVLCallbackHelper(const geometry_msgs::TwistStamped::ConstPtr &msg) {
@@ -95,38 +97,38 @@ private:
     }
 
     void DVLCallback(const geometry_msgs::TwistStamped::ConstPtr &msg) {
-        updateSlamMutex.lock();
+        this->updateSlamMutex.lock();
         this->dvlDeque.push_back(msg);
         this->DVLCallbackHelper(msg);
-        updateSlamMutex.unlock();
+        this->updateSlamMutex.unlock();
     }
 
 
     void slamCallback(const geometry_msgs::PoseStamped::ConstPtr &msg) {
-        updateSlamMutex.lock();
+        this->updateSlamMutex.lock();
         //stop updates for now.
-        currentEkf = lastUpdateEkf.copyEKF();
 
+        this->currentEkf = this->lastUpdateEkf.copyEKF();
         //apply the new update to old EKF(saved earlyer):
         //add Sensor data until time of slam callback is reached.
         //look if one is smaller
-        while (msg->header.stamp > imuDeque[0]->header.stamp || msg->header.stamp > depthDeque[0]->header.stamp ||
-               msg->header.stamp > dvlDeque[0]->header.stamp) {
+        while (msg->header.stamp > this->imuDeque[0]->header.stamp || msg->header.stamp > this->depthDeque[0]->header.stamp ||
+               msg->header.stamp > this->dvlDeque[0]->header.stamp) {
             //find which is smallest
-            if (imuDeque[0]->header.stamp < depthDeque[0]->header.stamp &&
-                imuDeque[0]->header.stamp < dvlDeque[0]->header.stamp) {
+            if (this->imuDeque[0]->header.stamp < this->depthDeque[0]->header.stamp &&
+                    this->imuDeque[0]->header.stamp < this->dvlDeque[0]->header.stamp) {
                 //smallest: imuDeque[0]->header.stamp
-                this->imuCallback(imuDeque[0]);
-                imuDeque.pop_front();
-            } else if (depthDeque[0]->header.stamp < imuDeque[0]->header.stamp &&
-                       depthDeque[0]->header.stamp < dvlDeque[0]->header.stamp) {
+                this->imuCallbackHelper(this->imuDeque[0]);
+                this->imuDeque.pop_front();
+            } else if (this->depthDeque[0]->header.stamp < this->imuDeque[0]->header.stamp &&
+                    this->depthDeque[0]->header.stamp < this->dvlDeque[0]->header.stamp) {
                 //smallest: depthDeque[0]->header.stamp
-                this->depthCallback(depthDeque[0]);
-                depthDeque.pop_front();
+                this->depthCallbackHelper(this->depthDeque[0]);
+                this->depthDeque.pop_front();
             } else {
                 //smallest: dvlDeque[0]->header.stamp
-                this->DVLCallback(dvlDeque[0]);
-                dvlDeque.pop_front();
+                this->DVLCallbackHelper(this->dvlDeque[0]);
+                this->dvlDeque.pop_front();
             }
         }
         Eigen::Quaterniond tmpRot;
@@ -137,14 +139,15 @@ private:
         Eigen::Vector3d orientationRPY = generalHelpfulTools::getRollPitchYaw(tmpRot);
         //update slam data
         this->currentEkf.updateSlam(msg->pose.position.x, msg->pose.position.y, orientationRPY(2), msg->header.stamp);
+
         //copy the ekf(for later and next slam update)
-        lastUpdateEkf = currentEkf.copyEKF();
+        this->lastUpdateEkf = this->currentEkf.copyEKF();
         // apply the remaining updates and predictions.
 
 
-        std::deque<sensor_msgs::Imu::ConstPtr> imuDequeTMP = imuDeque;
-        std::deque<mavros_msgs::Altitude::ConstPtr> depthDequeTMP = depthDeque;
-        std::deque<geometry_msgs::TwistStamped::ConstPtr> dvlDequeTMP = dvlDeque;
+        std::deque<sensor_msgs::Imu::ConstPtr> imuDequeTMP = this->imuDeque;
+        std::deque<mavros_msgs::Altitude::ConstPtr> depthDequeTMP = this->depthDeque;
+        std::deque<geometry_msgs::TwistStamped::ConstPtr> dvlDequeTMP = this->dvlDeque;
 
         while (!imuDequeTMP.empty() || !depthDequeTMP.empty() || !dvlDequeTMP.empty()) {
             double a, b, c;
@@ -169,22 +172,20 @@ private:
             //find which is smallest, then it still has sth in its deque
             if (a < b && a < c) {
                 //smallest: imuDeque[0]->header.stamp
-                this->imuCallback(imuDequeTMP[0]);
+                this->imuCallbackHelper(imuDequeTMP[0]);
                 imuDequeTMP.pop_front();
             } else if (b < a &&
                        b < c) {
                 //smallest: depthDeque[0]->header.stamp
-                this->depthCallback(depthDequeTMP[0]);
+                this->depthCallbackHelper(depthDequeTMP[0]);
                 depthDequeTMP.pop_front();
             } else {
                 //smallest: dvlDeque[0]->header.stamp
-                this->DVLCallback(dvlDequeTMP[0]);
+                this->DVLCallbackHelper(dvlDequeTMP[0]);
                 dvlDequeTMP.pop_front();
             }
         }
-        //insert ekf for future updates.
-
-        updateSlamMutex.unlock();
+        this->updateSlamMutex.unlock();
     }
 
 
