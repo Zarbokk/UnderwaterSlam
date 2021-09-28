@@ -19,8 +19,8 @@ public:
         publisherAfterCorrection = n_.advertise<sensor_msgs::PointCloud2>("afterCorrection", 10);
 
         subscriberFullScan = n_.subscribe("sonar/full_scan", 1000, &rosClassSlam::sonarFullScanCallback, this);
-        subscriberIMU = n_.subscribe("mavros/imu/data", 1000, &rosClassSlam::imuCallback, this);
-        subscriberVelocity = n_.subscribe("mavros/local_position/velocity_body", 1000, &rosClassSlam::velocityCallback,
+        subscriberIMU = n_.subscribe("mavros/imu/data_frd", 1000, &rosClassSlam::imuCallback, this);
+        subscriberVelocity = n_.subscribe("mavros/local_position/velocity_body_frd", 1000, &rosClassSlam::velocityCallback,
                                           this);
 
         Eigen::AngleAxisd rotation_vector2(180.0 / 180.0 * 3.14159, Eigen::Vector3d(1, 0, 0));
@@ -125,16 +125,32 @@ private:
                                              2 * M_PI / 200, 0, 2 * M_PI, false,
                                              Eigen::Matrix4d::Identity());//@TODO 200 has to be checked
 
+
+
+        int j = 1;
+        int sizeOfVertexList = this->graphSaved.getVertexList().size();
+        while (true) {
+            if (this->graphSaved.getVertexList()[ sizeOfVertexList- j-1].getTypeOfVertex() ==
+                graphSlamSaveStructure::POINT_CLOUD_USAGE ||
+                this->graphSaved.getVertexList()[sizeOfVertexList - j-1].getTypeOfVertex() ==
+                graphSlamSaveStructure::FIRST_ENTRY) {
+                break;
+            }
+            j++;
+        }
+        j++;
         //make scan matching with last scan
         this->initialGuessTransformation =
                 this->graphSaved.getVertexList()[this->graphSaved.getVertexList().size() -
-                                                 9].getTransformation().inverse() *
-                this->graphSaved.getVertexList().back().getTransformation();//@todo understand if 9 is correct
+                                                 j].getTransformation().inverse() *
+                this->graphSaved.getVertexList().back().getTransformation();
         this->currentTransformation = scanRegistrationClass::generalizedIcpRegistration(
                 this->graphSaved.getVertexList().back().getPointCloudCorrected(), this->lastScan, this->Final,
                 this->fitnessScore,
                 this->initialGuessTransformation);
         std::cout << "current Fitness Score: " << sqrt(this->fitnessScore) << std::endl;
+        pcl::io::savePCDFileASCII("/home/jurobotics/DataForTests/savingRandomPCL/firstPCL.pcd",*this->graphSaved.getVertexList().back().getPointCloudCorrected());
+        pcl::io::savePCDFileASCII("/home/jurobotics/DataForTests/savingRandomPCL/secondPCL.pcd",*this->lastScan);
 
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr tmpCloudPlotOnly(
@@ -188,11 +204,11 @@ private:
         // Rotation of IMU callback from mavros to ROS(NED)(with minus here)
         ImuData currentImuDataPoint;
         currentImuDataPoint.ax = msg->linear_acceleration.x;
-        currentImuDataPoint.ay = -msg->linear_acceleration.y;
-        currentImuDataPoint.az = -msg->linear_acceleration.z;
+        currentImuDataPoint.ay = msg->linear_acceleration.y;
+        currentImuDataPoint.az = msg->linear_acceleration.z;
         currentImuDataPoint.wx = msg->angular_velocity.x;
-        currentImuDataPoint.wy = -msg->angular_velocity.y;
-        currentImuDataPoint.wz = -msg->angular_velocity.z;
+        currentImuDataPoint.wy = msg->angular_velocity.y;
+        currentImuDataPoint.wz = msg->angular_velocity.z;
         currentImuDataPoint.timeStamp = msg->header.stamp.toSec();
         imuFree.lock();
         this->imuDataList.push_back(currentImuDataPoint);
@@ -214,8 +230,8 @@ private:
         // Rotation of velocity callback from mavros to ROS(NED)(with minus here)
         DvlData currentDvlDataPoint;
         currentDvlDataPoint.vx = msg->twist.linear.x;
-        currentDvlDataPoint.vy = -msg->twist.linear.y;
-        currentDvlDataPoint.vz = -msg->twist.linear.z;
+        currentDvlDataPoint.vy = msg->twist.linear.y;
+        currentDvlDataPoint.vz = msg->twist.linear.z;
         currentDvlDataPoint.timeStamp = msg->header.stamp.toSec();
         this->dvlFree.lock();
         this->dvlDataList.push_back(currentDvlDataPoint);

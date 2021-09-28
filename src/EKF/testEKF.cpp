@@ -12,9 +12,9 @@ class rosClassEKF {
 public:
     rosClassEKF(ros::NodeHandle n_) : currentEkf(ros::Time::now()), lastUpdateEkf(ros::Time::now()) {
         lastUpdateEkf = currentEkf.copyEKF();
-        subscriberIMU = n_.subscribe("mavros/imu/data", 1000, &rosClassEKF::imuCallback, this);
-        subscriberDVL = n_.subscribe("mavros/local_position/velocity_body", 1000, &rosClassEKF::DVLCallback, this);
-        subscriberDepth = n_.subscribe("mavros/altitude", 1000, &rosClassEKF::depthCallback, this);
+        subscriberIMU = n_.subscribe("mavros/imu/data_frd", 1000, &rosClassEKF::imuCallback, this);
+        subscriberDVL = n_.subscribe("mavros/local_position/velocity_body_frd", 1000, &rosClassEKF::DVLCallback, this);
+        subscriberDepth = n_.subscribe("mavros/altitude_frd", 1000, &rosClassEKF::depthCallback, this);
         subscriberSlamResults = n_.subscribe("slam_results", 1000, &rosClassEKF::slamCallback, this);
 
         publisherPoseEkf = n_.advertise<geometry_msgs::PoseStamped>("publisherPoseEkf", 10);
@@ -81,7 +81,7 @@ private:
     }
 
     void depthCallbackHelper(const mavros_msgs::Altitude::ConstPtr &msg) {
-        double depth = -msg->local;// change from ENU to NED
+        double depth = msg->local;// change from mavros to FRD
         currentEkf.updateDepth(depth, msg->header.stamp);
     }
 

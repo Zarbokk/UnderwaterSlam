@@ -18,8 +18,8 @@ void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros
     visualization_msgs::MarkerArray markerArray;
     int k = 0;
     std::vector<vertex> vertexList = graphSaved.getVertexList();
-    for (const auto &vertexElement: vertexList) {
-
+    for (int i = 1;i<vertexList.size();i++) {//skip the first pointCloud
+        const auto vertexElement=vertexList[i];
         pcl::PointCloud<pcl::PointXYZ> currentScanTransformed;
         completeTransformation << 1, 0, 0, vertexElement.getPositionVertex().x(),
                 0, 1, 0, vertexElement.getPositionVertex().y(),

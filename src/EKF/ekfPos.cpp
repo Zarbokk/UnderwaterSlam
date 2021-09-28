@@ -98,31 +98,16 @@ void ekfClass::updateIMU(double roll, double pitch, double xAngularVel, double y
     H(10, 10) = 1;
     H(11, 11) = 1;
     innovation = z - H * this->stateOfEKF.getStatexyzaxayazrpyrvelpvelyvel();//also called y
-//    std::cout << "innovation:" << std::endl;
-//    std::cout << innovation << std::endl;
     Eigen::MatrixXd S = H * this->stateOfEKF.covariance * H.transpose() + this->measurementImuVelocity;
-    //std::cout << S << std::endl;
-    //std::cout << S.inverse() << std::endl;
     Eigen::MatrixXd K = this->stateOfEKF.covariance * H.transpose() * S.inverse();
-//    std::cout << "K:" << std::endl;
-//    std::cout << K << std::endl;
-//    std::cout << "state Before:"<< std::endl;
-//    std::cout << this->stateOfEKF.getStatexyzaxayazrpyrvelpvelyvel() << std::endl;
     Eigen::VectorXd newState = this->stateOfEKF.getStatexyzaxayazrpyrvelpvelyvel() + K * innovation;
-//    std::cout << "state After:"<< std::endl;
-//    std::cout << newState << std::endl;
-//    std::cout << "\n" << std::endl;
-//    std::cout << newState << std::endl;
-//    std::cout<< "yaw angle: "<< newState(8) << " Velocity yaw angle: "<< newState(11) << " Velocity yaw angle Measured: "<< velocityLocalAngular(2) <<std::endl;
     this->stateOfEKF.applyState(newState);
     this->stateOfEKF.covariance = (Eigen::MatrixXd::Identity(12, 12) - K * H) * this->stateOfEKF.covariance;
-//    std::cout << "\n" << std::endl;
-//    std::cout << this->stateOfEKF.covariance << std::endl;
 }
 
 void ekfClass::updateDVL(double xVel, double yVel, double zVel, ros::Time timeStamp) {
 
-    Eigen::Vector3d velocityBodyLinear(xVel, -yVel, -zVel);
+    Eigen::Vector3d velocityBodyLinear(xVel, yVel, zVel);
     // velocityAngular has to be changed to correct rotation(world velocityAngular)
     Eigen::Vector3d velocityLocalLinear = this->getRotationVector() * velocityBodyLinear;
 

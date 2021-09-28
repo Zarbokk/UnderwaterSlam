@@ -12,3 +12,12 @@ Eigen::Vector3d generalHelpfulTools::getRollPitchYaw(Eigen::Quaterniond quat){
     Eigen::Vector3d returnVector(r,p,y);
     return returnVector;
 }
+
+Eigen::Quaterniond generalHelpfulTools::getQuaternionFromRPY(double roll, double pitch, double yaw){
+    Eigen::Quaterniond q;
+    q = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX())
+        * Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY())
+        * Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
+    return q;
+}
+
