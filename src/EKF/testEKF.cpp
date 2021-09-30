@@ -81,7 +81,7 @@ private:
     }
 
     void depthCallbackHelper(const mavros_msgs::Altitude::ConstPtr &msg) {
-        double depth = msg->local;// change from mavros to FRD
+        double depth = msg->local;
         currentEkf.updateDepth(depth, msg->header.stamp);
     }
 

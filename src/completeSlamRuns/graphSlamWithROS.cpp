@@ -18,12 +18,14 @@ public:
         publisherBeforeCorrection = n_.advertise<sensor_msgs::PointCloud2>("beforeCorrection", 10);
         publisherAfterCorrection = n_.advertise<sensor_msgs::PointCloud2>("afterCorrection", 10);
 
-        subscriberFullScan = n_.subscribe("sonar/full_scan", 1000, &rosClassSlam::sonarFullScanCallback, this);
-        subscriberIMU = n_.subscribe("mavros/imu/data_frd", 1000, &rosClassSlam::imuCallback, this);
-        subscriberVelocity = n_.subscribe("mavros/local_position/velocity_body_frd", 1000, &rosClassSlam::velocityCallback,
+        subscriberFullScan = n_.subscribe("sonar/full_scan", 10000, &rosClassSlam::sonarFullScanCallback, this);
+        subscriberIMU = n_.subscribe("mavros/imu/data_frd", 10000, &rosClassSlam::imuCallback, this);
+        subscriberVelocity = n_.subscribe("mavros/local_position/velocity_body_frd", 10000, &rosClassSlam::velocityCallback,
                                           this);
 
         Eigen::AngleAxisd rotation_vector2(180.0 / 180.0 * 3.14159, Eigen::Vector3d(1, 0, 0));
+        //Eigen::AngleAxisd rotation_vector2(0.0 / 180.0 * 3.14159, Eigen::Vector3d(1, 0, 0));
+
         Eigen::Matrix3d tmpMatrix3d = rotation_vector2.toRotationMatrix();
         transformationX180Degree.block<3, 3>(0, 0) = tmpMatrix3d;
         transformationX180Degree(3, 3) = 1;
@@ -81,14 +83,11 @@ private:
         this->timeCurrentFullScan = msg->header.stamp.toSec();
         pcl::fromROSMsg(*msg, *this->currentScan);
 
-
         pcl::transformPointCloud(*this->currentScan, *this->currentScan, transformationX180Degree);
 
         if (this->timeLastFullScan == 0) {
             this->timeLastFullScan = this->timeCurrentFullScan;
-            //this->graphSaved.getVertexList().back().setPointCloudRaw(this->currentScan);
-            this->graphSaved.getVertexList().back().setTimeStamp(this->timeCurrentFullScan);
-            //this->graphSaved.getVertexList().back().setPointCloudCorrected(this->currentScan);
+            this->graphSaved.getVertexByIndex(0)->setTimeStamp(this->timeCurrentFullScan);
             *this->lastScan = *this->currentScan;
             return;
         }
@@ -121,36 +120,35 @@ private:
         this->graphSaved.getVertexList().back().setPointCloudRaw(this->currentScan);
         //correct the scan depending on the Imu and Velocity callback
         slamToolsRos::correctPointCloudAtPos(this->graphSaved.getVertexList().back().getVertexNumber(),
-                                             this->graphSaved,
-                                             2 * M_PI / 200, 0, 2 * M_PI, false,
-                                             Eigen::Matrix4d::Identity());//@TODO 200 has to be checked
+                                             this->graphSaved, 0, 2 * M_PI, true,
+                                             Eigen::Matrix4d::Identity());
 
 
 
-        int j = 1;
+        int positionLastPcl = 1;
         int sizeOfVertexList = this->graphSaved.getVertexList().size();
         while (true) {
-            if (this->graphSaved.getVertexList()[ sizeOfVertexList- j-1].getTypeOfVertex() ==
+            if (this->graphSaved.getVertexList()[sizeOfVertexList - positionLastPcl - 1].getTypeOfVertex() ==
                 graphSlamSaveStructure::POINT_CLOUD_USAGE ||
-                this->graphSaved.getVertexList()[sizeOfVertexList - j-1].getTypeOfVertex() ==
+                this->graphSaved.getVertexList()[sizeOfVertexList - positionLastPcl - 1].getTypeOfVertex() ==
                 graphSlamSaveStructure::FIRST_ENTRY) {
                 break;
             }
-            j++;
+            positionLastPcl++;
         }
-        j++;
+        positionLastPcl++;
         //make scan matching with last scan
         this->initialGuessTransformation =
                 this->graphSaved.getVertexList()[this->graphSaved.getVertexList().size() -
-                                                 j].getTransformation().inverse() *
+                                                 positionLastPcl].getTransformation().inverse() *
                 this->graphSaved.getVertexList().back().getTransformation();
         this->currentTransformation = scanRegistrationClass::generalizedIcpRegistration(
                 this->graphSaved.getVertexList().back().getPointCloudCorrected(), this->lastScan, this->Final,
                 this->fitnessScore,
                 this->initialGuessTransformation);
         std::cout << "current Fitness Score: " << sqrt(this->fitnessScore) << std::endl;
-        pcl::io::savePCDFileASCII("/home/jurobotics/DataForTests/savingRandomPCL/firstPCL.pcd",*this->graphSaved.getVertexList().back().getPointCloudCorrected());
-        pcl::io::savePCDFileASCII("/home/jurobotics/DataForTests/savingRandomPCL/secondPCL.pcd",*this->lastScan);
+//        pcl::io::savePCDFileASCII("/home/jurobotics/DataForTests/savingRandomPCL/firstPCL.pcd",*this->graphSaved.getVertexList().back().getPointCloudCorrected());
+//        pcl::io::savePCDFileASCII("/home/jurobotics/DataForTests/savingRandomPCL/secondPCL.pcd",*this->lastScan);
 
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr tmpCloudPlotOnly(
@@ -164,24 +162,26 @@ private:
 
 
         Eigen::Quaterniond qTMP(this->currentTransformation.block<3, 3>(0, 0));
-        graphSaved.addEdge(this->graphSaved.getVertexList().size() - 10, graphSaved.getVertexList().size() - 1,
+        graphSaved.addEdge(this->graphSaved.getVertexList().size() - positionLastPcl, graphSaved.getVertexList().size() - 1,
                            this->currentTransformation.block<3, 1>(0, 3), qTMP,
                            Eigen::Vector3d(sqrt(this->fitnessScore), sqrt(this->fitnessScore), 0),
                            0.25 * sqrt(this->fitnessScore),
                            graphSlamSaveStructure::POINT_CLOUD_USAGE);//@TODO still not sure about size
 
-        slamToolsRos::detectLoopClosure(this->graphSaved, this->sigmaScaling, 3.0);//was 1.0
+        slamToolsRos::detectLoopClosure(this->graphSaved, this->sigmaScaling, 1.5);//was 1.0
 
         //add position and optimize/publish everything
 //        slamToolsRos::visualizeCurrentGraph(graphSaved, publisherPathOverTime, publisherKeyFrameClouds,
 //                                            publisherMarkerArray, sigmaScaling, publisherPathOverTimeGT,
 //                                            groundTruthSorted, publisherMarkerArrayLoopClosures,
 //                                            timeCurrentGroundTruth);
-//        graphSaved.optimizeGraphWithSlamTopDown(false, 0.05);
+
 //        slamToolsRos::visualizeCurrentGraph(graphSaved, publisherPathOverTime, publisherKeyFrameClouds,
 //                                            publisherMarkerArray, sigmaScaling, publisherPathOverTimeGT,
 //                                            groundTruthSorted, publisherMarkerArrayLoopClosures,
 //                                            timeCurrentGroundTruth);
+
+//        graphSaved.optimizeGraphWithSlamTopDown(false, 0.05);
         std::vector<int> holdStill{0};
         graphSaved.optimizeGraphWithSlam(false, holdStill);
 
@@ -195,7 +195,7 @@ private:
                                             NULL);
         std::cout << "next: " << std::endl;
         this->timeLastFullScan = this->timeCurrentFullScan;
-        *this->lastScan = *this->currentScan;
+        *this->lastScan = *this->graphSaved.getVertexList().back().getPointCloudCorrected();
     }
 
     void imuCallback(const sensor_msgs::Imu::ConstPtr &msg) {

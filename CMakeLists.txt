@@ -57,7 +57,7 @@ include
 #target_link_libraries(correctionPCL ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 
-add_executable(testFile src/testFiles/testFile.cpp src/registration/scanRegistrationClass.cpp src/poseGraphsrc/graphSlamSaveStructure.cpp src/poseGraphsrc/edge.cpp src/poseGraphsrc/vertex.cpp src/slamTools/slamToolsRos.cpp src/json/jsoncpp.cpp src/hilbertMapssrc/hilbertMap.cpp)
+add_executable(testFile src/testFiles/testFile.cpp ${SOURCE_FILES})
 target_link_libraries(testFile ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(soft20TestFile src/registration/soft20TestFile.cpp)
@@ -66,7 +66,7 @@ target_link_libraries(soft20TestFile fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 add_executable(correlationRotationSoft20 src/registration/correlationRotationSoft20.cpp)
 target_link_libraries(correlationRotationSoft20 fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-add_executable(hilbertMapTestFile src/testFiles/hilbertMapExample.cpp src/registration/scanRegistrationClass.cpp src/poseGraphsrc/graphSlamSaveStructure.cpp src/poseGraphsrc/edge.cpp src/poseGraphsrc/vertex.cpp src/slamTools/slamToolsRos.cpp src/json/jsoncpp.cpp src/hilbertMapssrc/hilbertMap.cpp)
+add_executable(hilbertMapTestFile src/testFiles/hilbertMapExample.cpp ${SOURCE_FILES})
 target_link_libraries(hilbertMapTestFile ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(stPereDatasetRosPublishing src/completeSlamRuns/stPereDatasetPublishingRos.cpp ${SOURCE_FILES})

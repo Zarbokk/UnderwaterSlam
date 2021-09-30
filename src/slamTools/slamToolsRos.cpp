@@ -19,7 +19,7 @@ void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros
     int k = 0;
     std::vector<vertex> vertexList = graphSaved.getVertexList();
     for (int i = 1;i<vertexList.size();i++) {//skip the first pointCloud
-        const auto vertexElement=vertexList[i];
+        vertex vertexElement=vertexList[i];
         pcl::PointCloud<pcl::PointXYZ> currentScanTransformed;
         completeTransformation << 1, 0, 0, vertexElement.getPositionVertex().x(),
                 0, 1, 0, vertexElement.getPositionVertex().y(),
@@ -30,7 +30,10 @@ void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros
         pcl::transformPointCloud(*vertexElement.getPointCloudCorrected(), currentScanTransformed,
                                  completeTransformation);
         completeCloudWithPos += currentScanTransformed;
-
+//        if(vertexElement.getTypeOfVertex()==graphSlamSaveStructure::POINT_CLOUD_USAGE){
+//            pcl::io::savePCDFileASCII("/home/jurobotics/DataForTests/savingRandomPCL/firstPCL.pcd",*vertexElement.getPointCloudCorrected());
+//            pcl::io::savePCDFileASCII("/home/jurobotics/DataForTests/savingRandomPCL/secondPCL.pcd",currentScanTransformed);
+//        }
 
         geometry_msgs::PoseStamped pos;
         pos.pose.position.x = vertexElement.getPositionVertex().x();
@@ -194,7 +197,7 @@ std::vector<std::vector<measurement>> slamToolsRos::sortToKeyframe(std::vector<m
 }
 
 void
-slamToolsRos::correctPointCloudAtPos(int positionToCorrect, graphSlamSaveStructure &currentGraph, double angleStepSize,
+slamToolsRos::correctPointCloudAtPos(int positionToCorrect, graphSlamSaveStructure &currentGraph,
                                      double beginAngle,
                                      double endAngle, bool reverseScanDirection,
                                      Eigen::Matrix4d transformationPosData2PclCoord) {
@@ -231,22 +234,21 @@ slamToolsRos::correctPointCloudAtPos(int positionToCorrect, graphSlamSaveStructu
     pcl::PointCloud<pcl::PointXYZ>::Ptr correctedPointCloud(new pcl::PointCloud<pcl::PointXYZ>);
     *correctedPointCloud = *cloudScan;
     slamToolsRos::correctPointCloudByPosition(correctedPointCloud, posDiff,
-                                              currentGraph.getVertexList()[lastIndex].getTimeStamp(),
-                                              angleStepSize, beginAngle, endAngle, reverseScanDirection,
+                                              currentGraph.getVertexList()[lastIndex].getTimeStamp(), beginAngle, endAngle, reverseScanDirection,
                                               transformationPosData2PclCoord);
     currentGraph.getVertexList()[positionToCorrect].setPointCloudCorrected(correctedPointCloud);
     currentGraph.getVertexByIndex(positionToCorrect)->setTypeOfVertex(graphSlamSaveStructure::POINT_CLOUD_USAGE);
 }
 
 void
-slamToolsRos::correctEveryPointCloud(graphSlamSaveStructure &currentGraph, double angleStepSize,
+slamToolsRos::correctEveryPointCloud(graphSlamSaveStructure &currentGraph,
                                      double beginAngle,
                                      double endAngle, bool reverseScanDirection,
                                      Eigen::Matrix4d transformationPosData2PclCoord) {
 
     for (int i = 1; i < currentGraph.getVertexList().size(); i++) {
         if (currentGraph.getVertexList()[i].getTypeOfVertex() == graphSlamSaveStructure::POINT_CLOUD_USAGE) {
-            slamToolsRos::correctPointCloudAtPos(i, currentGraph, angleStepSize, beginAngle, endAngle,
+            slamToolsRos::correctPointCloudAtPos(i, currentGraph, beginAngle, endAngle,
                                                  reverseScanDirection, transformationPosData2PclCoord);
         }
     }
@@ -293,11 +295,11 @@ slamToolsRos::recalculatePCLEdges(graphSlamSaveStructure &currentGraph) {
 
 void
 slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cloudScan, std::vector<edge> &posDiff,
-                                          double timeStampBeginning, double angleStepSize, double beginAngle,
+                                          double timeStampBeginning, double beginAngle,
                                           double endAngle, bool reverseScanDirection,
                                           Eigen::Matrix4d transformationPosData2PclCoord) {
     //this is assuming we are linear in time
-    //resulting scan should be at end position means: point 0 is transformed by diff of pos 0 to n
+    //resulting scan should be at end position means: the first point is transformed by diff to last point
 
     struct pclAngle {
         pcl::PointXYZ pointXyz;
@@ -316,13 +318,13 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
     }
     //sort from 0 to 2pi if rotation is positive
     std::sort(vectorOfPointsAngle.begin(), vectorOfPointsAngle.end(),
-              [](const auto &i, const auto &j) { return i.angle > j.angle; });
+              [](const auto &i, const auto &j) { return i.angle < j.angle; });
 
 
 
 
 //    pclAngle tmpSaving = vectorOfPointsAngle[0];
-//    vectorOfPointsAngle.erase(vectorOfPointsAngle.begin());//@TODO shitty solution i want a different one
+//    vectorOfPointsAngle.erase(vectorOfPointsAngle.begin());
 //    vectorOfPointsAngle.push_back(tmpSaving);
     //calculate number of points transformations defined by edge list
     std::vector<Eigen::Matrix4d> listOfTransformations;
@@ -330,7 +332,7 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
     double endTime = posDiff.back().getTimeStamp();
     std::vector<double> timeStepsForCorrection = slamToolsRos::linspace(startTime, endTime,
                                                                         (int) ((endAngle - beginAngle) /
-                                                                               angleStepSize));
+                                                                                (2 * M_PI / (cloudScan->size()-1))));
     //calculate transformations over time for every timestep
     for (int i = 0; i < timeStepsForCorrection.size(); i++) {
         Eigen::Matrix4d currentTransformation;
@@ -363,11 +365,8 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
                 double interpolationFactor =
                         (toTimeStep - fromTimeStep) / (posDiff[j].getTimeStamp() - startTime);
                 firstTransformation.block<3, 1>(0, 3) = interpolationFactor * firstTransformation.block<3, 1>(0, 3);
-                Eigen::Matrix3d rotationMatrix = firstTransformation.block<3, 3>(0, 0);
-                Eigen::Vector3d eulerAngles = rotationMatrix.eulerAngles(0, 1, 2);//
-                if (abs(eulerAngles[2]) > 2) {
-                    std::cout << "big rotation" << std::endl;
-                }
+                Eigen::Quaterniond rotationQuat(firstTransformation.block<3, 3>(0, 0));
+                Eigen::Vector3d eulerAngles = generalHelpfulTools::getRollPitchYaw(rotationQuat);
                 eulerAngles = interpolationFactor * eulerAngles;
 
                 Eigen::Matrix3d tmp;
@@ -377,7 +376,7 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
                 firstTransformation.block<3, 3>(0, 0) = tmp;
                 currentTransformation *= firstTransformation;
                 //add rest
-                for (int k = j + 1; k < posDiff.size(); k++) {
+                for (int k = j + 1; k < posDiff.size(); k++) {//@TODO maybe last added position not perfect
                     //calculate transformation of edge
                     currentTransformation *= posDiff[k].getTransformation();
                     //add to currentTransformation
@@ -392,8 +391,8 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
             double interpolationFactor =
                     (toTimeStep - fromTimeStep) / (posDiff[j].getTimeStamp() - posDiff[j - 1].getTimeStamp());
             firstTransformation.block<3, 1>(0, 3) = interpolationFactor * firstTransformation.block<3, 1>(0, 3);
-            Eigen::Matrix3d rotationMatrix = firstTransformation.block<3, 3>(0, 0);
-            Eigen::Vector3d eulerAngles = rotationMatrix.eulerAngles(0, 1, 2);
+            Eigen::Quaterniond rotationQuat(firstTransformation.block<3, 3>(0, 0));
+            Eigen::Vector3d eulerAngles = generalHelpfulTools::getRollPitchYaw(rotationQuat);
             if (abs(eulerAngles[2]) > 2) {
                 std::cout << "big rotation" << std::endl;
             }
@@ -434,7 +433,7 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
 
         //calc timestamp desired which transformation is of interest:
         double timestampDesired =
-                (endTime - startTime) * (vectorOfPointsAngle[i].angle - beginAngle) / (endAngle - beginAngle);
+                (endTime - startTime) * (vectorOfPointsAngle[i].angle - beginAngle) / (endAngle - beginAngle);//@TODO still wrong the calculation...
 
         //@TODO interpolate between the two transformations
         //find nearest timeStamp
@@ -445,7 +444,7 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
             positionInArray = listOfTransformations.size() - positionInArray - 1;
         }
 
-        currentPoint = listOfTransformations[positionInArray] * currentPoint;
+        currentPoint = listOfTransformations[positionInArray].inverse() * currentPoint;
         point.x = currentPoint.x();
         point.y = currentPoint.y();
         point.z = currentPoint.z();

@@ -63,7 +63,7 @@ public:
     static std::vector<std::vector<measurement>> sortToKeyframe(std::vector<measurement> &input);
 
     static void correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cloudScan, std::vector<edge> &posDiff,
-                                            double timeStampBeginning, double angleStepSize, double beginAngle,
+                                            double timeStampBeginning, double beginAngle,
                                             double endAngle, bool reverseScanDirection,
                                             Eigen::Matrix4d transformationPosData2PclCoord);
 
@@ -85,11 +85,11 @@ public:
     static std::vector<double> linspace(double start_in, double end_in, int num_in);
 
     static void
-    correctPointCloudAtPos(int positionToCorrect, graphSlamSaveStructure &currentGraph, double angleStepSize,
+    correctPointCloudAtPos(int positionToCorrect, graphSlamSaveStructure &currentGraph,
                            double beginAngle,
                            double endAngle, bool reverseScanDirection, Eigen::Matrix4d transformationPosData2PclCoord);
 
-    static void correctEveryPointCloud(graphSlamSaveStructure &currentGraph, double angleStepSize,
+    static void correctEveryPointCloud(graphSlamSaveStructure &currentGraph,
                                        double beginAngle,
                                        double endAngle, bool reverseScanDirection,
                                        Eigen::Matrix4d transformationPosData2PclCoord);
