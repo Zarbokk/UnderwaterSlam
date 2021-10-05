@@ -21,7 +21,7 @@ find_package(PCL 1.10 REQUIRED COMPONENTS common io visualization)
 set(SOURCE_FILES src/registration/scanRegistrationClass.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} src/poseGraphsrc/graphSlamSaveStructure.cpp src/poseGraphsrc/edge.cpp src/poseGraphsrc/vertex.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} src/json/jsoncpp.cpp src/slamTools/slamToolsRos.cpp src/slamTools/generalHelpfulTools.cpp)
-set(SOURCE_FILES ${SOURCE_FILES} include/edge.h include/graphSlamSaveStructure.h include/hilbertMap.h include/json.h include/keyFrame.h include/scanRegistrationClass.h include/slamToolsRos.h include/vertex.h include/ekf.h include/generalHelpfulTools.h)
+set(SOURCE_FILES ${SOURCE_FILES} include/edge.h include/graphSlamSaveStructure.h src/hilbertMapssrc/hilbertMap.cpp include/hilbertMap.h include/json.h include/keyFrame.h include/scanRegistrationClass.h include/slamToolsRos.h include/vertex.h include/ekf.h include/generalHelpfulTools.h)
 
 
 catkin_package(

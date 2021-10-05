@@ -9,7 +9,7 @@ void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros
                                          double sigmaScaling, ros::Publisher &publisherPathGT,
                                          std::vector<measurement> *groundTruthSorted,
                                          ros::Publisher &publisherMarkerArrayLoopClosures,
-                                         double plotGTToTime) {
+                                         double plotGTToTime, int numberOfEdgesBetweenScans) {
 
     nav_msgs::Path posOverTime;
     posOverTime.header.frame_id = "map_ned";
@@ -112,7 +112,7 @@ void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros
     for (int i = 0; i < graphSaved.getEdgeList()->size(); i++) {
         edge currentEdgeOfInterest = graphSaved.getEdgeList()->data()[i];
         if (abs(currentEdgeOfInterest.getFromVertex() - currentEdgeOfInterest.getToVertex()) >
-            15) {//if its a loop closure then create arrow from vertex a to vertex b
+                numberOfEdgesBetweenScans) {//if its a loop closure then create arrow from vertex a to vertex b
             visualization_msgs::Marker currentMarker;
             //currentMarker.pose.position.x = pos.pose.position.x;
             //currentMarker.pose.position.y = pos.pose.position.y;
@@ -330,9 +330,7 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
     std::vector<Eigen::Matrix4d> listOfTransformations;
     double startTime = timeStampBeginning;
     double endTime = posDiff.back().getTimeStamp();
-    std::vector<double> timeStepsForCorrection = slamToolsRos::linspace(startTime, endTime,
-                                                                        (int) ((endAngle - beginAngle) /
-                                                                                (2 * M_PI / (cloudScan->size()-1))));
+    std::vector<double> timeStepsForCorrection = slamToolsRos::linspace(startTime, endTime,1000); // (int) ((endAngle - beginAngle) / (2 * M_PI / (cloudScan->size()-1)))
     //calculate transformations over time for every timestep
     for (int i = 0; i < timeStepsForCorrection.size(); i++) {
         Eigen::Matrix4d currentTransformation;
@@ -433,9 +431,9 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
 
         //calc timestamp desired which transformation is of interest:
         double timestampDesired =
-                (endTime - startTime) * (vectorOfPointsAngle[i].angle - beginAngle) / (endAngle - beginAngle);//@TODO still wrong the calculation...
+                (endTime - startTime) * (vectorOfPointsAngle[i].angle - beginAngle) / (endAngle - beginAngle);
 
-        //@TODO interpolate between the two transformations
+
         //find nearest timeStamp
         int positionInArray = (int) (timestampDesired / (endTime - startTime) * timeStepsForCorrection.size());
         //positionInArray=positionInArray;
@@ -444,6 +442,7 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
             positionInArray = listOfTransformations.size() - positionInArray - 1;
         }
 
+        //@TODO interpolate between the two transformations( should be double, and then interpolate between two 4x4 matrices)
         currentPoint = listOfTransformations[positionInArray].inverse() * currentPoint;
         point.x = currentPoint.x();
         point.y = currentPoint.y();
@@ -552,7 +551,7 @@ void slamToolsRos::calculatePositionOverTime(std::deque<ImuData> &angularVelocit
                     }
                 }
             }
-        } else {//only one velocity measurement exists
+        } else {//only one or zero velocity measurement exists
             integratorX = measurementsOfInterest[0].wx * (timeSteps[i] - timeSteps[i - 1]);
             integratorY = measurementsOfInterest[0].wy * (timeSteps[i] - timeSteps[i - 1]);
             integratorZ = measurementsOfInterest[0].wz * (timeSteps[i] - timeSteps[i - 1]);
@@ -648,7 +647,7 @@ void slamToolsRos::calculatePositionOverTime(std::deque<ImuData> &angularVelocit
 }
 
 bool slamToolsRos::detectLoopClosure(graphSlamSaveStructure &graphSaved,
-                                     double sigmaScaling, double cutoffFitnessOnDetect) {
+                                     double sigmaScaling, double cutoffFitnessOnDetect, double maxTimeOptimization) {
     Eigen::Vector3d estimatedPosLastPoint = graphSaved.getVertexList().back().getPositionVertex();
     pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudLast = graphSaved.getVertexList().back().getPointCloudCorrected();
     Eigen::ArrayXXf dist;
@@ -711,7 +710,7 @@ bool slamToolsRos::detectLoopClosure(graphSlamSaveStructure &graphSaved,
                 Eigen::Vector3d positionCovariance(sqrt(fitnessScore), sqrt(fitnessScore), 0);
                 graphSaved.addEdge((int) graphSaved.getVertexList().size() - 1, has2beCheckedElemenet, currentPosDiff,
                                    currentRotDiff, positionCovariance, 0.25 * sqrt(fitnessScore),
-                                   graphSlamSaveStructure::POINT_CLOUD_USAGE);
+                                   graphSlamSaveStructure::POINT_CLOUD_USAGE,maxTimeOptimization);
                 foundLoopClosure = true;
                 loopclosureNumber++;
                 if (loopclosureNumber > 2) { break; }// break if multiple loop closures are found
@@ -727,7 +726,7 @@ bool slamToolsRos::detectLoopClosure(graphSlamSaveStructure &graphSaved,
 
 void slamToolsRos::appendEdgesToGraph(graphSlamSaveStructure &currentGraph,
                                       std::vector<edge> &listOfEdges, double noiseVelocityIntigration,
-                                      double scalingAngle) {// adds edges to the graph and create vertex, which are represented by edges
+                                      double scalingAngle, double maxTimeOptimization) {// adds edges to the graph and create vertex, which are represented by edges
     int i = 1;
     for (auto &currentEdge: listOfEdges) {
         vertex lastVertex = currentGraph.getVertexList().back();
@@ -743,7 +742,7 @@ void slamToolsRos::appendEdgesToGraph(graphSlamSaveStructure &currentGraph,
         currentGraph.addEdge(lastVertex.getVertexNumber(), lastVertex.getVertexNumber() + 1,
                              currentEdge.getPositionDifference(), currentEdge.getRotationDifference(),
                              Eigen::Vector3d(noiseVelocityIntigration, noiseVelocityIntigration, 0),
-                             scalingAngle * noiseVelocityIntigration, graphSlamSaveStructure::INTEGRATED_POS_USAGE);
+                             scalingAngle * noiseVelocityIntigration, graphSlamSaveStructure::INTEGRATED_POS_USAGE,maxTimeOptimization);
 //        graphSaved.getVertexList().back().setTypeOfVertex(
 //                graphSlamSaveStructure::INTEGRATED_POS_USAGE);//1 for vertex defined by dead reckoning
         i++;

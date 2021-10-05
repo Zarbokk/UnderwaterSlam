@@ -4,6 +4,7 @@
 #include "geometry_msgs/TwistStamped.h"
 #include <condition_variable>
 #include <mutex>
+#include <signal.h>
 
 class rosClassSlam {
 public:
@@ -34,9 +35,11 @@ public:
                              Eigen::Vector3d(0, 0, 0), 0, 0.0, graphSlamSaveStructure::FIRST_ENTRY);
 
         std::deque<double> subgraphs{1, 3};
-        graphSaved.initiallizeSubGraphs(subgraphs);
+        graphSaved.initiallizeSubGraphs(subgraphs, maxTimeOptimization);
         this->sigmaScaling = 1.0;
         this->timeLastFullScan = 0;
+        this->maxTimeOptimization = 1.0;
+        this->numberOfEdgesBetweenScans = 20;
         pcl::PointCloud<pcl::PointXYZ>::Ptr tmpPCL1(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::PointCloud<pcl::PointXYZ>::Ptr tmpPCL2(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::PointCloud<pcl::PointXYZ>::Ptr tmpPCL3(new pcl::PointCloud<pcl::PointXYZ>);
@@ -74,6 +77,8 @@ private:
     double timeCurrentFullScan;
     double fitnessScore;
     double sigmaScaling;
+    double maxTimeOptimization;
+    int numberOfEdgesBetweenScans;
     //std::condition_variable imuFree;// dvlFree;
     std::mutex imuFree, dvlFree;
     graphSlamSaveStructure graphSaved;
@@ -115,8 +120,8 @@ private:
         slamToolsRos::calculatePositionOverTime(lastImuData,
                                                 lastDvlData,
                                                 this->posDiffOverTimeEdges, this->timeLastFullScan,
-                                                this->timeCurrentFullScan, 0.1,20);
-        slamToolsRos::appendEdgesToGraph(this->graphSaved, posDiffOverTimeEdges, 0.3, 0.25);
+                                                this->timeCurrentFullScan, 0.1,this->numberOfEdgesBetweenScans);
+        slamToolsRos::appendEdgesToGraph(this->graphSaved, posDiffOverTimeEdges, 0.3, 0.25, maxTimeOptimization);
         this->graphSaved.getVertexList().back().setPointCloudRaw(this->currentScan);
         //correct the scan depending on the Imu and Velocity callback
         slamToolsRos::correctPointCloudAtPos(this->graphSaved.getVertexList().back().getVertexNumber(),
@@ -166,9 +171,9 @@ private:
                            this->currentTransformation.block<3, 1>(0, 3), qTMP,
                            Eigen::Vector3d(sqrt(this->fitnessScore), sqrt(this->fitnessScore), 0),
                            0.25 * sqrt(this->fitnessScore),
-                           graphSlamSaveStructure::POINT_CLOUD_USAGE);//@TODO still not sure about size
+                           graphSlamSaveStructure::POINT_CLOUD_USAGE,maxTimeOptimization);//@TODO still not sure about size
 
-        slamToolsRos::detectLoopClosure(this->graphSaved, this->sigmaScaling, 1.5);//was 1.0
+        slamToolsRos::detectLoopClosure(this->graphSaved, this->sigmaScaling, 1.5, maxTimeOptimization);//was 1.0
 
         //add position and optimize/publish everything
 //        slamToolsRos::visualizeCurrentGraph(graphSaved, publisherPathOverTime, publisherKeyFrameClouds,
@@ -181,18 +186,18 @@ private:
 //                                            groundTruthSorted, publisherMarkerArrayLoopClosures,
 //                                            timeCurrentGroundTruth);
 
-//        graphSaved.optimizeGraphWithSlamTopDown(false, 0.05);
-        std::vector<int> holdStill{0};
-        graphSaved.optimizeGraphWithSlam(false, holdStill);
+        graphSaved.optimizeGraphWithSlamTopDown(false, 0.05,maxTimeOptimization);
+//        std::vector<int> holdStill{0};
+//        graphSaved.optimizeGraphWithSlam(false, holdStill,maxTimeOptimization);
 
-        graphSaved.calculateCovarianceInCloseProximity();
+        graphSaved.calculateCovarianceInCloseProximity(maxTimeOptimization);
 
         slamToolsRos::visualizeCurrentGraph(this->graphSaved, this->publisherPathOverTime,
                                             this->publisherKeyFrameClouds,
                                             this->publisherMarkerArray, this->sigmaScaling,
                                             this->publisherPathOverTimeGT,
                                             NULL, this->publisherMarkerArrayLoopClosures,
-                                            NULL);
+                                            NULL,this->numberOfEdgesBetweenScans);
         std::cout << "next: " << std::endl;
         this->timeLastFullScan = this->timeCurrentFullScan;
         *this->lastScan = *this->graphSaved.getVertexList().back().getPointCloudCorrected();
@@ -243,21 +248,57 @@ private:
         }
         this->dvlFree.unlock();
     }
+public:
+    void shutDownHook(){
+        this->subscriberFullScan.shutdown();
+        std::cout << "Optimizing one Last Time(full)" << std::endl;
+        std::vector<int> holdStill{0};
+        graphSaved.optimizeGraphWithSlam(false, holdStill,maxTimeOptimization);
+        slamToolsRos::visualizeCurrentGraph(this->graphSaved, this->publisherPathOverTime,
+                                            this->publisherKeyFrameClouds,
+                                            this->publisherMarkerArray, this->sigmaScaling,
+                                            this->publisherPathOverTimeGT,
+                                            NULL, this->publisherMarkerArrayLoopClosures,
+                                            NULL,this->numberOfEdgesBetweenScans);
+
+
+    }
 };
+
+sig_atomic_t volatile g_request_shutdown = 0;
+void mySigintHandler(int sig)
+{
+    // Do some custom action.
+    // For example, publish a stop message to some other nodes.
+    std::cout << "shutting down:" << std::endl;
+
+    g_request_shutdown=1;
+    // All the default sigint handler does is call shutdown()
+
+
+}
 
 
 int
 main(int argc, char **argv) {
 
 
-    ros::init(argc, argv, "graphslamwithros");
+    ros::init(argc, argv, "graphslamwithros", ros::init_options::NoSigintHandler);
     ros::start();
     ros::NodeHandle n_;
+
+    signal(SIGINT, mySigintHandler);
     rosClassSlam rosObjectForSlam(n_);
 
+    while (!g_request_shutdown)
+    {
+        // Do non-callback stuff
 
-    ros::spin();
-
+        ros::spinOnce();
+        usleep(100000);
+    }
+    //ros::spin();
+    rosObjectForSlam.shutDownHook();
+    ros::shutdown();
     return (0);
 }
-

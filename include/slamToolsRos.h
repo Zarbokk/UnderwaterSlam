@@ -55,7 +55,7 @@ public:
                                       double sigmaScaling, ros::Publisher &publisherPathGT,
                                       std::vector<measurement> *groundTruthSorted,
                                       ros::Publisher &publisherMarkerArrayLoopClosures,
-                                      double plotGTToTime);
+                                      double plotGTToTime,int numberOfEdgesBetweenScans);
 
     static std::vector<measurement>
     parseCSVFile(std::istream &stream);//this is first line description then keyframe,x,y,z,timestamp
@@ -80,7 +80,7 @@ public:
                   ros::Publisher &publisherAfterCorrection);
 
     static bool detectLoopClosure(graphSlamSaveStructure &graphSaved,
-                                  double sigmaScaling, double cutoffFitnessOnDetect);
+                                  double sigmaScaling, double cutoffFitnessOnDetect, double maxTimeOptimization);
 
     static std::vector<double> linspace(double start_in, double end_in, int num_in);
 
@@ -100,7 +100,7 @@ public:
                                    &currentGraph,
                                    std::vector<edge> &listOfEdges,
                                    double noiseVelocityIntigration,
-                                   double scalingAngle
+                                   double scalingAngle, double maxTimeOptimization
     );
 };
 

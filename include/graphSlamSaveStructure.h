@@ -6,6 +6,7 @@
 #include <fstream>
 #include<Eigen/SparseCholesky>
 #include "json.h"
+#include <chrono>
 //#include <tf2/LinearMath/Quaternion.h>
 //#include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/utils.h>
@@ -30,11 +31,11 @@ public:
 
     void addEdge(const int fromVertex, const int toVertex, const Eigen::Vector3d &positionDifference,
                  const Eigen::Quaterniond &rotationDifference, const Eigen::Vector3d covariancePosition,
-                 const double covarianceQuaternion,int typeOfEdge);
+                 const double covarianceQuaternion,int typeOfEdge, double maxTimeOptimization);
 
     void addEdge(const int fromVertex, const int toVertex, const Eigen::Vector3d &positionDifference,
                  const Eigen::Quaterniond &rotationDifference, const Eigen::Vector3d covariancePosition,
-                 const double covarianceQuaternion, pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloud,int typeOfEdge);
+                 const double covarianceQuaternion, pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloud,int typeOfEdge, double maxTimeOptimization);
 
     void addVertex(int vertexNumber, const Eigen::Vector3d &positionVertex, const Eigen::Quaterniond &rotationVertex,
                    const Eigen::Vector3d &covariancePosition, const double covarianceQuaternion,double timeStamp,int typeOfVertex);
@@ -64,24 +65,24 @@ public:
 
     std::vector<edge> *getEdgeList();
 
-    void optimizeGraphWithSlam(bool verbose, std::vector<int> &holdStill);
+    void optimizeGraphWithSlam(bool verbose, std::vector<int> &holdStill, double maxTimeOptimization);
 
-    void optimizeGraphWithSlamTopDown(bool verbose,double cellSize);
+    void optimizeGraphWithSlamTopDown(bool verbose, double cellSize, double maxTimeOptimization);
 
-    void initiallizeSubGraphs(std::deque<double> cellSizes);//cell sizes in order (first 1m cecond 4 m and so on)
+    void initiallizeSubGraphs(std::deque<double> cellSizes, double maxTimeOptimization);//cell sizes in order (first 1m cecond 4 m and so on)
 
-    void createHierachicalGraph(double cellSizeDes);
+    void createHierachicalGraph(double cellSizeDes, double maxTimeOptimization);
 
-    edge getEdgeBetweenNodes(int fromVertex, int toVertex, std::vector<int> &holdStill);
+    edge getEdgeBetweenNodes(int fromVertex, int toVertex, std::vector<int> &holdStill, double maxTimeOptimization);
 
     Eigen::MatrixXd transformStateDiffToAddVector(std::vector<vertex> &stateBeforeOptimization,
                                                   std::vector<vertex> &stateAfterOptimization) const;
 
     graphSlamSaveStructure getSubGraph();
 
-    bool createSubGraphBetweenCell(int vertexIndexFrom, int vertexIndexTo, graphSlamSaveStructure &currentSubGraph);
+    bool createSubGraphBetweenCell(int vertexIndexFrom, int vertexIndexTo, graphSlamSaveStructure &currentSubGraph, double maxTimeOptimization);
 
-    void calculateCovarianceInCloseProximity();// calculate the subgraph for the last hierachical graph, and connected cells. then calculate covariances.
+    void calculateCovarianceInCloseProximity(double maxTimeOptimization);// calculate the subgraph for the last hierachical graph, and connected cells. then calculate covariances.
 
     void removeLastEdge();
 
