@@ -19,7 +19,7 @@ find_package(PCL 1.10 REQUIRED COMPONENTS common io visualization)
 
 
 set(SOURCE_FILES src/registration/scanRegistrationClass.cpp)
-set(SOURCE_FILES ${SOURCE_FILES} src/poseGraphsrc/graphSlamSaveStructure.cpp src/poseGraphsrc/edge.cpp src/poseGraphsrc/vertex.cpp)
+set(SOURCE_FILES ${SOURCE_FILES} src/poseGraphsrc/graphSlamSaveStructure.cpp src/poseGraphsrc/edge.cpp src/poseGraphsrc/vertex.cpp src/EKF/ekfPos.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} src/json/jsoncpp.cpp src/slamTools/slamToolsRos.cpp src/slamTools/generalHelpfulTools.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} include/edge.h include/graphSlamSaveStructure.h src/hilbertMapssrc/hilbertMap.cpp include/hilbertMap.h include/json.h include/keyFrame.h include/scanRegistrationClass.h include/slamToolsRos.h include/vertex.h include/ekf.h include/generalHelpfulTools.h)
 
@@ -75,5 +75,8 @@ target_link_libraries(stPereDatasetRosPublishing ${PCL_LIBRARIES} ${catkin_LIBRA
 add_executable(graphSlamWithROS src/completeSlamRuns/graphSlamWithROS.cpp ${SOURCE_FILES})
 target_link_libraries(graphSlamWithROS ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-add_executable(testEKF src/EKF/testEKF.cpp src/EKF/ekfPos.cpp ${SOURCE_FILES} include/pose.h)
+add_executable(testEKF src/EKF/testEKF.cpp ${SOURCE_FILES} include/pose.h)
 target_link_libraries(testEKF ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+add_executable(ekfGraphSlam src/completeSlamRuns/ekfGraphSlam.cpp ${SOURCE_FILES})
+target_link_libraries(ekfGraphSlam ${PCL_LIBRARIES} ${catkin_LIBRARIES})

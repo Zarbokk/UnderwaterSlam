@@ -725,7 +725,7 @@ bool slamToolsRos::detectLoopClosure(graphSlamSaveStructure &graphSaved,
 }
 
 void slamToolsRos::appendEdgesToGraph(graphSlamSaveStructure &currentGraph,
-                                      std::vector<edge> &listOfEdges, double noiseVelocityIntigration,
+                                      std::deque<edge> &listOfEdges, double noiseVelocityIntigration,
                                       double scalingAngle, double maxTimeOptimization) {// adds edges to the graph and create vertex, which are represented by edges
     int i = 1;
     for (auto &currentEdge: listOfEdges) {

@@ -98,7 +98,7 @@ public:
 
     static void appendEdgesToGraph(graphSlamSaveStructure
                                    &currentGraph,
-                                   std::vector<edge> &listOfEdges,
+                                   std::deque<edge> &listOfEdges,
                                    double noiseVelocityIntigration,
                                    double scalingAngle, double maxTimeOptimization
     );

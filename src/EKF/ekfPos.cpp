@@ -79,6 +79,11 @@ void ekfClass::updateSlam(double xPos, double yPos, double yaw, ros::Time timeSt
 void ekfClass::updateIMU(double roll, double pitch, double xAngularVel, double yAngularVel, double zAngularVel,
                          Eigen::Quaterniond currentRotation,
                          ros::Time timeStamp) {
+    //for saving the current EKF pose difference in
+    Eigen::VectorXd currentStateBeforeUpdate = this->stateOfEKF.getStatexyzaxayazrpyrvelpvelyvel();
+
+
+
     Eigen::VectorXd innovation;
     //change from system to body system
     Eigen::Vector3d velocityBodyAngular(xAngularVel, -yAngularVel, -zAngularVel);
@@ -103,9 +108,23 @@ void ekfClass::updateIMU(double roll, double pitch, double xAngularVel, double y
     Eigen::VectorXd newState = this->stateOfEKF.getStatexyzaxayazrpyrvelpvelyvel() + K * innovation;
     this->stateOfEKF.applyState(newState);
     this->stateOfEKF.covariance = (Eigen::MatrixXd::Identity(12, 12) - K * H) * this->stateOfEKF.covariance;
+
+    //for saving the current EKF pose difference in
+    Eigen::VectorXd currentStateAfterUpdate = this->stateOfEKF.getStatexyzaxayazrpyrvelpvelyvel();
+    Eigen::VectorXd differenceStateAfterUpdate = currentStateAfterUpdate-currentStateBeforeUpdate;
+    Eigen::Vector3d positionDifference(differenceStateAfterUpdate(0),differenceStateAfterUpdate(1),0);
+    Eigen::AngleAxisd rotation_vector(differenceStateAfterUpdate(8), Eigen::Vector3d(0, 0, 1));
+    Eigen::Quaterniond yawRotation(rotation_vector);
+    Eigen::Vector3d covariancePos(0, 0, 0);
+    edge currentEdge(0,0,positionDifference,yawRotation,covariancePos,0,3,graphSlamSaveStructure::INTEGRATED_POS_USAGE);
+    currentEdge.setTimeStamp(timeStamp.toSec());
+    this->lastPositionDifferences.push_back(currentEdge);
 }
 
 void ekfClass::updateDVL(double xVel, double yVel, double zVel, ros::Time timeStamp) {
+    //for saving the current EKF pose difference in
+    Eigen::VectorXd currentStateBeforeUpdate = this->stateOfEKF.getStatexyzaxayazrpyrvelpvelyvel();
+
 
     Eigen::Vector3d velocityBodyLinear(xVel, yVel, zVel);
     // velocityAngular has to be changed to correct rotation(world velocityAngular)
@@ -132,26 +151,49 @@ void ekfClass::updateDVL(double xVel, double yVel, double zVel, ros::Time timeSt
 //    std::cout << newState<< std::endl;
     this->stateOfEKF.applyState(newState);
     this->stateOfEKF.covariance = (Eigen::MatrixXd::Identity(12, 12) - K * H) * this->stateOfEKF.covariance;
+
+    //for saving the current EKF pose difference in
+    Eigen::VectorXd currentStateAfterUpdate = this->stateOfEKF.getStatexyzaxayazrpyrvelpvelyvel();
+    Eigen::VectorXd differenceStateAfterUpdate = currentStateAfterUpdate-currentStateBeforeUpdate;
+    Eigen::Vector3d positionDifference(differenceStateAfterUpdate(0),differenceStateAfterUpdate(1),0);
+    Eigen::AngleAxisd rotation_vector(differenceStateAfterUpdate(8), Eigen::Vector3d(0, 0, 1));
+    Eigen::Quaterniond yawRotation(rotation_vector);
+    Eigen::Vector3d covariancePos(0, 0, 0);
+    edge currentEdge(0,0,positionDifference,yawRotation,covariancePos,0,3,graphSlamSaveStructure::INTEGRATED_POS_USAGE);
+    currentEdge.setTimeStamp(timeStamp.toSec());
+    this->lastPositionDifferences.push_back(currentEdge);
+
 }
 
 void ekfClass::updateDepth(double depth, ros::Time timeStamp) {
+    //for saving the current EKF pose difference in
+    Eigen::VectorXd currentStateBeforeUpdate = this->stateOfEKF.getStatexyzaxayazrpyrvelpvelyvel();
+
+
     Eigen::VectorXd innovation;
     Eigen::VectorXd z = Eigen::VectorXd::Zero(12);
     z(2) = depth;
     Eigen::MatrixXd H = Eigen::MatrixXd::Zero(12, 12);
     H(2, 2) = 1;
     innovation = z - H * this->stateOfEKF.getStatexyzaxayazrpyrvelpvelyvel();//also y
-//    std::cout << innovation << std::endl;
     Eigen::MatrixXd S = H * this->stateOfEKF.covariance * H.transpose() + this->measurementNoiseDVL;
-//    std::cout << S << std::endl;
-//    std::cout << S.inverse() << std::endl;
     Eigen::MatrixXd K = this->stateOfEKF.covariance * H.transpose() * S.inverse();
-//    std::cout << K << std::endl;
     Eigen::VectorXd newState = this->stateOfEKF.getStatexyzaxayazrpyrvelpvelyvel() + K * innovation;
-//    std::cout << "\n"<< std::endl;
-//    std::cout << newState<< std::endl;
     this->stateOfEKF.applyState(newState);
     this->stateOfEKF.covariance = (Eigen::MatrixXd::Identity(12, 12) - K * H) * this->stateOfEKF.covariance;
+
+
+    //for saving the current EKF pose difference in
+    Eigen::VectorXd currentStateAfterUpdate = this->stateOfEKF.getStatexyzaxayazrpyrvelpvelyvel();
+    Eigen::VectorXd differenceStateAfterUpdate = currentStateAfterUpdate-currentStateBeforeUpdate;
+    Eigen::Vector3d positionDifference(differenceStateAfterUpdate(0),differenceStateAfterUpdate(1),0);
+    Eigen::AngleAxisd rotation_vector(differenceStateAfterUpdate(8), Eigen::Vector3d(0, 0, 1));
+    Eigen::Quaterniond yawRotation(rotation_vector);
+    Eigen::Vector3d covariancePos(0, 0, 0);
+    edge currentEdge(0,0,positionDifference,yawRotation,covariancePos,0,3,graphSlamSaveStructure::INTEGRATED_POS_USAGE);
+    currentEdge.setTimeStamp(timeStamp.toSec());
+    this->lastPositionDifferences.push_back(currentEdge);
+
 }
 
 pose ekfClass::getState() {
@@ -177,9 +219,17 @@ ekfClass ekfClass::copyEKF() {
     returnObject.lastUpdateTime=this->lastUpdateTime;
     returnObject.stateOfEKF.covariance=this->stateOfEKF.covariance;
     returnObject.stateOfEKF.timeLastPrediction=this->stateOfEKF.timeLastPrediction;
+    returnObject.lastPositionDifferences = this->lastPositionDifferences;
     return returnObject;
 }
 
+std::deque<edge> ekfClass::getLastPoses(){
+    return this->lastPositionDifferences;
+}
+
+void ekfClass::removePastPoses(){
+    this->lastPositionDifferences.clear();
+}
 
 
 

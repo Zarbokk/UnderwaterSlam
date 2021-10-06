@@ -5,6 +5,7 @@
 #include <deque>
 #include "generalHelpfulTools.h"
 #include "pose.h"
+#include "slamToolsRos.h"
 //asynchronous EKF with horizon horizont correction
 
 
@@ -55,6 +56,7 @@ public:
         this->stateOfEKF.covariance = processNoise;
 
         this->recentPoses.push_back(stateOfEKF);
+        this->lastPositionDifferences.clear();
     }
     ekfClass copyEKF();
     void
@@ -73,8 +75,13 @@ public:
 
     void updateSlam(double xPos, double yPos, double yaw, ros::Time timeStamp);
 
+    std::deque<edge> getLastPoses();
+
+    void removePastPoses();
+
 private:
     pose stateOfEKF;
+    std::deque<edge> lastPositionDifferences;
     std::deque<pose> recentPoses;
     Eigen::MatrixXd processNoise, measurementNoiseDepth, measurementNoiseDVL, measurementImuVelocity, measurementNoiseSlam;
     ros::Time lastUpdateTime;
