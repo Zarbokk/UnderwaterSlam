@@ -4,6 +4,7 @@
 
 #include "slamToolsRos.h"
 #include "generalHelpfulTools.h"
+
 void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros::Publisher &publisherPath,
                                          ros::Publisher &publisherCloud, ros::Publisher &publisherMarkerArray,
                                          double sigmaScaling, ros::Publisher &publisherPathGT,
@@ -18,8 +19,8 @@ void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros
     visualization_msgs::MarkerArray markerArray;
     int k = 0;
     std::vector<vertex> vertexList = graphSaved.getVertexList();
-    for (int i = 1;i<vertexList.size();i++) {//skip the first pointCloud
-        vertex vertexElement=vertexList[i];
+    for (int i = 1; i < vertexList.size(); i++) {//skip the first pointCloud
+        vertex vertexElement = vertexList[i];
         pcl::PointCloud<pcl::PointXYZ> currentScanTransformed;
         completeTransformation << 1, 0, 0, vertexElement.getPositionVertex().x(),
                 0, 1, 0, vertexElement.getPositionVertex().y(),
@@ -112,7 +113,7 @@ void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros
     for (int i = 0; i < graphSaved.getEdgeList()->size(); i++) {
         edge currentEdgeOfInterest = graphSaved.getEdgeList()->data()[i];
         if (abs(currentEdgeOfInterest.getFromVertex() - currentEdgeOfInterest.getToVertex()) >
-                numberOfEdgesBetweenScans) {//if its a loop closure then create arrow from vertex a to vertex b
+            numberOfEdgesBetweenScans) {//if its a loop closure then create arrow from vertex a to vertex b
             visualization_msgs::Marker currentMarker;
             //currentMarker.pose.position.x = pos.pose.position.x;
             //currentMarker.pose.position.y = pos.pose.position.y;
@@ -234,7 +235,8 @@ slamToolsRos::correctPointCloudAtPos(int positionToCorrect, graphSlamSaveStructu
     pcl::PointCloud<pcl::PointXYZ>::Ptr correctedPointCloud(new pcl::PointCloud<pcl::PointXYZ>);
     *correctedPointCloud = *cloudScan;
     slamToolsRos::correctPointCloudByPosition(correctedPointCloud, posDiff,
-                                              currentGraph.getVertexList()[lastIndex].getTimeStamp(), beginAngle, endAngle, reverseScanDirection,
+                                              currentGraph.getVertexList()[lastIndex].getTimeStamp(), beginAngle,
+                                              endAngle, reverseScanDirection,
                                               transformationPosData2PclCoord);
     currentGraph.getVertexList()[positionToCorrect].setPointCloudCorrected(correctedPointCloud);
     currentGraph.getVertexByIndex(positionToCorrect)->setTypeOfVertex(graphSlamSaveStructure::POINT_CLOUD_USAGE);
@@ -330,7 +332,8 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
     std::vector<Eigen::Matrix4d> listOfTransformations;
     double startTime = timeStampBeginning;
     double endTime = posDiff.back().getTimeStamp();
-    std::vector<double> timeStepsForCorrection = slamToolsRos::linspace(startTime, endTime,1000); // (int) ((endAngle - beginAngle) / (2 * M_PI / (cloudScan->size()-1)))
+    std::vector<double> timeStepsForCorrection = slamToolsRos::linspace(startTime, endTime,
+                                                                        1000); // (int) ((endAngle - beginAngle) / (2 * M_PI / (cloudScan->size()-1)))
     //calculate transformations over time for every timestep
     for (int i = 0; i < timeStepsForCorrection.size(); i++) {
         Eigen::Matrix4d currentTransformation;
@@ -710,7 +713,7 @@ bool slamToolsRos::detectLoopClosure(graphSlamSaveStructure &graphSaved,
                 Eigen::Vector3d positionCovariance(sqrt(fitnessScore), sqrt(fitnessScore), 0);
                 graphSaved.addEdge((int) graphSaved.getVertexList().size() - 1, has2beCheckedElemenet, currentPosDiff,
                                    currentRotDiff, positionCovariance, 0.25 * sqrt(fitnessScore),
-                                   graphSlamSaveStructure::POINT_CLOUD_USAGE,maxTimeOptimization);
+                                   graphSlamSaveStructure::POINT_CLOUD_USAGE, maxTimeOptimization);
                 foundLoopClosure = true;
                 loopclosureNumber++;
                 if (loopclosureNumber > 2) { break; }// break if multiple loop closures are found
@@ -726,9 +729,49 @@ bool slamToolsRos::detectLoopClosure(graphSlamSaveStructure &graphSaved,
 
 void slamToolsRos::appendEdgesToGraph(graphSlamSaveStructure &currentGraph,
                                       std::deque<edge> &listOfEdges, double noiseVelocityIntigration,
-                                      double scalingAngle, double maxTimeOptimization) {// adds edges to the graph and create vertex, which are represented by edges
+                                      double scalingAngle, double maxTimeOptimization,
+                                      int maximumNumberOfAddedEdges) {// adds edges to the graph and create vertex, which are represented by edges
+    std::deque<edge> listOfEdgesForForLoop;
+    //add only a max number of edges
+    if (listOfEdges.size() > maximumNumberOfAddedEdges) {
+        double startTime = currentGraph.getVertexList().back().getTimeStamp();
+        double endTime = listOfEdges.back().getTimeStamp();
+        //ignore the first element(since its already a timestep) can be changed for not to be the case
+        std::vector<double> timestampsForEdge = slamToolsRos::linspace(startTime, endTime,
+                                                                       maximumNumberOfAddedEdges + 1);
+        int currentEdgeIndex = 0;
+        for (int i = 1;
+             i < timestampsForEdge.size(); i++) {//@TODO add interpolation(not done currently) but roughly correct
+
+            while(listOfEdges[currentEdgeIndex].getTimeStamp()<timestampsForEdge[i-1]){
+                currentEdgeIndex++;
+            }
+            //initialize transformation of 0
+            Eigen::Matrix4d currentTransformation = Eigen::Matrix4d::Identity();
+            while (listOfEdges[currentEdgeIndex].getTimeStamp() < timestampsForEdge[i]) {
+                //add up transformations from zero
+                currentTransformation = currentTransformation * listOfEdges[currentEdgeIndex].getTransformation();
+                currentEdgeIndex++;
+            }
+
+            // create an edge and add it to a list that is then added to the graph.
+
+            Eigen::Quaterniond qTMP(currentTransformation.block<3, 3>(0, 0));
+            Eigen::Vector3d covariancePos(0, 0, 0);
+            edge currentEdge(0, 0, currentTransformation.block<3, 1>(0, 3), qTMP, covariancePos, 0, 3,
+                             graphSlamSaveStructure::INTEGRATED_POS_USAGE);
+            currentEdge.setTimeStamp(timestampsForEdge[i]);
+            listOfEdgesForForLoop.push_back(currentEdge);
+
+        }
+
+    } else {
+        listOfEdgesForForLoop = listOfEdges;
+    }
+
+
     int i = 1;
-    for (auto &currentEdge: listOfEdges) {
+    for (auto &currentEdge: listOfEdgesForForLoop) {
         vertex lastVertex = currentGraph.getVertexList().back();
         Eigen::Matrix4d tmpTransformation = lastVertex.getTransformation();
         tmpTransformation = tmpTransformation * currentEdge.getTransformation();
@@ -742,7 +785,8 @@ void slamToolsRos::appendEdgesToGraph(graphSlamSaveStructure &currentGraph,
         currentGraph.addEdge(lastVertex.getVertexNumber(), lastVertex.getVertexNumber() + 1,
                              currentEdge.getPositionDifference(), currentEdge.getRotationDifference(),
                              Eigen::Vector3d(noiseVelocityIntigration, noiseVelocityIntigration, 0),
-                             scalingAngle * noiseVelocityIntigration, graphSlamSaveStructure::INTEGRATED_POS_USAGE,maxTimeOptimization);
+                             scalingAngle * noiseVelocityIntigration, graphSlamSaveStructure::INTEGRATED_POS_USAGE,
+                             maxTimeOptimization);
 //        graphSaved.getVertexList().back().setTypeOfVertex(
 //                graphSlamSaveStructure::INTEGRATED_POS_USAGE);//1 for vertex defined by dead reckoning
         i++;

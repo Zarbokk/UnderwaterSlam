@@ -5,8 +5,12 @@
 
 void ekfClass::predictionImu(double xAccel, double yAccel, double zAccel, Eigen::Quaterniond currentRotation,
                              ros::Time timeStamp) {
+    //for saving the current EKF pose difference in
+    Eigen::VectorXd currentStateBeforeUpdate = this->stateOfEKF.getStatexyzaxayazrpyrvelpvelyvel();
+
     // A-Matrix is zeros, except for the entries of transition between velocity and position.(there time diff since last prediction
     // update state
+
 
     Eigen::Vector3d currentEuler = generalHelpfulTools::getRollPitchYaw(currentRotation);//roll pitch yaw
 
@@ -56,6 +60,18 @@ void ekfClass::predictionImu(double xAccel, double yAccel, double zAccel, Eigen:
     //update covariance
     this->stateOfEKF.covariance = A * this->stateOfEKF.covariance * A.transpose() + processNoise;
     this->stateOfEKF.timeLastPrediction = timeStamp;
+
+    //for saving the current EKF pose difference in
+    Eigen::VectorXd currentStateAfterUpdate = this->stateOfEKF.getStatexyzaxayazrpyrvelpvelyvel();
+    Eigen::VectorXd differenceStateAfterUpdate = currentStateAfterUpdate-currentStateBeforeUpdate;
+    Eigen::Vector3d positionDifference(differenceStateAfterUpdate(0),differenceStateAfterUpdate(1),0);
+    Eigen::AngleAxisd rotation_vector(differenceStateAfterUpdate(8), Eigen::Vector3d(0, 0, 1));
+    Eigen::Quaterniond yawRotation(rotation_vector);
+    Eigen::Vector3d covariancePos(0, 0, 0);
+    edge currentEdge(0,0,positionDifference,yawRotation,covariancePos,0,3,graphSlamSaveStructure::INTEGRATED_POS_USAGE);
+    currentEdge.setTimeStamp(timeStamp.toSec());
+    this->lastPositionDifferences.push_back(currentEdge);
+
 }
 
 void ekfClass::updateSlam(double xPos, double yPos, double yaw, ros::Time timeStamp) {

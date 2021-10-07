@@ -100,7 +100,7 @@ public:
                                    &currentGraph,
                                    std::deque<edge> &listOfEdges,
                                    double noiseVelocityIntigration,
-                                   double scalingAngle, double maxTimeOptimization
+                                   double scalingAngle, double maxTimeOptimization, int maximumNumberOfAddedEdges
     );
 };
 

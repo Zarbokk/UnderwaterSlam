@@ -39,7 +39,7 @@ public:
         graphSaved.addVertex(0, Eigen::Vector3d(0, 0, 0), Eigen::Quaterniond(1, 0, 0, 0),
                              Eigen::Vector3d(0, 0, 0), 0, 0.0, graphSlamSaveStructure::FIRST_ENTRY);
 
-        std::deque<double> subgraphs{0.1, 1, 3};
+        std::deque<double> subgraphs{ 1, 3};
         graphSaved.initiallizeSubGraphs(subgraphs, maxTimeOptimization);
         this->sigmaScaling = 1.0;
         this->timeLastFullScan = 0;
@@ -113,7 +113,7 @@ private:
         geometry_msgs::PoseStamped poseMsg;
         poseMsg.pose.position.x = currentStateEkf.position.x();
         poseMsg.pose.position.y = currentStateEkf.position.y();
-        poseMsg.pose.position.z = currentStateEkf.position.z();
+        poseMsg.pose.position.z = 0;//currentStateEkf.position.z();//for plotting reasons only
         Eigen::Quaterniond rotDiff = Eigen::AngleAxisd(currentStateEkf.rotation.x(),
                                                        Eigen::Vector3d::UnitX())//should be added somewhen(6DOF)
                                      * Eigen::AngleAxisd(currentStateEkf.rotation.y(),
@@ -123,6 +123,8 @@ private:
         poseMsg.pose.orientation.y = rotDiff.y();
         poseMsg.pose.orientation.z = rotDiff.z();
         poseMsg.pose.orientation.w = rotDiff.w();
+        poseMsg.header.frame_id = "map_ned";
+        poseMsg.header.stamp=ros::Time::now();
         this->publisherPoseEkf.publish(poseMsg);
         geometry_msgs::TwistStamped twistMsg;
         twistMsg.twist.linear.x = currentStateEkf.velocity.x();
@@ -131,7 +133,8 @@ private:
         twistMsg.twist.angular.x = currentStateEkf.angleVelocity.x();
         twistMsg.twist.angular.y = currentStateEkf.angleVelocity.y();
         twistMsg.twist.angular.z = currentStateEkf.angleVelocity.z();
-
+        twistMsg.header.stamp=ros::Time::now();
+        twistMsg.header.frame_id = "map_ned";
         this->publisherTwistEkf.publish(twistMsg);
     }
 
@@ -174,17 +177,34 @@ private:
         //apply the new update to old EKF(saved earlyer):
         //add Sensor data until time of slam callback is reached.
         //look if one is smaller
-        while (msg.header.stamp > this->imuDeque[0]->header.stamp ||
-               msg.header.stamp > this->depthDeque[0]->header.stamp ||
-               msg.header.stamp > this->dvlDeque[0]->header.stamp) {
+//        while (msg.header.stamp > this->imuDeque[0]->header.stamp ||
+//               msg.header.stamp > this->depthDeque[0]->header.stamp ||
+//               msg.header.stamp > this->dvlDeque[0]->header.stamp) {
+        while (!imuDeque.empty() || !depthDeque.empty() || !dvlDeque.empty()) {
+            double a, b, c;
+            //find if empty, and then add big number
+            if (imuDeque.empty()) {
+                a = 1000000000000;
+            } else {
+                a = imuDeque[0]->header.stamp.toSec();
+            }
+            if (depthDeque.empty()) {
+                b = 1000000000000;
+            } else {
+                b = depthDeque[0]->header.stamp.toSec();
+            }
+            if (dvlDeque.empty()) {
+                c = 1000000000000;
+            } else {
+                c = dvlDeque[0]->header.stamp.toSec();
+            }
             //find which is smallest
-            if (this->imuDeque[0]->header.stamp < this->depthDeque[0]->header.stamp &&
-                this->imuDeque[0]->header.stamp < this->dvlDeque[0]->header.stamp) {
+            if (a < b && a < c) {
                 //smallest: imuDeque[0]->header.stamp
                 this->imuCallbackHelper(this->imuDeque[0]);
                 this->imuDeque.pop_front();
-            } else if (this->depthDeque[0]->header.stamp < this->imuDeque[0]->header.stamp &&
-                       this->depthDeque[0]->header.stamp < this->dvlDeque[0]->header.stamp) {
+            } else if (b < a &&
+                       b < c) {
                 //smallest: depthDeque[0]->header.stamp
                 this->depthCallbackHelper(this->depthDeque[0]);
                 this->depthDeque.pop_front();
@@ -193,6 +213,22 @@ private:
                 this->DVLCallbackHelper(this->dvlDeque[0]);
                 this->dvlDeque.pop_front();
             }
+
+//            if (this->imuDeque[0]->header.stamp < this->depthDeque[0]->header.stamp &&
+//                this->imuDeque[0]->header.stamp < this->dvlDeque[0]->header.stamp) {
+//                //smallest: imuDeque[0]->header.stamp
+//                this->imuCallbackHelper(this->imuDeque[0]);
+//                this->imuDeque.pop_front();
+//            } else if (this->depthDeque[0]->header.stamp < this->imuDeque[0]->header.stamp &&
+//                       this->depthDeque[0]->header.stamp < this->dvlDeque[0]->header.stamp) {
+//                //smallest: depthDeque[0]->header.stamp
+//                this->depthCallbackHelper(this->depthDeque[0]);
+//                this->depthDeque.pop_front();
+//            } else {
+//                //smallest: dvlDeque[0]->header.stamp
+//                this->DVLCallbackHelper(this->dvlDeque[0]);
+//                this->dvlDeque.pop_front();
+//            }
         }
         Eigen::Quaterniond tmpRot;
         tmpRot.x() = msg.pose.orientation.x;
@@ -285,7 +321,7 @@ private:
 //                                                this->posDiffOverTimeEdges, this->timeLastFullScan,
 //                                                this->timeCurrentFullScan, 0.1,this->numberOfEdgesBetweenScans);
         this->posDiffOverTimeEdges = this->currentEkf.getLastPoses();
-        slamToolsRos::appendEdgesToGraph(this->graphSaved, this->posDiffOverTimeEdges, 0.3, 0.25, maxTimeOptimization);
+        slamToolsRos::appendEdgesToGraph(this->graphSaved, this->posDiffOverTimeEdges, 0.3, 0.25, maxTimeOptimization,50);
         this->graphSaved.getVertexList().back().setPointCloudRaw(this->currentScan);
         //correct the scan depending on the Imu and Velocity callback
         slamToolsRos::correctPointCloudAtPos(this->graphSaved.getVertexList().back().getVertexNumber(),
@@ -351,9 +387,9 @@ private:
 //                                            groundTruthSorted, publisherMarkerArrayLoopClosures,
 //                                            timeCurrentGroundTruth);
 
-        graphSaved.optimizeGraphWithSlamTopDown(false, 0.05, maxTimeOptimization);
-//        std::vector<int> holdStill{0};
-//        graphSaved.optimizeGraphWithSlam(false, holdStill,maxTimeOptimization);
+//        graphSaved.optimizeGraphWithSlamTopDown(false, 0.05, maxTimeOptimization);
+        std::vector<int> holdStill{0};
+        graphSaved.optimizeGraphWithSlam(false, holdStill,maxTimeOptimization);
 
         graphSaved.calculateCovarianceInCloseProximity(maxTimeOptimization);
 
