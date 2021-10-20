@@ -44,7 +44,7 @@ public:
         this->sigmaScaling = 1.0;
         this->timeLastFullScan = 0;
         this->maxTimeOptimization = 1.0;
-        this->numberOfEdgesBetweenScans = 20;
+        this->numberOfEdgesBetweenScans = 30;
         pcl::PointCloud<pcl::PointXYZ>::Ptr tmpPCL1(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::PointCloud<pcl::PointXYZ>::Ptr tmpPCL2(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::PointCloud<pcl::PointXYZ>::Ptr tmpPCL3(new pcl::PointCloud<pcl::PointXYZ>);
@@ -321,7 +321,7 @@ private:
 //                                                this->posDiffOverTimeEdges, this->timeLastFullScan,
 //                                                this->timeCurrentFullScan, 0.1,this->numberOfEdgesBetweenScans);
         this->posDiffOverTimeEdges = this->currentEkf.getLastPoses();
-        slamToolsRos::appendEdgesToGraph(this->graphSaved, this->posDiffOverTimeEdges, 0.3, 0.25, maxTimeOptimization,50);
+        slamToolsRos::appendEdgesToGraph(this->graphSaved, this->posDiffOverTimeEdges, 0.3, 0.25, maxTimeOptimization,this->numberOfEdgesBetweenScans);
         this->graphSaved.getVertexList().back().setPointCloudRaw(this->currentScan);
         //correct the scan depending on the Imu and Velocity callback
         slamToolsRos::correctPointCloudAtPos(this->graphSaved.getVertexList().back().getVertexNumber(),
@@ -351,8 +351,8 @@ private:
                 this->fitnessScore,
                 this->initialGuessTransformation);
         std::cout << "current Fitness Score: " << sqrt(this->fitnessScore) << std::endl;
-//        pcl::io::savePCDFileASCII("/home/jurobotics/DataForTests/savingRandomPCL/firstPCL.pcd",*this->graphSaved.getVertexList().back().getPointCloudCorrected());
-//        pcl::io::savePCDFileASCII("/home/jurobotics/DataForTests/savingRandomPCL/secondPCL.pcd",*this->lastScan);
+        pcl::io::savePCDFileASCII("/home/auvatjacobs/dataFolder/savingRandomPCL/firstPCL.pcd",*this->graphSaved.getVertexList().back().getPointCloudCorrected());
+        pcl::io::savePCDFileASCII("/home/auvatjacobs/dataFolder/savingRandomPCL/secondPCL.pcd",*this->lastScan);
 
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr tmpCloudPlotOnly(
@@ -366,30 +366,21 @@ private:
 
 
         Eigen::Quaterniond qTMP(this->currentTransformation.block<3, 3>(0, 0));
-        graphSaved.addEdge(this->graphSaved.getVertexList().size() - positionLastPcl,
-                           graphSaved.getVertexList().size() - 1,
-                           this->currentTransformation.block<3, 1>(0, 3), qTMP,
-                           Eigen::Vector3d(sqrt(this->fitnessScore), sqrt(this->fitnessScore), 0),
-                           0.25 * sqrt(this->fitnessScore),
-                           graphSlamSaveStructure::POINT_CLOUD_USAGE,
-                           maxTimeOptimization);//@TODO still not sure about size
-
-        slamToolsRos::detectLoopClosure(this->graphSaved, this->sigmaScaling, 1.5, maxTimeOptimization);//was 1.0
+//        graphSaved.addEdge(this->graphSaved.getVertexList().size() - positionLastPcl,
+//                           graphSaved.getVertexList().size() - 1,
+//                           this->currentTransformation.block<3, 1>(0, 3), qTMP,
+//                           Eigen::Vector3d(sqrt(this->fitnessScore), sqrt(this->fitnessScore), 0),
+//                           0.25 * sqrt(this->fitnessScore),
+//                           graphSlamSaveStructure::POINT_CLOUD_USAGE,
+//                           maxTimeOptimization);//@TODO still not sure about size
+//
+        slamToolsRos::detectLoopClosure(this->graphSaved, this->sigmaScaling, 1.0, maxTimeOptimization);//was 1.0
 
         //add position and optimize/publish everything
-//        slamToolsRos::visualizeCurrentGraph(graphSaved, publisherPathOverTime, publisherKeyFrameClouds,
-//                                            publisherMarkerArray, sigmaScaling, publisherPathOverTimeGT,
-//                                            groundTruthSorted, publisherMarkerArrayLoopClosures,
-//                                            timeCurrentGroundTruth);
 
-//        slamToolsRos::visualizeCurrentGraph(graphSaved, publisherPathOverTime, publisherKeyFrameClouds,
-//                                            publisherMarkerArray, sigmaScaling, publisherPathOverTimeGT,
-//                                            groundTruthSorted, publisherMarkerArrayLoopClosures,
-//                                            timeCurrentGroundTruth);
-
-//        graphSaved.optimizeGraphWithSlamTopDown(false, 0.05, maxTimeOptimization);
-        std::vector<int> holdStill{0};
-        graphSaved.optimizeGraphWithSlam(false, holdStill,maxTimeOptimization);
+        graphSaved.optimizeGraphWithSlamTopDown(false, 0.05, maxTimeOptimization);
+//        std::vector<int> holdStill{0};
+//        graphSaved.optimizeGraphWithSlam(false, holdStill,maxTimeOptimization);
 
         graphSaved.calculateCovarianceInCloseProximity(maxTimeOptimization);
 

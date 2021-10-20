@@ -72,8 +72,8 @@ target_link_libraries(hilbertMapTestFile ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 add_executable(stPereDatasetRosPublishing src/completeSlamRuns/stPereDatasetPublishingRos.cpp ${SOURCE_FILES})
 target_link_libraries(stPereDatasetRosPublishing ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-add_executable(graphSlamWithROS src/completeSlamRuns/graphSlamWithROS.cpp ${SOURCE_FILES})
-target_link_libraries(graphSlamWithROS ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+#add_executable(graphSlamWithROS src/completeSlamRuns/graphSlamWithROS.cpp ${SOURCE_FILES})
+#target_link_libraries(graphSlamWithROS ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(testEKF src/EKF/testEKF.cpp ${SOURCE_FILES} include/pose.h)
 target_link_libraries(testEKF ${PCL_LIBRARIES} ${catkin_LIBRARIES})
