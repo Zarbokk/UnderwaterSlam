@@ -28,8 +28,8 @@ public:
         this->processNoise(3, 3) = 0.0001;//vx
         this->processNoise(4, 4) = 0.0001;//vy
         this->processNoise(5, 5) = 0.0001;//vz
-        this->processNoise(6, 6) = 0.0001;//r
-        this->processNoise(7, 7) = 0.0001;//p
+        this->processNoise(6, 6) = 0.1;//r
+        this->processNoise(7, 7) = 0.1;//p
         this->processNoise(8, 8) = 0.001;//y
         this->processNoise(9, 9) = 0.0001;//vr
         this->processNoise(10, 10) = 0.0001;//vp
@@ -43,9 +43,10 @@ public:
         this->measurementNoiseDVL(4, 4) = 0.01;
         this->measurementNoiseDVL(5, 5) = 0.01;
 
+
         this->measurementImuVelocity = 100 * Eigen::MatrixXd::Identity(12, 12);
-        this->measurementNoiseDVL(6, 6) = 0.1;
-        this->measurementNoiseDVL(7, 7) = 0.1;
+        this->measurementImuVelocity(6, 6) = 0.001;
+        this->measurementImuVelocity(7, 7) = 0.001;
         this->measurementImuVelocity(9, 9) = 0.01;
         this->measurementImuVelocity(10, 10) = 0.01;
         this->measurementImuVelocity(11, 11) = 0.01;
@@ -64,7 +65,7 @@ public:
     void
     predictionImu(double xAccel, double yAccel, double zAccel, Eigen::Quaterniond currentRotation, ros::Time timeStamp);
 
-    void updateDVL(double xVel, double yVel, double zVel,Eigen::Quaterniond rotationOfDVL, ros::Time timeStamp);
+    void updateDVL(double xVel, double yVel, double zVel, Eigen::Quaterniond rotationOfDVL, ros::Time timeStamp);
 
     void updateIMU(double roll, double pitch, double xAngularVel, double yAngularVel, double zAngularVel,
                    Eigen::Quaterniond currentRotation, ros::Time timeStamp);
@@ -73,8 +74,11 @@ public:
 
     Eigen::Quaterniond getRotationVector();
 
-    void resetToPos(double x,double y,double yaw);
+    Eigen::Quaterniond getRotationVectorWithoutYaw();
 
+    void resetToPos(double x, double y, double yaw, bool resetCovariance);
+
+    Eigen::VectorXd innovationStateDiff(Eigen::VectorXd z, Eigen::MatrixXd H, Eigen::VectorXd currentStateBeforeUpdate);
 
 private:
     pose stateOfEKF;
@@ -83,7 +87,6 @@ private:
     Eigen::MatrixXd processNoise, measurementNoiseDepth, measurementNoiseDVL, measurementImuVelocity, measurementNoiseSlam;
     ros::Time lastUpdateTime;
 };
-
 
 
 #endif //UNDERWATERSLAM_EKFDVL_H

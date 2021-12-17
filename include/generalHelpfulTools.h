@@ -12,7 +12,7 @@ class generalHelpfulTools {
 public:
     static Eigen::Vector3d getRollPitchYaw(Eigen::Quaterniond quat);
     static Eigen::Quaterniond getQuaternionFromRPY(double roll, double pitch, double yaw);
-
+    static double angleDiff(double first, double second);//first-second
 };
 
 

@@ -12,13 +12,13 @@
 class pose {//pose is in NED
 public:
     Eigen::Vector3f position;
-    Eigen::Vector3f rotation;
+    Eigen::Vector3f rotation;//definition -pi to pi roll, +- 1/2 pi pitch, +- pi yaw
     Eigen::Vector3f velocity;
     Eigen::Vector3f angleVelocity;
     Eigen::MatrixXd covariance;
     ros::Time timeLastPrediction;
 
-    Eigen::VectorXd getStatexyzaxayazrpyrvelpvelyvel() {
+    Eigen::VectorXd getStatexyzvxvyvzrpyrvelpvelyvel() {
         Eigen::VectorXd state = Eigen::VectorXd::Zero(12);
         state(0) = this->position.x();
         state(1) = this->position.y();
@@ -27,7 +27,18 @@ public:
         state(3) = this->velocity.x();
         state(4) = this->velocity.y();
         state(5) = this->velocity.z();
-
+        if(this->rotation.x()>M_PI){
+            this->rotation.x() = this->rotation.x()-2*M_PI;
+        }
+        if(this->rotation.x()<-M_PI){
+            this->rotation.x() = this->rotation.x()+2*M_PI;
+        }
+        if(this->rotation.z()>M_PI){
+            this->rotation.z() = this->rotation.z()-2*M_PI;
+        }
+        if(this->rotation.z()<-M_PI){
+            this->rotation.z() = this->rotation.z()+2*M_PI;
+        }
         state(6) = this->rotation.x();
         state(7) = this->rotation.y();
         state(8) = this->rotation.z();

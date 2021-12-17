@@ -10,13 +10,23 @@ project(underwaterslam)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg  roscpp pcl_ros soft20 ping360_sonar waterlinked_dvl)
+find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg  roscpp pcl_ros soft20 ping360_sonar waterlinked_dvl message_generation)
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenCV REQUIRED)
 find_package(PCL 1.10 REQUIRED COMPONENTS common io visualization)
 
+ add_service_files(
+   FILES
+   resetekf.srv
+#   Service1.srv
+#   Service2.srv
+ )
 
-
+generate_messages(
+        DEPENDENCIES
+        sensor_msgs
+        std_msgs
+)
 
 set(SOURCE_FILES src/registration/scanRegistrationClass.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} src/poseGraphsrc/graphSlamSaveStructure.cpp src/poseGraphsrc/edge.cpp src/poseGraphsrc/vertex.cpp src/EKF/ekfPos.cpp)
@@ -27,7 +37,7 @@ set(SOURCE_FILES ${SOURCE_FILES} include/edge.h include/graphSlamSaveStructure.h
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES
-    image_sonar_ros_plugin
+    #image_sonar_ros_plugin
 #  DEPENDS system_lib
 )
 
