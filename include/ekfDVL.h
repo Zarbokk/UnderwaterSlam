@@ -70,6 +70,8 @@ public:
     void updateIMU(double roll, double pitch, double xAngularVel, double yAngularVel, double zAngularVel,
                    Eigen::Quaterniond currentRotation, ros::Time timeStamp);
 
+    void updateHeight(double depth,ros::Time timeStamp);
+
     pose getState();
 
     Eigen::Quaterniond getRotationVector();

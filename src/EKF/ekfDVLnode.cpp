@@ -18,10 +18,13 @@ public:
         subscriberIMU = n_.subscribe("mavros/imu/data_frd", 1000, &rosClassEKF::imuCallback, this);
         subscriberDVL = n_.subscribe("transducer_report", 1000, &rosClassEKF::DVLCallbackDVL, this);
         subscriberDVL = n_.subscribe("mavros/local_position/velocity_body_frd", 1000, &rosClassEKF::DVLCallbackMavros, this);
+        subscriberDVL = n_.subscribe("mavros/altitude_frd", 1000, &rosClassEKF::depthSensorCallback, this);
+
         this->serviceResetEkf = n_.advertiseService("resetCurrentEKF",&rosClassEKF::resetEKF,this);
 
         publisherPoseEkf = n_.advertise<geometry_msgs::PoseWithCovarianceStamped>("publisherPoseEkf", 10);
         publisherTwistEkf = n_.advertise<geometry_msgs::TwistWithCovarianceStamped>("publisherTwistEkf", 10);
+
     }
 
 private:
@@ -113,6 +116,15 @@ private:
         res.resetDone = true;
         return true;
     }
+
+    void depthSensorCallback(const mavros_msgs::Altitude ::ConstPtr  &msg){
+        this->updateSlamMutex.lock();
+        this->depthSensorHelper(msg);
+        this->updateSlamMutex.unlock();
+    }
+    void depthSensorHelper(const mavros_msgs::Altitude ::ConstPtr  &msg){
+        this->currentEkf.updateHeight(msg->local,msg->header.stamp);
+    };
 
 };
 

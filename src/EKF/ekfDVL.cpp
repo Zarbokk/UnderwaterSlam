@@ -130,6 +130,26 @@ ekfClassDVL::updateDVL(double xVel, double yVel, double zVel, Eigen::Quaterniond
     this->stateOfEKF.covariance = (Eigen::MatrixXd::Identity(12, 12) - K * H) * this->stateOfEKF.covariance;
 }
 
+void
+ekfClassDVL::updateHeight(double depth,ros::Time timeStamp) {
+    //for saving the current EKF pose difference in
+    Eigen::VectorXd currentStateBeforeUpdate = this->stateOfEKF.getStatexyzvxvyvzrpyrvelpvelyvel();
+
+
+
+    Eigen::VectorXd innovation;
+    Eigen::VectorXd z = Eigen::VectorXd::Zero(12);
+    z(2) = depth;
+    Eigen::MatrixXd H = Eigen::MatrixXd::Zero(12, 12);
+    H(2, 2) = 1;
+    innovation = z - H * this->stateOfEKF.getStatexyzvxvyvzrpyrvelpvelyvel();//also y
+    Eigen::MatrixXd S = H * this->stateOfEKF.covariance * H.transpose() + this->measurementNoiseDepth;
+    Eigen::MatrixXd K = this->stateOfEKF.covariance * H.transpose() * S.inverse();
+    Eigen::VectorXd newState = this->stateOfEKF.getStatexyzvxvyvzrpyrvelpvelyvel() + K * innovation;
+    this->stateOfEKF.applyState(newState);
+    this->stateOfEKF.covariance = (Eigen::MatrixXd::Identity(12, 12) - K * H) * this->stateOfEKF.covariance;
+}
+
 pose ekfClassDVL::getState() {
     return this->stateOfEKF;
 }
