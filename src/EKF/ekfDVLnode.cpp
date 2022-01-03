@@ -6,6 +6,7 @@
 #include "sensor_msgs/Imu.h"
 #include "mavros_msgs/Altitude.h"
 #include "geometry_msgs/TwistWithCovarianceStamped.h"
+#include "geometry_msgs/TwistStamped.h"
 #include "generalHelpfulTools.h"
 #include "waterlinked_dvl/TransducerReportStamped.h"
 #include "underwaterslam/resetekf.h"
@@ -15,15 +16,15 @@ public:
     rosClassEKF(ros::NodeHandle n_) : currentEkf(ros::Time::now()) {
         this->rotationOfDVL = Eigen::AngleAxisd(3.14159 / 4.0, Eigen::Vector3d::UnitZ());//yaw rotation for correct alignment of DVL data;
 
-        subscriberIMU = n_.subscribe("mavros/imu/data_frd", 1000, &rosClassEKF::imuCallback, this);
-        subscriberDVL = n_.subscribe("transducer_report", 1000, &rosClassEKF::DVLCallbackDVL, this);
-        subscriberDVL = n_.subscribe("mavros/local_position/velocity_body_frd", 1000, &rosClassEKF::DVLCallbackMavros, this);
-        subscriberDVL = n_.subscribe("mavros/altitude_frd", 1000, &rosClassEKF::depthSensorCallback, this);
+        this->subscriberIMU = n_.subscribe("mavros/imu/data_frd", 1000, &rosClassEKF::imuCallback, this);
+        this->subscriberDVL = n_.subscribe("transducer_report", 1000, &rosClassEKF::DVLCallbackDVL, this);
+        this->subscriberVelocityMavros = n_.subscribe("mavros/local_position/velocity_body_frd", 1000, &rosClassEKF::DVLCallbackMavros, this);
+        this->subscriberDepth = n_.subscribe("mavros/altitude_frd", 1000, &rosClassEKF::depthSensorCallback, this);
 
         this->serviceResetEkf = n_.advertiseService("resetCurrentEKF",&rosClassEKF::resetEKF,this);
 
-        publisherPoseEkf = n_.advertise<geometry_msgs::PoseWithCovarianceStamped>("publisherPoseEkf", 10);
-        publisherTwistEkf = n_.advertise<geometry_msgs::TwistWithCovarianceStamped>("publisherTwistEkf", 10);
+        this->publisherPoseEkf = n_.advertise<geometry_msgs::PoseWithCovarianceStamped>("publisherPoseEkf", 10);
+        this->publisherTwistEkf = n_.advertise<geometry_msgs::TwistWithCovarianceStamped>("publisherTwistEkf", 10);
 
     }
 
@@ -32,7 +33,7 @@ private:
 //    std::deque<mavros_msgs::Altitude::ConstPtr> depthDeque;
 //    std::deque<geometry_msgs::TwistStamped::ConstPtr> dvlDeque;
     ekfClassDVL currentEkf;
-    ros::Subscriber subscriberIMU, subscriberDepth, subscriberDVL, subscriberSlamResults;
+    ros::Subscriber subscriberIMU, subscriberDepth, subscriberDVL, subscriberSlamResults,subscriberVelocityMavros;
     ros::Publisher publisherPoseEkf, publisherTwistEkf;
     std::mutex updateSlamMutex;
     Eigen::Quaterniond rotationOfDVL;
@@ -99,11 +100,11 @@ private:
         this->updateSlamMutex.unlock();
     }
 
-    void DVLCallbackMavrosHelper(const geometry_msgs::TwistWithCovarianceStamped::ConstPtr &msg) {
-        this->currentEkf.updateDVL(msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z, Eigen::Quaterniond(1,0,0,0), msg->header.stamp);
+    void DVLCallbackMavrosHelper(const geometry_msgs::TwistStamped::ConstPtr &msg) {
+        this->currentEkf.updateDVL(msg->twist.linear.x, msg->twist.linear.y, msg->twist.linear.z, Eigen::Quaterniond(1,0,0,0), msg->header.stamp);
     }
 
-    void DVLCallbackMavros(const geometry_msgs::TwistWithCovarianceStamped::ConstPtr  &msg) {
+    void DVLCallbackMavros(const geometry_msgs::TwistStamped::ConstPtr  &msg) {
         this->updateSlamMutex.lock();
         this->DVLCallbackMavrosHelper(msg);
         this->updateSlamMutex.unlock();
