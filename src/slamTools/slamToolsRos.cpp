@@ -297,7 +297,8 @@ slamToolsRos::recalculatePCLEdges(graphSlamSaveStructure &currentGraph) {
 }
 
 void
-slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cloudScan, std::vector<edge> &posDiff,
+slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cloudScan,
+                                          std::vector<edge> &posDiff,
                                           double timeStampBeginning, double beginAngle,
                                           double endAngle, bool reverseScanDirection,
                                           Eigen::Matrix4d transformationPosData2PclCoord) {

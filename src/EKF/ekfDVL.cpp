@@ -132,6 +132,9 @@ ekfClassDVL::updateDVL(double xVel, double yVel, double zVel, Eigen::Quaterniond
 
 void
 ekfClassDVL::updateHeight(double depth,ros::Time timeStamp) {
+    if(isnan(depth)){
+        depth=0;
+    }
     //for saving the current EKF pose difference in
     Eigen::VectorXd currentStateBeforeUpdate = this->stateOfEKF.getStatexyzvxvyvzrpyrvelpvelyvel();
 

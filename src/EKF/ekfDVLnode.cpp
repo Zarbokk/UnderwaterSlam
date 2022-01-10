@@ -10,6 +10,10 @@
 #include "generalHelpfulTools.h"
 #include "waterlinked_dvl/TransducerReportStamped.h"
 #include "underwaterslam/resetekf.h"
+//#include <chrono>
+//#include <thread>
+
+
 
 class rosClassEKF {
 public:
@@ -131,6 +135,9 @@ private:
 
 
 int main(int argc, char **argv) {
+//    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+
+
     ros::init(argc, argv, "ekffordvlwithros");
     ros::start();
     ros::NodeHandle n_;
