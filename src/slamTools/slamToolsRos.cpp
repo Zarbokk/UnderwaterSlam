@@ -75,7 +75,7 @@ void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros
     }
     publisherMarkerArray.publish(markerArray);
     publisherPath.publish(posOverTime);
-    pcl::io::savePCDFileASCII("/home/auvatjacobs/dataFolder/savingRandomPCL/fullPCL.pcd",completeCloudWithPos);
+//    pcl::io::savePCDFileASCII("/home/auvatjacobs/dataFolder/savingRandomPCL/fullPCL.pcd",completeCloudWithPos);
 
     sensor_msgs::PointCloud2 cloudMsg2;
     pcl::toROSMsg(completeCloudWithPos, cloudMsg2);

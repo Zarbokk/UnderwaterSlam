@@ -7,8 +7,6 @@
 #include "json.h"
 
 
-
-
 std::vector<dataPointStruct> readGraphSlamJson(std::string fileName) {
     Json::Value keyFrames;
     std::ifstream keyFramesFile(fileName, std::ifstream::binary);
@@ -45,10 +43,10 @@ std::vector<dataPointStruct> readGraphSlamJson(std::string fileName) {
             Eigen::Vector3d pointPosTwo(keyFrames["keyFrames"][i]["pointCloud"][j]["point"]["x"].asDouble(),
                                         keyFrames["keyFrames"][i]["pointCloud"][j]["point"]["y"].asDouble(),
                                         keyFrames["keyFrames"][i]["pointCloud"][j]["point"]["z"].asDouble());
-            pointPosTwo = currentRotationMatrix*pointPosTwo;
+            pointPosTwo = currentRotationMatrix * pointPosTwo;
 
             double randomNumber = std::rand() / double(RAND_MAX);// should be between 0 and 1
-            pointPosTwo = currentShift+randomNumber*pointPosTwo;
+            pointPosTwo = currentShift + randomNumber * pointPosTwo;
             tmpDP.x = pointPosTwo.x();
             tmpDP.y = pointPosTwo.y();
             tmpDP.z = pointPosTwo.z();
@@ -70,25 +68,29 @@ main(int argc, char **argv) {
     ros::Publisher publisherMarkerArray;
     publisherMarkerArray = n_.advertise<nav_msgs::OccupancyGrid>("occupancyHilbertMap", 10);
 
-    hilbertMap mapRepresentation(120,0.5,240,60);
-    mapRepresentation.createRandomMap();
+    hilbertMap mapRepresentation(120, 0.5,
+                                 240, 60,
+                                 hilbertMap::SPARSE_RANDOM_FEATURES);
+    mapRepresentation.createRandomMap();//initialize everything with 0.4
 
     ros::Rate loop_rate(1);
 
 
-
     std::vector<dataPointStruct> dataSet = readGraphSlamJson(
-            "/home/tim/DataForTests/DataFromSimulationJson/testfile.json");
+            "/home/tim-linux/dataFolder/graphSavedExample/test010.json");
 
 
-    while (ros::ok()){
-
+    while (ros::ok()) {
+//        std::cout << "currently starting training" << std::endl;
         mapRepresentation.trainClassifier(dataSet);
         //visualization_msgs::MarkerArray markerArrayOfMap = mapRepresentation.createMarkerArrayOfHilbertMap();
         nav_msgs::OccupancyGrid map = mapRepresentation.createOccupancyMapOfHilbert();
+        map.header.stamp = ros::Time::now();
         publisherMarkerArray.publish(map);
         ros::spinOnce();
         loop_rate.sleep();
+//        std::cout << ros::Time::now() << std::endl;
     }
+
     return (0);
 }

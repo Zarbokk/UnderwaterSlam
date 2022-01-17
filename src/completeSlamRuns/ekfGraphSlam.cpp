@@ -14,9 +14,9 @@ public:
     rosClassEKF(ros::NodeHandle n_) : currentEkf(ros::Time::now()), lastUpdateEkf(ros::Time::now()), graphSaved(3) {
         lastUpdateEkf = currentEkf.copyEKF();
         subscriberIMU = n_.subscribe("mavros/imu/data_frd", 1000, &rosClassEKF::imuCallback, this);
-        subscriberDVL = n_.subscribe("mavros/local_position/velocity_body_frd", 1000, &rosClassEKF::DVLCallback, this);
+        subscriberEKF = n_.subscribe("mavros/local_position/velocity_body_frd", 1000, &rosClassEKF::DVLCallback, this);
         subscriberDepth = n_.subscribe("mavros/altitude_frd", 1000, &rosClassEKF::depthCallback, this);
-        subscriberFullScan = n_.subscribe("sonar/full_scan", 10000, &rosClassEKF::scanCallback, this);
+        subscriberIntensitySonar = n_.subscribe("sonar/full_scan", 10000, &rosClassEKF::scanCallback, this);
 
         publisherPoseEkf = n_.advertise<geometry_msgs::PoseStamped>("publisherPoseEkf", 10);
         publisherTwistEkf = n_.advertise<geometry_msgs::TwistStamped>("publisherTwistEkf", 10);
@@ -60,7 +60,7 @@ private:
     std::deque<mavros_msgs::Altitude::ConstPtr> depthDeque;
     std::deque<geometry_msgs::TwistStamped::ConstPtr> dvlDeque;
     ekfClass currentEkf, lastUpdateEkf;
-    ros::Subscriber subscriberIMU, subscriberDepth, subscriberDVL, subscriberFullScan;
+    ros::Subscriber subscriberIMU, subscriberDepth, subscriberEKF, subscriberIntensitySonar;
     ros::Publisher publisherPoseEkf, publisherTwistEkf;
     std::mutex updateSlamMutex;
 

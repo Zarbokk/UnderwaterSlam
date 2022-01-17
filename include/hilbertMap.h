@@ -21,7 +21,7 @@ struct dataPointStruct {
 
 class hilbertMap {
 public:
-    hilbertMap(int numberOfFeaturesForEachDimension, double discritisationSizeFeatures, int numberOfPointsToCalculateOccupancy, double quadraticOccupancyMapSize) {
+    hilbertMap(int numberOfFeaturesForEachDimension, double discritisationSizeFeatures, int numberOfPointsToCalculateOccupancy, double quadraticOccupancyMapSize, int featureToUse) {
         this->discritisationSizeFeatures = discritisationSizeFeatures;
         this->numberOfFeaturesForEachDimension = numberOfFeaturesForEachDimension;
         Eigen::VectorXd weightVectorTMP(numberOfFeaturesForEachDimension * numberOfFeaturesForEachDimension);
@@ -31,6 +31,7 @@ public:
         this->numberOfPointsToCalculateOccupancy = numberOfPointsToCalculateOccupancy;
         this->quadraticOccupancyMapSize = quadraticOccupancyMapSize;
         this->currentMap = Eigen::MatrixXd(numberOfPointsToCalculateOccupancy,numberOfPointsToCalculateOccupancy);
+        this->featureThatIsUsed = featureToUse;
         //fill weightVector
         for (int i = 0; i < (numberOfFeaturesForEachDimension * numberOfFeaturesForEachDimension); i++) {
             this->weightVector[i] = 0;
@@ -75,6 +76,7 @@ private:
     double huberLoss(double input,double smoothingPoint = 0.1);
     int numberOfFeaturesForEachDimension;
     int numberOfPointsToCalculateOccupancy;
+    int featureThatIsUsed;
 public:
     int getNumberOfPointsToCalculateOccupancy() const;
 
@@ -83,6 +85,9 @@ public:
     double getQuadraticOccupancyMapSize() const;
 
     void setQuadraticOccupancyMapSize(double quadraticOccupancyMapSize);
+
+    static const int SPARSE_RANDOM_FEATURES = 0;
+    static const int HINGED_FEATURES = 1;
 
 private:
     double quadraticOccupancyMapSize;//this is at the square one side length

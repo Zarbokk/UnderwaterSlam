@@ -18,7 +18,7 @@ void hilbertMap::createRandomMap() {
 //            point.x = currentPointOfInterest.x();
 //            point.y = currentPointOfInterest.y();
 //            point.z = currentPointOfInterest.z();
-            this->currentMap(i,j) = 0.5;
+            this->currentMap(i, j) = 0.5;
         }
     }
 }
@@ -80,7 +80,8 @@ void hilbertMap::trainClassifier(std::vector<dataPointStruct> &dataSet) {
             //pointTMP.y = currentPointOfInterest.y();
             //pointTMP.z = currentPointOfInterest.z();
             //pointTMP.occupancy = this->calculateOccupancy(currentPointOfInterest);
-            currentMap(i,j) = this->calculateOccupancy(currentPointOfInterest);
+
+            currentMap(i, j) = this->calculateOccupancy(currentPointOfInterest);
         }
     }
 }
@@ -211,7 +212,7 @@ hilbertMap::createOccupancyMapOfHilbert(double threshholdOccupancy) {
     for (int i = 0; i < this->currentMap.rows(); i++) {
         for (int j = 0; j < this->currentMap.cols(); j++) {
             //determine color:
-            map.data.push_back((int) (this->currentMap(i,j) * 100));
+            map.data.push_back((int) (this->currentMap(i, j) * 100));
 //            if (this->currentMap[i][j].occupancy > 0.5 + threshholdOccupancy) {
 //                map.data.push_back(100);
 //            } else {

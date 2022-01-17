@@ -20,6 +20,7 @@ void ekfClassDVL::predictionImu(double xAccel, double yAccel, double zAccel, Eig
 //   std::cout << "local acceleration in world system: "<< " x: " << localAcceleration(0) << " y: " << localAcceleration(1) <<std::endl;
 //   std::cout << this->stateOfEKF.rotation.x()<<" "<<this->stateOfEKF.rotation.y()<<" "<<this->stateOfEKF.rotation.z() << std::endl;
     double timeDiff = (timeStamp - this->stateOfEKF.timeLastPrediction).toSec();
+
     if (timeDiff > 0.1 || timeDiff < 0) {
         timeDiff = 0.1;
     }
@@ -35,7 +36,7 @@ void ekfClassDVL::predictionImu(double xAccel, double yAccel, double zAccel, Eig
     Eigen::VectorXd inputMatrix = Eigen::VectorXd::Zero(12);
     inputMatrix(3) = localAcceleration(0) * timeDiff;
     inputMatrix(4) = localAcceleration(1) * timeDiff;
-    inputMatrix(5) = 0;//this is z acceleration localAcceleration(2) * timeDiff;
+    inputMatrix(5) = localAcceleration(2) * timeDiff;//this is z acceleration localAcceleration(2) * timeDiff;
     state = A * state + inputMatrix;
     if (state(8) > M_PI) {
         state(8) = state(8) - 2 * M_PI;
@@ -111,7 +112,7 @@ ekfClassDVL::updateDVL(double xVel, double yVel, double zVel, Eigen::Quaterniond
     Eigen::VectorXd z = Eigen::VectorXd::Zero(12);
     z(3) = velocityLocalLinear(0);
     z(4) = velocityLocalLinear(1);
-    z(5) = 0;// removed because z is not important. velocityLocalLinear(2);
+    z(5) = velocityLocalLinear(2);// removed because z is not important. velocityLocalLinear(2);
     Eigen::MatrixXd H = Eigen::MatrixXd::Zero(12, 12);
     H(3, 3) = 1;
     H(4, 4) = 1;

@@ -21,7 +21,7 @@ public:
         this->rotationOfDVL = Eigen::AngleAxisd(3.14159 / 4.0, Eigen::Vector3d::UnitZ());//yaw rotation for correct alignment of DVL data;
 
         this->subscriberIMU = n_.subscribe("mavros/imu/data_frd", 1000, &rosClassEKF::imuCallback, this);
-        this->subscriberDVL = n_.subscribe("transducer_report", 1000, &rosClassEKF::DVLCallbackDVL, this);
+        this->subscriberEKF = n_.subscribe("transducer_report", 1000, &rosClassEKF::DVLCallbackDVL, this);
         this->subscriberVelocityMavros = n_.subscribe("mavros/local_position/velocity_body_frd", 1000, &rosClassEKF::DVLCallbackMavros, this);
         this->subscriberDepth = n_.subscribe("mavros/altitude_frd", 1000, &rosClassEKF::depthSensorCallback, this);
 
@@ -37,7 +37,7 @@ private:
 //    std::deque<mavros_msgs::Altitude::ConstPtr> depthDeque;
 //    std::deque<geometry_msgs::TwistStamped::ConstPtr> dvlDeque;
     ekfClassDVL currentEkf;
-    ros::Subscriber subscriberIMU, subscriberDepth, subscriberDVL, subscriberSlamResults,subscriberVelocityMavros;
+    ros::Subscriber subscriberIMU, subscriberDepth, subscriberEKF, subscriberSlamResults,subscriberVelocityMavros;
     ros::Publisher publisherPoseEkf, publisherTwistEkf;
     std::mutex updateSlamMutex;
     Eigen::Quaterniond rotationOfDVL;
@@ -66,6 +66,7 @@ private:
                              msg.get()->angular_velocity.z, tmpRot, msg->header.stamp);
         pose currentStateEkf = currentEkf.getState();
         geometry_msgs::PoseWithCovarianceStamped poseMsg;
+        poseMsg.header.frame_id = "map_ned";
         poseMsg.pose.pose.position.x = currentStateEkf.position.x();
         poseMsg.pose.pose.position.y = currentStateEkf.position.y();
         poseMsg.pose.pose.position.z = currentStateEkf.position.z();
@@ -78,6 +79,7 @@ private:
         poseMsg.header.stamp = msg->header.stamp;
         this->publisherPoseEkf.publish(poseMsg);
         geometry_msgs::TwistWithCovarianceStamped twistMsg;
+        twistMsg.header.frame_id = "map_ned";
         twistMsg.twist.twist.linear.x = currentStateEkf.velocity.x();
         twistMsg.twist.twist.linear.y = currentStateEkf.velocity.y();
         twistMsg.twist.twist.linear.z = currentStateEkf.velocity.z();

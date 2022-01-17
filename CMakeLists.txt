@@ -18,6 +18,7 @@ find_package(PCL 1.10 REQUIRED COMPONENTS common io visualization)
  add_service_files(
    FILES
    resetekf.srv
+   saveGraph.srv
 #   Service1.srv
 #   Service2.srv
  )
@@ -90,6 +91,9 @@ target_link_libraries(testEKF ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(ekfGraphSlam src/completeSlamRuns/ekfGraphSlam.cpp ${SOURCE_FILES})
 target_link_libraries(ekfGraphSlam ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+add_executable(graphSlamExternalEstimator src/completeSlamRuns/graphSlamWithExternalStateEstimator.cpp ${SOURCE_FILES})
+target_link_libraries(graphSlamExternalEstimator ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(EKFDVL src/EKF/ekfDVLnode.cpp ${SOURCE_FILES} include/pose.h src/EKF/ekfDVL.cpp)
 target_link_libraries(EKFDVL ${PCL_LIBRARIES} ${catkin_LIBRARIES})
