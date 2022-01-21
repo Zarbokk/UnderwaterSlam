@@ -21,8 +21,8 @@ struct dataPointStruct {
 
 class hilbertMap {
 public:
-    hilbertMap(int numberOfFeaturesForEachDimension, double discritisationSizeFeatures, int numberOfPointsToCalculateOccupancy, double quadraticOccupancyMapSize, int featureToUse) {
-        this->discritisationSizeFeatures = discritisationSizeFeatures;
+    hilbertMap(int numberOfFeaturesForEachDimension, int numberOfPointsToCalculateOccupancy, double quadraticOccupancyMapSize, int featureToUse) {
+        //this->discritisationSizeFeatures = discritisationSizeFeatures;
         this->numberOfFeaturesForEachDimension = numberOfFeaturesForEachDimension;
         Eigen::VectorXd weightVectorTMP(numberOfFeaturesForEachDimension * numberOfFeaturesForEachDimension);
         this->weightVector = weightVectorTMP;
@@ -36,6 +36,7 @@ public:
         for (int i = 0; i < (numberOfFeaturesForEachDimension * numberOfFeaturesForEachDimension); i++) {
             this->weightVector[i] = 0;
         }
+        double discritisationSizeFeatures = 1/(numberOfFeaturesForEachDimension/quadraticOccupancyMapSize);
         double shiftX = -0.5 * (numberOfFeaturesForEachDimension - 1) * discritisationSizeFeatures;
         double shiftY = -0.5 * (numberOfFeaturesForEachDimension - 1) * discritisationSizeFeatures;
         //fill induced points
@@ -49,9 +50,9 @@ public:
 
     void createRandomMap();
 
-    double getDiscritisationSizeFeatures() const;
-
-    void setDiscritisationSizeFeatures(double discritisationSizeFeatures);
+//    double getDiscritisationSizeFeatures() const;
+//
+//    void setDiscritisationSizeFeatures(double discritisationSizeFeatures);
 
     int getNumberOfFeaturesForEachDimension() const;
 
@@ -72,7 +73,10 @@ public:
 private:
 
     Eigen::VectorXd mappingBySparseFeatures(Eigen::Vector3d pointOfInterest);
+    Eigen::VectorXd mappingByHingedFeatures(Eigen::Vector3d pointOfInterest);
     Eigen::VectorXd gradientOfSparseFeatures(Eigen::Vector3d pointOfInterest,double occupancy);
+    Eigen::VectorXd gradientOfHingedFeatures(Eigen::Vector3d pointOfInterest, double occupancy);
+    Eigen::VectorXd getGradient(Eigen::Vector3d pointOfInterest,double occupancy);
     double huberLoss(double input,double smoothingPoint = 0.1);
     int numberOfFeaturesForEachDimension;
     int numberOfPointsToCalculateOccupancy;
@@ -93,7 +97,7 @@ private:
     double quadraticOccupancyMapSize;//this is at the square one side length
     //std::vector<std::vector<dataPointStruct>> currentMap;
     Eigen::MatrixXd currentMap;
-    double discritisationSizeFeatures;
+    //double discritisationSizeFeatures;
     Eigen::VectorXd weightVector;
     Eigen::MatrixXd inducedPoints;
 };

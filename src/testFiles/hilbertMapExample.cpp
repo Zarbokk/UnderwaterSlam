@@ -68,9 +68,8 @@ main(int argc, char **argv) {
     ros::Publisher publisherMarkerArray;
     publisherMarkerArray = n_.advertise<nav_msgs::OccupancyGrid>("occupancyHilbertMap", 10);
 
-    hilbertMap mapRepresentation(120, 0.5,
-                                 240, 60,
-                                 hilbertMap::SPARSE_RANDOM_FEATURES);
+    hilbertMap mapRepresentation(120,240,
+                                 60,hilbertMap::HINGED_FEATURES);
     mapRepresentation.createRandomMap();//initialize everything with 0.4
 
     ros::Rate loop_rate(1);
@@ -83,7 +82,6 @@ main(int argc, char **argv) {
     while (ros::ok()) {
 //        std::cout << "currently starting training" << std::endl;
         mapRepresentation.trainClassifier(dataSet);
-        //visualization_msgs::MarkerArray markerArrayOfMap = mapRepresentation.createMarkerArrayOfHilbertMap();
         nav_msgs::OccupancyGrid map = mapRepresentation.createOccupancyMapOfHilbert();
         map.header.stamp = ros::Time::now();
         publisherMarkerArray.publish(map);

@@ -23,13 +23,13 @@ void hilbertMap::createRandomMap() {
     }
 }
 
-double hilbertMap::getDiscritisationSizeFeatures() const {
-    return this->discritisationSizeFeatures;
-}
-
-void hilbertMap::setDiscritisationSizeFeatures(double discritisationSize) {
-    this->discritisationSizeFeatures = discritisationSize;
-}
+//double hilbertMap::getDiscritisationSizeFeatures() const {
+//    return this->discritisationSizeFeatures;
+//}
+//
+//void hilbertMap::setDiscritisationSizeFeatures(double discritisationSize) {
+//    this->discritisationSizeFeatures = discritisationSize;
+//}
 
 int hilbertMap::getNumberOfFeaturesForEachDimension() const {
     return numberOfFeaturesForEachDimension;
@@ -47,8 +47,17 @@ void hilbertMap::setCurrentMap(const Eigen::MatrixXd &currentMap) {
     hilbertMap::currentMap = currentMap;
 }
 
+Eigen::VectorXd hilbertMap::getGradient(Eigen::Vector3d pointOfInterest,double occupancy){
+    if(hilbertMap::SPARSE_RANDOM_FEATURES==this->featureThatIsUsed){
+        return this->gradientOfSparseFeatures(pointOfInterest, occupancy);
+    }
+    if(hilbertMap::HINGED_FEATURES==this->featureThatIsUsed){
+        return this->gradientOfHingedFeatures(pointOfInterest, occupancy);
+    }
+}
 
 void hilbertMap::trainClassifier(std::vector<dataPointStruct> &dataSet) {
+    std::cout << "huhu1" << std::endl;
     Eigen::VectorXd gradient = Eigen::VectorXd::Zero(
             this->numberOfFeaturesForEachDimension * this->numberOfFeaturesForEachDimension);
     double stepSize = 0.01;
@@ -56,13 +65,15 @@ void hilbertMap::trainClassifier(std::vector<dataPointStruct> &dataSet) {
     // randomly shuffles the dataset
     std::shuffle(dataSet.begin(), dataSet.end(), std::mt19937(std::random_device()()));
 
-    for (int i = 0; i < 1000; i++) {//dataSet.size(); i++) {
+    for (int i = 0; i < 30000; i++) {//dataSet.size(); i++) {
         Eigen::Vector3d testX(dataSet[i].x, dataSet[i].y, 0);
         double testLabel = dataSet[i].occupancy;
-        gradient = gradient * movingAverage + (1 - movingAverage) * this->gradientOfSparseFeatures(testX, testLabel);
+
+            gradient = gradient * movingAverage + (1 - movingAverage) * this->getGradient(testX,testLabel);
+
         this->weightVector = this->weightVector - stepSize * gradient;
     }
-
+    std::cout << "huhu2" << std::endl;
 
     //std::function<double(double)> func = this->calculateOccupancy;
     //this->currentMap = this->currentMap.unaryExpr(func);
@@ -84,53 +95,9 @@ void hilbertMap::trainClassifier(std::vector<dataPointStruct> &dataSet) {
             currentMap(i, j) = this->calculateOccupancy(currentPointOfInterest);
         }
     }
+    std::cout << "huhu3" << std::endl;
 }
 
-//visualization_msgs::MarkerArray
-//hilbertMap::createMarkerArrayOfHilbertMap( double threshholdOccupancy) {
-//    //int pointsDimensionInMap = currentHilbertMap.getDiscritisationSize();
-//    visualization_msgs::MarkerArray arrayOfCells;
-//    for (int i = 0; i < this->currentMap.rows(); i++) {
-//        for (int j = 0; j < this->currentMap.cols(); j++) {
-//            visualization_msgs::Marker tmpMarker;
-//            tmpMarker.pose.position.x = this->currentMap[i][j].x;
-//            tmpMarker.pose.position.y = this->currentMap[i][j].y;
-//            tmpMarker.pose.position.z = this->currentMap[i][j].z;
-//            tmpMarker.pose.orientation.w = 1;
-//            tmpMarker.header.frame_id = "map_ned";
-//            tmpMarker.scale.x = (this->quadraticOccupancyMapSize-1)/this->numberOfPointsToCalculateOccupancy;
-//            tmpMarker.scale.y = (this->quadraticOccupancyMapSize-1)/this->numberOfPointsToCalculateOccupancy;
-//            tmpMarker.scale.z = (this->quadraticOccupancyMapSize-1)/this->numberOfPointsToCalculateOccupancy;
-//            //determine color:
-//            if (this->currentMap[i][j].occupancy > 0.5 + threshholdOccupancy) {
-//                tmpMarker.color.r = 1;
-//                tmpMarker.color.g = 0;
-//                tmpMarker.color.b = 0;
-//                tmpMarker.color.a = 0.8;
-//            } else {
-//                if (this->currentMap[i][j].occupancy < 0.5 - threshholdOccupancy) {
-//                    tmpMarker.color.r = 0;
-//                    tmpMarker.color.g = 1;
-//                    tmpMarker.color.b = 0;
-//                    tmpMarker.color.a = 0.2;
-//                } else {
-//                    tmpMarker.color.r = 0;
-//                    tmpMarker.color.g = 0;
-//                    tmpMarker.color.b = 1;
-//                    tmpMarker.color.a = 0.4;
-//                }
-//            }
-//
-//            //tmpMarker.lifetime.sec = 10;
-//
-//            tmpMarker.type = 1;//1 for cube
-//            tmpMarker.id = i * currentMap.size() + j;
-//            arrayOfCells.markers.push_back(tmpMarker);
-//
-//        }
-//    }
-//    return arrayOfCells;
-//}
 
 Eigen::VectorXd hilbertMap::mappingBySparseFeatures(Eigen::Vector3d pointOfInterest) {
     Eigen::VectorXd sparseFeatures(this->numberOfFeaturesForEachDimension * this->numberOfFeaturesForEachDimension);
@@ -147,6 +114,20 @@ Eigen::VectorXd hilbertMap::mappingBySparseFeatures(Eigen::Vector3d pointOfInter
     return sparseFeatures;
 }
 
+Eigen::VectorXd hilbertMap::mappingByHingedFeatures(Eigen::Vector3d pointOfInterest) {
+    Eigen::VectorXd hingedFeatures(this->numberOfFeaturesForEachDimension * this->numberOfFeaturesForEachDimension);
+    double invertedDistanceFactor=3;
+    for (int i = 0; i < this->numberOfFeaturesForEachDimension * this->numberOfFeaturesForEachDimension; i++) {
+//        double r = sqrt((pointOfInterest.transpose() - this->inducedPoints.block<1, 3>(i, 0)) *
+//                        0.1 * (pointOfInterest - this->inducedPoints.block<1, 3>(i, 0).transpose()));
+
+
+        hingedFeatures(i)= exp(-pow((pointOfInterest.transpose() - this->inducedPoints.block<1, 3>(i, 0)).norm(),2) / invertedDistanceFactor);
+    }
+    return hingedFeatures;
+}
+
+
 Eigen::VectorXd hilbertMap::gradientOfSparseFeatures(Eigen::Vector3d pointOfInterest, double occupancy) {
     double lambda1 = 0.0001;
     double lambda2 = 0.001;
@@ -154,6 +135,22 @@ Eigen::VectorXd hilbertMap::gradientOfSparseFeatures(Eigen::Vector3d pointOfInte
 
     gradient = -occupancy * this->mappingBySparseFeatures(pointOfInterest) /
                (1 + exp(occupancy * this->weightVector.transpose() * this->mappingBySparseFeatures(pointOfInterest)));
+
+    for (int i = 0; i < this->numberOfFeaturesForEachDimension * this->numberOfFeaturesForEachDimension; i++) {
+        double Rdt = lambda1 * this->weightVector(i) * this->weightVector(i) +
+                     lambda2 * this->huberLoss(this->weightVector(i), 0.5);
+        gradient[i] = gradient[i] + Rdt;
+    }
+    return gradient;
+}
+
+Eigen::VectorXd hilbertMap::gradientOfHingedFeatures(Eigen::Vector3d pointOfInterest, double occupancy) {
+    double lambda1 = 0.0001;
+    double lambda2 = 0.001;
+    Eigen::VectorXd gradient(this->numberOfFeaturesForEachDimension * this->numberOfFeaturesForEachDimension);
+
+    gradient = -occupancy * this->mappingByHingedFeatures(pointOfInterest) /
+               (1 + exp(occupancy * this->weightVector.transpose() * this->mappingByHingedFeatures(pointOfInterest)));
 
     for (int i = 0; i < this->numberOfFeaturesForEachDimension * this->numberOfFeaturesForEachDimension; i++) {
         double Rdt = lambda1 * this->weightVector(i) * this->weightVector(i) +
@@ -177,7 +174,9 @@ double hilbertMap::huberLoss(double input, double smoothingPoint) {
 }
 
 double hilbertMap::calculateOccupancy(Eigen::Vector3d pointOfInterest) {
-    return 1 - 1 / (1 + exp(this->weightVector.transpose() * this->mappingBySparseFeatures(pointOfInterest)));
+    if(hilbertMap::SPARSE_RANDOM_FEATURES == this->featureThatIsUsed){
+        return 1 - 1 / (1 + exp(this->weightVector.transpose() * this->mappingBySparseFeatures(pointOfInterest)));
+    }
 }
 
 int hilbertMap::getNumberOfPointsToCalculateOccupancy() const {
