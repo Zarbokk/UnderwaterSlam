@@ -38,6 +38,7 @@ set(SOURCE_FILES ${SOURCE_FILES} include/edge.h include/graphSlamSaveStructure.h
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES
+  CATKIN_DEPENDS message_runtime
     #image_sonar_ros_plugin
 #  DEPENDS system_lib
 )
