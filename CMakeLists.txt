@@ -99,5 +99,5 @@ target_link_libraries(graphSlamExternalEstimator ${PCL_LIBRARIES} ${catkin_LIBRA
 add_executable(EKFDVL src/EKF/ekfDVLnode.cpp ${SOURCE_FILES} include/pose.h src/EKF/ekfDVL.cpp)
 target_link_libraries(EKFDVL ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-add_executable(conversionSonarDataCorrected src/movementCorrection/compensationSonarDataWithEKF.cpp)
-target_link_libraries(conversionSonarDataCorrected ${catkin_LIBRARIES} ${OpenCV_LIBS})
+add_executable(compensationSonarData src/movementCorrection/compensationSonarDataWithEKF.cpp)
+target_link_libraries(compensationSonarData ${catkin_LIBRARIES} ${OpenCV_LIBS})

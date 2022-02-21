@@ -27,12 +27,14 @@ public:
         this->sizeImage = 500;
         this->radiusOfVisablePart = (this->sizeImage - 100) / 2;
         this->startTimeOfCorrection = 0;
+        this->startingAngleCorrection = 0;
+        this->wrapAroundAddition = 0;
         this->sonarImage = cv::Mat(sizeImage, sizeImage, CV_8UC1, cv::Scalar(0));
-        this->rotationOfSonarOnRobot = 200;
-//        this->subscriberDataSonar = n_.subscribe("sonar/intensity", 1000,
-//                                                 &correctionOfSonarData::imageDataGenerationCallback, this);
-        this->subscriberDataSonar = n_.subscribe("ping360_node/sonar/data", 1000,
+//        this->angleDiffToScanStart = 0;
+        this->subscriberDataSonar = n_.subscribe("sonar/intensity", 1000,
                                                  &correctionOfSonarData::imageDataGenerationCallback, this);
+//        this->subscriberDataSonar = n_.subscribe("ping360_node/sonar/data", 1000,
+//                                                 &correctionOfSonarData::imageDataGenerationCallback, this);
         this->subscriberEKFData = n_.subscribe("publisherPoseEkf", 1000, &correctionOfSonarData::ekfPoseCallback, this);
 
     }
@@ -43,10 +45,10 @@ private:
     ros::Subscriber subscriberDataSonar, subscriberEKFData;
     std::deque<double> xPositionVector, yPositionVector, zPositionVector, timeVector;//,yawAngleVector,pitchAngleVector,rollAngleVector;
     std::deque<Eigen::Quaterniond> rotationVector;
-    double lastAngle, rotationOfSonarOnRobot;
+    double lastAngle;//angleDiffToScanStart;
     cv::Mat sonarImage;
     int sizeImage, radiusOfVisablePart,numberOfFrames;
-    double startTimeOfCorrection;
+    double startTimeOfCorrection,startingAngleCorrection,wrapAroundAddition;
     std::mutex updateMutex;
 
     std::vector<double> linspace(double start_in, double end_in, int num_in) {
@@ -77,13 +79,40 @@ private:
     }
 
     void imageDataGenerationCallback(const ping360_sonar::SonarEcho::ConstPtr &msg) {
+        //only one when the program starts
         if (this->startTimeOfCorrection == 0) {
             this->startTimeOfCorrection = msg->header.stamp.toSec();
+            cv::rectangle(sonarImage, cv::Point(0, 0), cv::Point(65, 65), 0, cv::FILLED);
+            std::string tmp = std::to_string(msg->range);
+            cv::putText(sonarImage, tmp, cv::Point(2, 40), cv::FONT_ITALIC, 1, 255);
+            this->startingAngleCorrection = msg->angle;
         }
         if(this->timeVector.empty()){
             return;
         }
-        if (this->lastAngle > msg->angle) {
+        Eigen::Matrix4d poseDiff = calculationPositionDifference(this->startTimeOfCorrection,
+                                                                 msg->header.stamp.toSec());
+        double angleDiffSinceBeginning = atan2(poseDiff(1,0),poseDiff(0,0));
+
+        if(this->lastAngle>msg->angle){
+            double tmpAddition = 2*M_PI;
+            //if necessery if start before 0 and end after the next zero
+            if(abs(this->wrapAroundAddition - 2*M_PI)<0.1){
+                tmpAddition = 4*M_PI;
+            }
+            if(abs(this->wrapAroundAddition - 4*M_PI)<0.1){
+                tmpAddition = 6*M_PI;
+            }
+            this->wrapAroundAddition = tmpAddition;
+        }
+
+//        std::cout << "starting angle: " << this->startingAngleCorrection/200*M_PI << std::endl;
+//        std::cout << "current Angle: " << angleDiffSinceBeginning+msg->angle/200*M_PI+this->wrapAroundAddition << std::endl;
+
+        //if angle diff complete + rotation of robot is bigger then 360
+        if (angleDiffSinceBeginning+msg->angle/200*M_PI+this->wrapAroundAddition-this->startingAngleCorrection/200*M_PI>2*M_PI) {
+//            std::cout << "angle: " << msg->angle << std::endl;
+
             std::string dataFolder = "/home/tim-linux/dataFolder/ValentinBunkerDataCorrection/";
 //            std::string dataFolder = "/home/tim-linux/dataFolder/correctedFramesGazebo/";
             cv::imwrite(dataFolder + "frameNumber" + std::to_string(this->numberOfFrames) + ".jpg", this->sonarImage);
@@ -99,12 +128,13 @@ private:
             std::string tmp = std::to_string(msg->range);
             cv::putText(sonarImage, tmp, cv::Point(2, 40), cv::FONT_ITALIC, 1, 255);
 //            std::cout << " Starting new Rotation: " << std::endl;
-
-
+            this->startingAngleCorrection = msg->angle;
+            this->wrapAroundAddition = 0;
+            this->lastAngle = msg->angle;
+            return;
         }
 
-        Eigen::Matrix4d poseDiff = calculationPositionDifference(this->startTimeOfCorrection,
-                                                                 msg->header.stamp.toSec());
+
 //        std::cout << " Pose diff: " << poseDiff(0, 3) << " " << poseDiff(1, 3) << std::endl;
         double linear_factor = ((double) msg->number_of_samples) / ((double) this->radiusOfVisablePart);
         double pixelToMeter = ((double) msg->range) / ((double) this->radiusOfVisablePart);
@@ -118,7 +148,7 @@ private:
 //                color = 240 / 1.3;
 //            }
 
-            double stepSize = 1;
+            double stepSize = msg->step_size;
             std::vector<double> linspaceVector = linspace(-stepSize / 2, stepSize / 2, 10);
             for (const auto &value: linspaceVector) {
                 double theta = 2 * M_PI * (msg->angle + value) /
