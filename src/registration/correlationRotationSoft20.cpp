@@ -741,6 +741,14 @@ int main(int argc,
     std::cout<<std::endl;
 
 
+
+
+
+
+
+
+
+
     fftw_destroy_plan(p1);
     fftw_destroy_plan(fftPlan);
     fftw_destroy_plan(dctPlan);
