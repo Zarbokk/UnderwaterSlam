@@ -57,7 +57,16 @@
 #include "opencv2/highgui.hpp"
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
-#define NORM( x ) ( (x[0])*(x[0]) + (x[1])*(x[1]) )
+#include "PeakFinder.h"
+#define NORM(x) ( (x[0])*(x[0]) + (x[1])*(x[1]) )
+
+struct angleAndCorrelation {
+    double angle, correlation;
+};
+
+bool compareTwoAngleCorrelation(angleAndCorrelation i1, angleAndCorrelation i2) {
+    return (i1.angle < i2.angle);
+}
 
 double thetaIncrement(double index, int bandwidth) {
     return M_PI * (2 * index + 1) / (4.0 * bandwidth);
@@ -66,6 +75,70 @@ double thetaIncrement(double index, int bandwidth) {
 double phiIncrement(double index, int bandwidth) {
     return M_PI * index / bandwidth;
 }
+
+float average(std::vector<float> const &v) {
+    if (v.empty()) {
+        return 0;
+    }
+    auto const count = static_cast<float>(v.size());
+    return std::reduce(v.begin(), v.end()) / count;
+}
+
+float stdDev(std::vector<float> const &v) {
+    double sum = std::reduce(v.begin(), v.end(), 0.0);
+    double mean = sum / v.size();
+
+    std::vector<double> diff(v.size());
+    std::transform(v.begin(), v.end(), diff.begin(),
+                   std::bind2nd(std::minus<double>(), mean));
+    double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+    return std::sqrt(sq_sum / v.size());
+}
+
+
+std::vector<int> smoothedZScore(std::vector<float> input,int vectorSize) {
+    //lag 5 for the smoothing functions
+    int lag = vectorSize/10;
+    //3.5 standard deviations for signal
+    float threshold = 2;
+    //between 0 and 1, where 1 is normal influence, 0.5 is half
+    float influence = .9;
+
+    if (input.size() <= lag + 2) {
+        std::vector<int> emptyVec;
+        return emptyVec;
+    }
+
+    //Initialise variables
+    std::vector<int> signals(input.size(), 0.0);
+    std::vector<float> filteredY(input.size(), 0.0);
+    std::vector<float> avgFilter(input.size(), 0.0);
+    std::vector<float> stdFilter(input.size(), 0.0);
+    std::vector<float> subVecStart(input.begin(), input.begin() + lag);
+    avgFilter[lag] = average(subVecStart);
+    stdFilter[lag] = stdDev(subVecStart);
+
+    for (size_t i = lag + 1; i < input.size(); i++) {
+        if (std::abs(input[i] - avgFilter[i - 1]) > threshold * stdFilter[i - 1]) {
+            if (input[i] > avgFilter[i - 1]) {
+                signals[i] = 1; //# Positive signal
+            } else {
+                signals[i] = -1; //# Negative signal
+            }
+            //Make influence lower
+            filteredY[i] = influence * input[i] + (1 - influence) * filteredY[i - 1];
+        } else {
+            signals[i] = 0; //# No signal
+            filteredY[i] = input[i];
+        }
+        //Adjust the filters
+        std::vector<float> subVec(filteredY.begin() + i - lag, filteredY.begin() + i);
+        avgFilter[i] = average(subVec);
+        stdFilter[i] = stdDev(subVec);
+    }
+    return signals;
+}
+
 
 double
 getSpectrmFromPCL(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, double voxelData[], fftw_complex spectrum[],
@@ -192,7 +265,7 @@ int main(int argc,
                                             N);
 
 
-    std::ofstream myFile1, myFile2, myFile3,myFile4,myFile5,myFile6;
+    std::ofstream myFile1, myFile2, myFile3, myFile4, myFile5, myFile6;
     myFile1.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/magnitudeFFTW1.csv");
     myFile2.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/phaseFFTW1.csv");
     myFile3.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW1.csv");
@@ -253,7 +326,7 @@ int main(int argc,
     }
 
     //resample magnitude from 3D to 2D(on sphere)
-    double *resampledMagnitude1, *resampledMagnitude2,*resampledMagnitude1TMP,*resampledMagnitude2TMP;
+    double *resampledMagnitude1, *resampledMagnitude2, *resampledMagnitude1TMP, *resampledMagnitude2TMP;
 
     resampledMagnitude1 = (double *) malloc(sizeof(double) * N * N);
     resampledMagnitude2 = (double *) malloc(sizeof(double) * N * N);
@@ -283,22 +356,26 @@ int main(int argc,
                                         std::sin(phiIncrement((double) k + 1, bandwidth)) + bandwidth) - 1;
                 int zIndex =
                         std::round((double) r * std::cos(thetaIncrement((double) j + 1, bandwidth)) + bandwidth) - 1;
-                resampledMagnitude1TMP[k + j * bandwidth * 2] = 255*magnitude1Shifted[zIndex + N * (yIndex + N * xIndex)];
-                resampledMagnitude2TMP[k + j * bandwidth * 2] = 255*magnitude2Shifted[zIndex + N * (yIndex + N * xIndex)];
+                resampledMagnitude1TMP[k + j * bandwidth * 2] =
+                        255 * magnitude1Shifted[zIndex + N * (yIndex + N * xIndex)];
+                resampledMagnitude2TMP[k + j * bandwidth * 2] =
+                        255 * magnitude2Shifted[zIndex + N * (yIndex + N * xIndex)];
             }
         }
         cv::Mat magTMP1(N, N, CV_64FC1, resampledMagnitude1TMP);
         cv::Mat magTMP2(N, N, CV_64FC1, resampledMagnitude2TMP);
-        magTMP1.convertTo(magTMP1,CV_8UC1);
-        magTMP2.convertTo(magTMP2,CV_8UC1);
+        magTMP1.convertTo(magTMP1, CV_8UC1);
+        magTMP2.convertTo(magTMP2, CV_8UC1);
         cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
         clahe->setClipLimit(3);
         clahe->apply(magTMP1, magTMP1);
         clahe->apply(magTMP2, magTMP2);
         for (int j = 0; j < 2 * bandwidth; j++) {
             for (int k = 0; k < 2 * bandwidth; k++) {
-                resampledMagnitude1[k + j * bandwidth * 2] = resampledMagnitude1[k + j * bandwidth * 2]+((double)magTMP1.data[k + j * bandwidth * 2])/255.0;
-                resampledMagnitude2[k + j * bandwidth * 2] = resampledMagnitude2[k + j * bandwidth * 2]+((double)magTMP2.data[k + j * bandwidth * 2])/255.0;
+                resampledMagnitude1[k + j * bandwidth * 2] = resampledMagnitude1[k + j * bandwidth * 2] +
+                                                             ((double) magTMP1.data[k + j * bandwidth * 2]) / 255.0;
+                resampledMagnitude2[k + j * bandwidth * 2] = resampledMagnitude2[k + j * bandwidth * 2] +
+                                                             ((double) magTMP2.data[k + j * bandwidth * 2]) / 255.0;
             }
         }
 
@@ -309,7 +386,6 @@ int main(int argc,
 //        cv::imshow("test", magTMP1);
 //        cv::waitKey(0);
     }
-
 
 
     std::ofstream myFile7, myFile8;
@@ -350,74 +426,73 @@ int main(int argc,
 
 
     //FILE *fp ;
-    int i ;
-    int bwIn, bwOut, degLim ;
+    int i;
+    int bwIn, bwOut, degLim;
 
-    fftw_complex *workspace1, *workspace2  ;
-    double *workspace3 ;
-    double *sigR, *sigI ;
-    double *sigCoefR, *sigCoefI ;
-    double *patCoefR, *patCoefI ;
-    fftw_complex *so3Sig, *so3Coef ;
-    fftw_plan p1 ;
-    int na[2], inembed[2], onembed[2] ;
-    int rank, howmany, istride, idist, ostride, odist ;
-    int tmp, maxloc, ii, jj, kk ;
-    double maxval, tmpval ;
-    double *weights ;
-    double *seminaive_naive_tablespace  ;
-    double **seminaive_naive_table ;
-    fftw_plan dctPlan, fftPlan ;
-    int howmany_rank ;
+    fftw_complex *workspace1, *workspace2;
+    double *workspace3;
+    double *sigR, *sigI;
+    double *sigCoefR, *sigCoefI;
+    double *patCoefR, *patCoefI;
+    fftw_complex *so3Sig, *so3Coef;
+    fftw_plan p1;
+    int na[2], inembed[2], onembed[2];
+    int rank, howmany, istride, idist, ostride, odist;
+    int tmp, maxloc, ii, jj, kk;
+    double maxval, tmpval;
+    double *weights;
+    double *seminaive_naive_tablespace;
+    double **seminaive_naive_table;
+    fftw_plan dctPlan, fftPlan;
+    int howmany_rank;
     fftw_iodim dims[1], howmany_dims[1];
 
 
-    bwIn = N/2;
-    bwOut = N/2;
-    degLim = bwOut-1;
+    bwIn = N / 2;
+    bwOut = N / 2;
+    degLim = bwOut - 1;
 
-    sigR = (double *) calloc(N * N, sizeof(double) );
-    sigI = (double *) calloc(N * N, sizeof(double) );
-    so3Sig = (fftw_complex *) fftw_malloc( sizeof(fftw_complex) * (8*bwOut*bwOut*bwOut) );
-    workspace1 = (fftw_complex *) fftw_malloc( sizeof(fftw_complex) * (8*bwOut*bwOut*bwOut) );
-    workspace2 = (fftw_complex *) fftw_malloc( sizeof(fftw_complex) * ((14*bwIn*bwIn) + (48 * bwIn)));
-    workspace3 = (double *) malloc( sizeof(double) * (12 * N + N * bwIn));
-    sigCoefR = (double *) malloc( sizeof(double) * bwIn * bwIn ) ;
-    sigCoefI = (double *) malloc( sizeof(double) * bwIn * bwIn ) ;
-    patCoefR = (double *) malloc( sizeof(double) * bwIn * bwIn ) ;
-    patCoefI = (double *) malloc( sizeof(double) * bwIn * bwIn ) ;
-    so3Coef = (fftw_complex *) fftw_malloc( sizeof(fftw_complex) * ((4*bwOut*bwOut*bwOut-bwOut)/3) ) ;
+    sigR = (double *) calloc(N * N, sizeof(double));
+    sigI = (double *) calloc(N * N, sizeof(double));
+    so3Sig = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * (8 * bwOut * bwOut * bwOut));
+    workspace1 = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * (8 * bwOut * bwOut * bwOut));
+    workspace2 = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * ((14 * bwIn * bwIn) + (48 * bwIn)));
+    workspace3 = (double *) malloc(sizeof(double) * (12 * N + N * bwIn));
+    sigCoefR = (double *) malloc(sizeof(double) * bwIn * bwIn);
+    sigCoefI = (double *) malloc(sizeof(double) * bwIn * bwIn);
+    patCoefR = (double *) malloc(sizeof(double) * bwIn * bwIn);
+    patCoefI = (double *) malloc(sizeof(double) * bwIn * bwIn);
+    so3Coef = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * ((4 * bwOut * bwOut * bwOut - bwOut) / 3));
 
 
     seminaive_naive_tablespace =
             (double *) malloc(sizeof(double) *
-                              (Reduced_Naive_TableSize(bwIn,bwIn) +
-                               Reduced_SpharmonicTableSize(bwIn,bwIn)));
+                              (Reduced_Naive_TableSize(bwIn, bwIn) +
+                               Reduced_SpharmonicTableSize(bwIn, bwIn)));
 
-    weights = (double *) malloc(sizeof(double) * (4*bwIn));
+    weights = (double *) malloc(sizeof(double) * (4 * bwIn));
 
     /****
          At this point, check to see if all the memory has been
          allocated. If it has not, there's no point in going further.
     ****/
 
-    if ( (seminaive_naive_tablespace == NULL) || (weights == NULL) ||
-         (sigR == NULL) || (sigI == NULL) ||
-         (so3Coef == NULL) ||
-         (workspace1 == NULL) || (workspace2 == NULL) ||
-         (workspace3 == NULL) ||
-         (sigCoefR == NULL) || (sigCoefI == NULL) ||
-         (patCoefR == NULL) || (patCoefI == NULL) ||
-         (so3Sig == NULL) )
-    {
+    if ((seminaive_naive_tablespace == NULL) || (weights == NULL) ||
+        (sigR == NULL) || (sigI == NULL) ||
+        (so3Coef == NULL) ||
+        (workspace1 == NULL) || (workspace2 == NULL) ||
+        (workspace3 == NULL) ||
+        (sigCoefR == NULL) || (sigCoefI == NULL) ||
+        (patCoefR == NULL) || (patCoefI == NULL) ||
+        (so3Sig == NULL)) {
         perror("Error in allocating memory");
-        exit( 1 ) ;
+        exit(1);
     }
 
     /* create fftw plans for the S^2 transforms */
     /* first for the dct */
-    dctPlan = fftw_plan_r2r_1d( 2*bwIn, weights, workspace3,
-                                FFTW_REDFT10, FFTW_ESTIMATE ) ;
+    dctPlan = fftw_plan_r2r_1d(2 * bwIn, weights, workspace3,
+                               FFTW_REDFT10, FFTW_ESTIMATE);
 
     /* now for the fft */
     /*
@@ -440,118 +515,115 @@ int main(int argc,
       note  that this places in the transposed array
     */
 
-    rank = 1 ;
-    dims[0].n = 2*bwIn ;
-    dims[0].is = 1 ;
-    dims[0].os = 2*bwIn ;
-    howmany_rank = 1 ;
-    howmany_dims[0].n = 2*bwIn ;
-    howmany_dims[0].is = 2*bwIn ;
-    howmany_dims[0].os = 1 ;
+    rank = 1;
+    dims[0].n = 2 * bwIn;
+    dims[0].is = 1;
+    dims[0].os = 2 * bwIn;
+    howmany_rank = 1;
+    howmany_dims[0].n = 2 * bwIn;
+    howmany_dims[0].is = 2 * bwIn;
+    howmany_dims[0].os = 1;
 
-    fftPlan = fftw_plan_guru_split_dft( rank, dims,
-                                        howmany_rank, howmany_dims,
-                                        sigR, sigI,
-                                        (double *) workspace2,
-                                        (double *) workspace2 + (N * N),
-                                        FFTW_ESTIMATE );
+    fftPlan = fftw_plan_guru_split_dft(rank, dims,
+                                       howmany_rank, howmany_dims,
+                                       sigR, sigI,
+                                       (double *) workspace2,
+                                       (double *) workspace2 + (N * N),
+                                       FFTW_ESTIMATE);
 
     /* create plan for inverse SO(3) transform */
-    N = 2 * bwOut ;
-    howmany = N * N ;
-    idist = N ;
-    odist = N ;
-    rank = 2 ;
-    inembed[0] = N ;
-    inembed[1] = N * N ;
-    onembed[0] = N ;
-    onembed[1] = N * N ;
-    istride = 1 ;
-    ostride = 1 ;
-    na[0] = 1 ;
-    na[1] = N ;
+    N = 2 * bwOut;
+    howmany = N * N;
+    idist = N;
+    odist = N;
+    rank = 2;
+    inembed[0] = N;
+    inembed[1] = N * N;
+    onembed[0] = N;
+    onembed[1] = N * N;
+    istride = 1;
+    ostride = 1;
+    na[0] = 1;
+    na[1] = N;
 
-    p1 = fftw_plan_many_dft( rank, na, howmany,
-                             workspace1, inembed,
-                             istride, idist,
-                             so3Sig, onembed,
-                             ostride, odist,
-                             FFTW_FORWARD, FFTW_ESTIMATE );
+    p1 = fftw_plan_many_dft(rank, na, howmany,
+                            workspace1, inembed,
+                            istride, idist,
+                            so3Sig, onembed,
+                            ostride, odist,
+                            FFTW_FORWARD, FFTW_ESTIMATE);
 
 
-    fprintf(stdout,"Generating seminaive_naive tables...\n");
+    fprintf(stdout, "Generating seminaive_naive tables...\n");
     seminaive_naive_table = SemiNaive_Naive_Pml_Table(bwIn, bwIn,
                                                       seminaive_naive_tablespace,
                                                       (double *) workspace2);
 
 
     /* make quadrature weights for the S^2 transform */
-    makeweights( bwIn, weights ) ;
+    makeweights(bwIn, weights);
 
-    N = 2 * bwIn ;
+    N = 2 * bwIn;
     /* read in SIGNAL samples */
     /* first the signal */
     //fp = fopen(argv[1],"r");
-    for ( i = 0 ; i < N * N ; i ++ )
-    {
+    for (i = 0; i < N * N; i++) {
         sigR[i] = resampledMagnitude1[i];
         sigI[i] = 0;
     }
-    FST_semi_memo( sigR, sigI,
-                   sigCoefR, sigCoefI,
-                   bwIn, seminaive_naive_table,
-                   (double *) workspace2, 0, bwIn,
-                   &dctPlan, &fftPlan,
-                   weights );
+    FST_semi_memo(sigR, sigI,
+                  sigCoefR, sigCoefI,
+                  bwIn, seminaive_naive_table,
+                  (double *) workspace2, 0, bwIn,
+                  &dctPlan, &fftPlan,
+                  weights);
 
     /* read in SIGNAL samples */
     /* first the signal */
-    for ( i = 0 ; i < N * N ; i ++ )
-    {
+    for (i = 0; i < N * N; i++) {
         sigR[i] = resampledMagnitude2[i];
         sigI[i] = 0;
     }
 
-    FST_semi_memo( sigR, sigI,
-                   patCoefR, patCoefI,
-                   bwIn, seminaive_naive_table,
-                   (double *) workspace2, 0, bwIn,
-                   &dctPlan, &fftPlan,
-                   weights ) ;
+    FST_semi_memo(sigR, sigI,
+                  patCoefR, patCoefI,
+                  bwIn, seminaive_naive_table,
+                  (double *) workspace2, 0, bwIn,
+                  &dctPlan, &fftPlan,
+                  weights);
 
 
-    free( seminaive_naive_table ) ;
-    free( seminaive_naive_tablespace ) ;
+    free(seminaive_naive_table);
+    free(seminaive_naive_tablespace);
 
 
 
     /* combine coefficients */
-    so3CombineCoef_fftw( bwIn, bwOut, degLim,
-                         sigCoefR, sigCoefI,
-                         patCoefR, patCoefI,
-                         so3Coef ) ;
+    so3CombineCoef_fftw(bwIn, bwOut, degLim,
+                        sigCoefR, sigCoefI,
+                        patCoefR, patCoefI,
+                        so3Coef);
 
 
 
 
     /* now inverse so(3) */
-    Inverse_SO3_Naive_fftw( bwOut,
-                            so3Coef,
-                            so3Sig,
-                            workspace1,
-                            workspace2,
-                            workspace3,
-                            &p1,
-                            0 ) ;
+    Inverse_SO3_Naive_fftw(bwOut,
+                           so3Coef,
+                           so3Sig,
+                           workspace1,
+                           workspace2,
+                           workspace3,
+                           &p1,
+                           0);
 
 
 
 
     /* now find max value */
-    maxval = 0.0 ;
-    maxloc = 0 ;
-    for ( i = 0 ; i < 8*bwOut*bwOut*bwOut ; i ++ )
-    {
+    maxval = 0.0;
+    maxloc = 0;
+    for (i = 0; i < 8 * bwOut * bwOut * bwOut; i++) {
         /*
       if (so3Sig[i][0] >= maxval)
       {
@@ -559,54 +631,131 @@ int main(int argc,
       maxloc = i ;
       }
         */
-        tmpval = NORM( so3Sig[i] );
-        if ( tmpval > maxval )
-        {
+        tmpval = NORM(so3Sig[i]);
+        if (tmpval > maxval) {
             maxval = tmpval;
-            maxloc = i ;
+            maxloc = i;
         }
 
     }
 
-    ii = floor( maxloc / (4.*bwOut*bwOut) );
-    tmp = maxloc - (ii*4.*bwOut*bwOut);
-    jj = floor( tmp / (2.*bwOut) );
-    tmp = maxloc - (ii *4*bwOut*bwOut) - jj*(2*bwOut);
-    kk = tmp ;
+    ii = floor(maxloc / (4. * bwOut * bwOut));
+    tmp = maxloc - (ii * 4. * bwOut * bwOut);
+    jj = floor(tmp / (2. * bwOut));
+    tmp = maxloc - (ii * 4 * bwOut * bwOut) - jj * (2 * bwOut);
+    kk = tmp;
 
     printf("ii = %d\tjj = %d\tkk = %d\n", ii, jj, kk);
 
     printf("alpha = %f\nbeta = %f\ngamma = %f\n",
-           M_PI*jj/((double) bwOut),
-           M_PI*(2*ii+1)/(4.*bwOut),
-           M_PI*kk/((double) bwOut) );
+           M_PI * jj / ((double) bwOut),
+           M_PI * (2 * ii + 1) / (4. * bwOut),
+           M_PI * kk / ((double) bwOut));
 
 
     /* now save data -> just the real part because the
      imaginary parts should all be 0 ... right?!? */
     printf("about to save data\n");
     FILE *fp;
-    fp = fopen( "/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/resultCorrelation.csv", "w" );
-    for( i = 0 ; i < 8*bwOut*bwOut*bwOut ; i ++ )
-        fprintf(fp,"%.16f\n", so3Sig[i][0]);
-    fclose( fp );
+    fp = fopen("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/resultCorrelation3D.csv", "w");
+    for (i = 0; i < 8 * bwOut * bwOut * bwOut; i++)
+        fprintf(fp, "%.16f\n", so3Sig[i][0]);
+    fclose(fp);
 
 
-    fftw_destroy_plan( p1 );
-    fftw_destroy_plan( fftPlan );
-    fftw_destroy_plan( dctPlan );
-    free( weights );
-    fftw_free( so3Coef ) ;
-    free( patCoefI );
-    free( patCoefR );
-    free( sigCoefI );
-    free( sigCoefR );
-    free( workspace3 );
-    fftw_free( workspace2 );
-    fftw_free( workspace1 );
-    fftw_free( so3Sig ) ;
-    free( sigI );
-    free( sigR );
+    double currentThetaAngle;
+    double currentPsiAngle;
+    double maxCorrelation = 0;
+    std::vector<angleAndCorrelation> correlationOfAngle;
+    for (i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            currentThetaAngle = i * 2.0 * M_PI / N;
+            currentPsiAngle = j * 2.0 * M_PI / N;
+            //[i + N * j]
+            angleAndCorrelation tmpHolding;
+            tmpHolding.correlation = so3Sig[i + N * (j + N * 0)][0]; // real part
+            if (tmpHolding.correlation > maxCorrelation) {
+                maxCorrelation = tmpHolding.correlation;
+            }
+            tmpHolding.angle = std::fmod(currentThetaAngle + currentPsiAngle + 4 * M_PI, 2 * M_PI);
+            correlationOfAngle.push_back(tmpHolding);
+        }
+    }
+
+    std::sort(correlationOfAngle.begin(), correlationOfAngle.end(), compareTwoAngleCorrelation);
+
+    //std::cout << correlationOfAngle[1].angle << std::endl;
+    std::vector<float> correlationAveraged,angleList;
+    double currentAverageAngle = correlationOfAngle[0].angle;
+    //angleList.push_back(currentAverageAngle);
+    int numberOfAngles = 1;
+    double averageCorrelation = correlationOfAngle[0].correlation;
+    for (i = 1; i < correlationOfAngle.size(); i++) {
+
+        if (std::abs(currentAverageAngle - correlationOfAngle[i].angle) < 1.0 / N / 4.0) {
+            numberOfAngles = numberOfAngles + 1;
+            averageCorrelation = averageCorrelation + correlationOfAngle[i].correlation;
+        } else {
+
+            correlationAveraged.push_back((float) (averageCorrelation / numberOfAngles / maxCorrelation));
+            angleList.push_back((float)currentAverageAngle);
+            numberOfAngles = 1;
+            averageCorrelation = correlationOfAngle[i].correlation;
+            currentAverageAngle = correlationOfAngle[i].angle;
+
+        }
+    }
+    std::ofstream myFile9;
+    myFile9.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/resultingCorrelation1D.csv");
+
+    for (i = 0; i < correlationAveraged.size(); i++) {
+        myFile9 << correlationAveraged[i]; // real part
+        myFile9 << "\n";
+
+    }
+    myFile9.close();
+//    std::vector<int> peaks = smoothedZScore(correlationAveraged,N);
+
+
+//    for (i = 0; i < peaks.size(); i++) {
+//        if (peaks[i] > 0.8) {
+//            std::cout << i << std::endl;
+//        }
+//    }
+
+
+    std::vector<int> out;
+
+    PeakFinder::findPeaks(correlationAveraged, out, false);
+
+    std::cout << "number of peaks: " << out.size() << std::endl;
+    for( i=0; i<out.size(); ++i)
+        std::cout << correlationAveraged[out[i]] << " ";
+    std::cout<<std::endl;
+    for( i=0; i<out.size(); ++i)
+        std::cout<<out[i]<<" ";
+    std::cout<<std::endl;
+    std::cout << "angles: " << std::endl;
+    for( i=0; i<out.size(); ++i)
+        std::cout<<angleList[out[i]]<<" ";
+    std::cout<<std::endl;
+
+
+    fftw_destroy_plan(p1);
+    fftw_destroy_plan(fftPlan);
+    fftw_destroy_plan(dctPlan);
+    free(weights);
+    fftw_free(so3Coef);
+    free(patCoefI);
+    free(patCoefR);
+    free(sigCoefI);
+    free(sigCoefR);
+    free(workspace3);
+    fftw_free(workspace2);
+    fftw_free(workspace1);
+    fftw_free(so3Sig);
+    free(sigI);
+    free(sigR);
     free(voxelData1);
     free(voxelData2);
     free(spectrum1);
