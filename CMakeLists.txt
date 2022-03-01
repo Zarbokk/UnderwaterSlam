@@ -33,8 +33,8 @@ set(SOURCE_FILES src/registration/scanRegistrationClass.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} src/poseGraphsrc/graphSlamSaveStructure.cpp src/poseGraphsrc/edge.cpp src/poseGraphsrc/vertex.cpp src/EKF/ekfPos.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} src/json/jsoncpp.cpp src/slamTools/slamToolsRos.cpp src/slamTools/generalHelpfulTools.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} include/edge.h include/graphSlamSaveStructure.h src/hilbertMapssrc/hilbertMap.cpp include/hilbertMap.h include/json.h include/keyFrame.h include/scanRegistrationClass.h include/slamToolsRos.h include/vertex.h include/ekf.h include/generalHelpfulTools.h include/ekfDVL.h)
-set(SOURCE_FILES ${SOURCE_FILES} include/PeakFinder.h src/slamTools/PeakFinder.cpp)
-
+set(SOURCE_FILES ${SOURCE_FILES} include/PeakFinder.h src/slamTools/PeakFinder.cpp include/softDescriptorRegistration.h src/registration/softDescriptorRegistration.cpp)
+set(SOURCE_FILES ${SOURCE_FILES} include/sofftCorrelationClass.h src/registration/sofftCorrelationClass.cpp)
 
 catkin_package(
   INCLUDE_DIRS include
@@ -102,3 +102,6 @@ target_link_libraries(EKFDVL ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(compensationSonarData src/movementCorrection/compensationSonarDataWithEKF.cpp)
 target_link_libraries(compensationSonarData ${catkin_LIBRARIES} ${OpenCV_LIBS})
+
+add_executable(softClassTest src/registration/testingOfSoftDescriptorClass.cpp ${SOURCE_FILES})
+target_link_libraries(softClassTest ${PCL_LIBRARIES} ${catkin_LIBRARIES})

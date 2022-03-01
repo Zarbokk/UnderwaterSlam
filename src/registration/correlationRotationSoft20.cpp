@@ -54,7 +54,7 @@
 #include <pcl/common/transforms.h>
 #include "soft20/s2_cospmls.h"
 #include "soft20/s2_semi_memo.h"
-#include "opencv2/highgui.hpp"
+//#include "opencv2/highgui.hpp"
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include "PeakFinder.h"
@@ -68,6 +68,10 @@ bool compareTwoAngleCorrelation(angleAndCorrelation i1, angleAndCorrelation i2) 
     return (i1.angle < i2.angle);
 }
 
+bool compareTwoPeaks(indexPeak i1, indexPeak i2) {
+    return (i1.height > i2.height);
+}
+
 double thetaIncrement(double index, int bandwidth) {
     return M_PI * (2 * index + 1) / (4.0 * bandwidth);
 }
@@ -76,69 +80,24 @@ double phiIncrement(double index, int bandwidth) {
     return M_PI * index / bandwidth;
 }
 
-float average(std::vector<float> const &v) {
-    if (v.empty()) {
-        return 0;
-    }
-    auto const count = static_cast<float>(v.size());
-    return std::reduce(v.begin(), v.end()) / count;
-}
-
-float stdDev(std::vector<float> const &v) {
-    double sum = std::reduce(v.begin(), v.end(), 0.0);
-    double mean = sum / v.size();
-
-    std::vector<double> diff(v.size());
-    std::transform(v.begin(), v.end(), diff.begin(),
-                   std::bind2nd(std::minus<double>(), mean));
-    double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-    return std::sqrt(sq_sum / v.size());
-}
-
-
-std::vector<int> smoothedZScore(std::vector<float> input,int vectorSize) {
-    //lag 5 for the smoothing functions
-    int lag = vectorSize/10;
-    //3.5 standard deviations for signal
-    float threshold = 2;
-    //between 0 and 1, where 1 is normal influence, 0.5 is half
-    float influence = .9;
-
-    if (input.size() <= lag + 2) {
-        std::vector<int> emptyVec;
-        return emptyVec;
-    }
-
-    //Initialise variables
-    std::vector<int> signals(input.size(), 0.0);
-    std::vector<float> filteredY(input.size(), 0.0);
-    std::vector<float> avgFilter(input.size(), 0.0);
-    std::vector<float> stdFilter(input.size(), 0.0);
-    std::vector<float> subVecStart(input.begin(), input.begin() + lag);
-    avgFilter[lag] = average(subVecStart);
-    stdFilter[lag] = stdDev(subVecStart);
-
-    for (size_t i = lag + 1; i < input.size(); i++) {
-        if (std::abs(input[i] - avgFilter[i - 1]) > threshold * stdFilter[i - 1]) {
-            if (input[i] > avgFilter[i - 1]) {
-                signals[i] = 1; //# Positive signal
-            } else {
-                signals[i] = -1; //# Negative signal
-            }
-            //Make influence lower
-            filteredY[i] = influence * input[i] + (1 - influence) * filteredY[i - 1];
-        } else {
-            signals[i] = 0; //# No signal
-            filteredY[i] = input[i];
-        }
-        //Adjust the filters
-        std::vector<float> subVec(filteredY.begin() + i - lag, filteredY.begin() + i);
-        avgFilter[i] = average(subVec);
-        stdFilter[i] = stdDev(subVec);
-    }
-    return signals;
-}
-
+//float average(std::vector<float> const &v) {
+//    if (v.empty()) {
+//        return 0;
+//    }
+//    auto const count = static_cast<float>(v.size());
+//    return std::reduce(v.begin(), v.end()) / count;
+//}
+//
+//float stdDev(std::vector<float> const &v) {
+//    double sum = std::reduce(v.begin(), v.end(), 0.0);
+//    double mean = sum / v.size();
+//
+//    std::vector<double> diff(v.size());
+//    std::transform(v.begin(), v.end(), diff.begin(),
+//                   std::bind2nd(std::minus<double>(), mean));
+//    double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+//    return std::sqrt(sq_sum / v.size());
+//}
 
 double
 getSpectrmFromPCL(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, double voxelData[], fftw_complex spectrum[],
@@ -210,7 +169,7 @@ getSpectrmFromPCL(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, doubl
     }
 
     free(inputSpacialData);
-
+    free(planToFourierVoxel);
     return maximumMagnitude;
 }
 
@@ -249,11 +208,11 @@ int main(int argc,
     //90 degree rotation
     Eigen::Matrix4d transformationPCL;
     //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
-    Eigen::AngleAxisd rotation_vector2(0.4, Eigen::Vector3d(0, 0, 1));
+    Eigen::AngleAxisd rotation_vector2(-70.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
     Eigen::Matrix3d tmpMatrix3d = rotation_vector2.toRotationMatrix();
     transformationPCL.block<3, 3>(0, 0) = tmpMatrix3d;
-    transformationPCL(0, 3) = -5;
-    transformationPCL(1, 3) = 0;
+    transformationPCL(0, 3) = 4;
+    transformationPCL(1, 3) = 10;
     transformationPCL(2, 3) = 0;
     transformationPCL(3, 3) = 1;
     //copy the rotated PCL from PCL1 to PCL2
@@ -705,6 +664,9 @@ int main(int argc,
 
         }
     }
+    correlationAveraged.push_back((float) (averageCorrelation / numberOfAngles / maxCorrelation));
+    angleList.push_back((float)currentAverageAngle);
+
     std::ofstream myFile9;
     myFile9.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/resultingCorrelation1D.csv");
 
@@ -724,10 +686,36 @@ int main(int argc,
 //    }
 
 
+
+    //find min element and rotate element to zero
+    auto minmax = std::min_element(correlationAveraged.begin(), correlationAveraged.end());
+    long distanceToMinElement = std::distance(correlationAveraged.begin(),minmax);
+    std::rotate(correlationAveraged.begin(), correlationAveraged.begin()+distanceToMinElement, correlationAveraged.end());
+
+//    std::ofstream myFile9;
+//    myFile9.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/resultingCorrelation1D.csv");
+//
+//    for (i = 0; i < correlationAveraged.size(); i++) {
+//        myFile9 << correlationAveraged[i]; // real part
+//        myFile9 << "\n";
+//
+//    }
+//    myFile9.close();
+
     std::vector<int> out;
 
-    PeakFinder::findPeaks(correlationAveraged, out, false);
+    PeakFinder::findPeaks(correlationAveraged, out, true);
+    std::rotate(correlationAveraged.begin(), correlationAveraged.begin()+correlationAveraged.size()-distanceToMinElement, correlationAveraged.end());
+    for( i=0; i<out.size(); ++i){
+        out[i] = out[i]+(int)distanceToMinElement;
+        if(out[i]>=correlationAveraged.size()){
+            out[i] = out[i]-correlationAveraged.size();
+        }
+    }
 
+
+
+    //rotate back.(reason is the min element to be at the left side
     std::cout << "number of peaks: " << out.size() << std::endl;
     for( i=0; i<out.size(); ++i)
         std::cout << correlationAveraged[out[i]] << " ";
@@ -740,6 +728,153 @@ int main(int argc,
         std::cout<<angleList[out[i]]<<" ";
     std::cout<<std::endl;
 
+    std::vector<double> xShiftList,yShiftList,heightPeakList,estimatedAngleList;
+
+
+    // for each angle calculate the shift correlation of that angle
+    //for( int angleIndex=0; angleIndex<out.size(); ++angleIndex){
+    for( int angleIndex=0; angleIndex<out.size(); ++angleIndex){
+
+        double currentAngle = -angleList[out[angleIndex]];//describes angle from A to B, therefore we have to reverse the angle
+        pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputDataTMP2(new pcl::PointCloud<pcl::PointXYZ>);
+        Eigen::Matrix4d rotationMatrixTMP;
+        //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
+        Eigen::AngleAxisd tmpRotVec(currentAngle, Eigen::Vector3d(0, 0, 1));
+        tmpMatrix3d = tmpRotVec.toRotationMatrix();
+        rotationMatrixTMP.block<3, 3>(0, 0) = tmpMatrix3d;
+        rotationMatrixTMP(0, 3) = 0;//x
+        rotationMatrixTMP(1, 3) = 0;//y
+        rotationMatrixTMP(2, 3) = 0;//z
+        rotationMatrixTMP(3, 3) = 1;//1
+        //copy the rotated PCL from PCL1 to PCL2
+        pcl::transformPointCloud(*pointCloudInputData2, *pointCloudInputDataTMP2, rotationMatrixTMP);
+
+
+
+//        pcl::io::savePCDFileASCII("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/pcl2.pcd",*pointCloudInputDataTMP2);
+//        pcl::io::savePCDFileASCII("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/pcl1.pcd",*pointCloudInputData1);
+
+        maximumScan1 = getSpectrmFromPCL(pointCloudInputData1, voxelData1, spectrum1, magnitude1, phase1, fromTo,
+                                                N);
+        maximumScan2 = getSpectrmFromPCL(pointCloudInputDataTMP2, voxelData2, spectrum2, magnitude2, phase2, fromTo,
+                                                N);
+
+        //normalize and save result for matlab
+//        std::ofstream myFile11;
+//        std::ofstream myFile12;
+//        myFile11.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/phaseScan1.csv");
+//        myFile12.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/phaseScan2.csv");
+//
+//        for (i = 0; i < N; i++) {
+//            for (int j = 0; j < N; j++) {
+//                for (int k = 0; k < N; k++) {
+//                    myFile11 << phase1[k + N * (j + N * i)];
+//                    myFile11 << "\n";
+//                    myFile12 << phase2[k + N * (j + N * i)];
+//                    myFile12 << "\n";
+//                }
+//            }
+//        }
+//        myFile11.close();
+//        myFile12.close();
+
+
+
+
+        fftw_complex *resultingPhaseDiff,*resultingShiftPeaks;
+        resultingPhaseDiff = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * N * N * N);
+        resultingShiftPeaks = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * N * N * N);
+
+        double *resultingCorrelation;
+        resultingCorrelation = (double *) malloc(sizeof(double) * N * N * N);
+        //calc phase diff and fftshift
+        for (i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                for (int k = 0; k < N; k++) {
+
+                    int indexX = (N / 2 + i) % N;
+                    int indexY = (N / 2 + j) % N;
+                    int indexZ = (N / 2 + k) % N;//indexZ + N * (indexY + N * indexX)
+                    std::complex<double> tmpComplex;
+                    tmpComplex.real(0);
+                    tmpComplex.imag(phase1[indexZ + N * (indexY + N * indexX)]- phase2[indexZ + N * (indexY + N * indexX)]);
+                    std::complex<double> resultCompexNumber = std::exp(tmpComplex);
+
+                    resultingPhaseDiff[k + N * (j + N * i)][0] = resultCompexNumber.real();
+                    resultingPhaseDiff[k + N * (j + N * i)][1] =resultCompexNumber.imag();
+                }
+            }
+        }
+
+        fftw_plan planToFourierVoxel;
+        planToFourierVoxel = fftw_plan_dft_3d(N, N, N, resultingPhaseDiff,
+                                              resultingShiftPeaks, FFTW_BACKWARD, FFTW_ESTIMATE);
+        fftw_execute(planToFourierVoxel);
+        double maximumCorrelation=0;
+        for (i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                for (int k = 0; k < N; k++) {
+                    int indexX = (N / 2 + i) % N;
+                    int indexY = (N / 2 + j) % N;
+                    int indexZ = (N / 2 + k) % N;
+                    //calc magnitude and fftshift
+                    resultingCorrelation[indexZ + N * (indexY + N * indexX)] = sqrt(
+                            resultingShiftPeaks[k + N * (j + N * i)][0] *
+                            resultingShiftPeaks[k + N * (j + N * i)][0] +
+                            resultingShiftPeaks[k + N * (j + N * i)][1] *
+                            resultingShiftPeaks[k + N *
+                                         (j + N * i)][1]); // real part;
+
+                    if (maximumCorrelation < resultingCorrelation[indexZ + N * (indexY + N * indexX)]) {
+                        maximumCorrelation = resultingCorrelation[indexZ + N * (indexY + N * indexX)];
+                    }
+                }
+            }
+        }
+
+
+
+        double *correlation2DResult;
+        correlation2DResult = (double *) malloc(sizeof(double) * N * N);
+        for (i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                correlation2DResult[j + N * i] = resultingCorrelation[N/2 + N * (j + N * i)];
+            }
+        }
+        std::vector<indexPeak> localMaximaVector;
+        PeakFinder::findPeaks2D(correlation2DResult,localMaximaVector,N);
+
+        std::sort(localMaximaVector.begin(), localMaximaVector.end(), compareTwoPeaks);
+
+
+//        std::cout << "peaks at: "<<std::endl;
+//        for(i=0;i<localMaximaVector.size()/10;i++){
+//            std::cout << localMaximaVector[i].x<<" , "<< localMaximaVector[i].y << " , "<< localMaximaVector[i].height<< std::endl;
+//        }
+
+        std::cout << "overall Size of Peaks: "<<std::endl;
+        std::cout << localMaximaVector.size()<<std::endl;
+        std::cout << "calc diff: "<<std::endl;
+        std::vector<double> differencePeaks;
+        int maximumDiffIterator=0;
+        double maximumDiffValue = 0;
+        for(i=1;i<localMaximaVector.size();i++){
+            differencePeaks.push_back(localMaximaVector[i-1].height-localMaximaVector[i].height);
+            if(localMaximaVector[i-1].height-localMaximaVector[i].height>maximumDiffValue){
+                maximumDiffValue = localMaximaVector[i-1].height-localMaximaVector[i].height;
+                maximumDiffIterator = i-1;
+            }
+        }
+
+        std::cout << "max diff at: "<< maximumDiffIterator << " to: "<< maximumDiffIterator+1<<std::endl;
+        maximumDiffIterator = 0;//set it anyway to zero
+        std::cout << "x pos: "<< localMaximaVector[maximumDiffIterator].x << " y pos: "<< localMaximaVector[maximumDiffIterator].y<<std::endl;
+        std::cout << "x shift: "<< (localMaximaVector[maximumDiffIterator].y-N/2.0)*fromTo*2.0/N << " y pos: "<< (localMaximaVector[maximumDiffIterator].x-N/2.0)*fromTo*2.0/N <<std::endl;
+        std::cout << "Angle: " << currentAngle<<std::endl;
+        heightPeakList.push_back(localMaximaVector[maximumDiffIterator].height);
+        xShiftList.push_back((localMaximaVector[maximumDiffIterator].y-N/2.0)*fromTo*2.0/N);
+        yShiftList.push_back((localMaximaVector[maximumDiffIterator].x-N/2.0)*fromTo*2.0/N);
+        estimatedAngleList.push_back(currentAngle);
 
 
 
@@ -747,7 +882,69 @@ int main(int argc,
 
 
 
+        //save result for matlab
+        std::ofstream myFile10;
+        myFile10.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/resultingCorrelationShift.csv");
 
+        for (i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                    myFile10 << correlation2DResult[j + N * i];
+                    myFile10 << "\n";
+            }
+        }
+        myFile10.close();
+
+        free(resultingPhaseDiff);
+        free(resultingShiftPeaks);
+        free(resultingCorrelation);
+    }
+    std::cout <<"xShift " <<std::endl;
+    for (i = 0; i < xShiftList.size(); i++) {
+        std::cout << xShiftList[i] << " ";
+    }
+    std::cout << std::endl;
+    std::cout <<"yShift " <<std::endl;
+    for (i = 0; i < yShiftList.size(); i++) {
+        std::cout << yShiftList[i] << " ";
+    }
+    std::cout << std::endl;
+    std::cout <<"height " <<std::endl;
+    for (i = 0; i < heightPeakList.size(); i++) {
+        std::cout << heightPeakList[i] << " ";
+    }
+    std::cout << std::endl;
+    std::cout <<"angle " <<std::endl;
+    for (i = 0; i < estimatedAngleList.size(); i++) {
+        std::cout << estimatedAngleList[i] << " ";
+    }
+    std::cout << std::endl;
+
+    auto maxElementIter = std::max_element(heightPeakList.begin(), heightPeakList.end());
+    int distanceToMaxElement = (int)std::distance(heightPeakList.begin(),maxElementIter);
+
+
+    std::cout << "#######################################################" << std::endl;
+    std::cout << "Estimated  Angle: "<< estimatedAngleList[distanceToMaxElement] << std::endl;
+    std::cout << "Estimated xShift: "<< xShiftList[distanceToMaxElement] << std::endl;
+    std::cout << "Estimated yShift: "<< yShiftList[distanceToMaxElement] << std::endl;
+
+    Eigen::Matrix4d estimatedRotationScans;//from second scan to first
+    //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
+    Eigen::AngleAxisd rotation_vectorTMP(estimatedAngleList[distanceToMaxElement], Eigen::Vector3d(0, 0, 1));
+    Eigen::Matrix3d tmpRotMatrix3d = rotation_vectorTMP.toRotationMatrix();
+    estimatedRotationScans.block<3, 3>(0, 0) = tmpRotMatrix3d;
+    estimatedRotationScans(0, 3) = xShiftList[distanceToMaxElement];
+    estimatedRotationScans(1, 3) = yShiftList[distanceToMaxElement];
+    estimatedRotationScans(2, 3) = 0;
+    estimatedRotationScans(3, 3) = 1;
+
+    std::cout << estimatedRotationScans <<std::endl;
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2RotatedTo1(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::transformPointCloud(*pointCloudInputData2, *pointCloudInputData2RotatedTo1, estimatedRotationScans);
+
+    pcl::io::savePCDFileASCII("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/rotatedAndThenRegisteredScan.pcd",*pointCloudInputData2RotatedTo1);
+    pcl::io::savePCDFileASCII("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/originalScan.pcd",*pointCloudInputData1);
 
     fftw_destroy_plan(p1);
     fftw_destroy_plan(fftPlan);
