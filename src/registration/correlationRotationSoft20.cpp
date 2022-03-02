@@ -373,8 +373,8 @@ int main(int argc,
 //
 //    /* now correlate */
 //    softFFTWCor2(bw,
-//                 resampledMagnitude1,
-//                 resampledMagnitude2,
+//                 resampledMagnitudeSO3_1,
+//                 resampledMagnitudeSO3_2,
 //                 &alpha, &beta, &gamma,
 //                 isReal);
 //

@@ -8,6 +8,7 @@ struct indexPeak {
     int x;
     int y;
     double height;
+    bool highestPeak;
 };
 
 namespace PeakFinder {

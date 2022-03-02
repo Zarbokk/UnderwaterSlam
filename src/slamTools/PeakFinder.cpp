@@ -247,11 +247,55 @@ indexPeak findMaxNeighbor(double x0[], int x, int y, int dimSize) {
 
 }
 
+std::vector<indexPeak> findBiggerNeighbors(double x0[], int x, int y, int dimSize) {
+    indexPeak maxIndexTMP;
+    std::vector<indexPeak> maxIndexVector;
+//    maxIndex.x = x;
+//    maxIndex.y = y;
+    for (int i = -1; i < 2; i++) {
+        for (int j = -1; j < 2; j++) {
+            int xIndex = x + i;
+            int yIndex = y + j;
+            if (!(xIndex < 0 || xIndex >= dimSize || yIndex < 0 || yIndex >= dimSize)) {
+                if (x0[yIndex + dimSize * xIndex] > x0[y + dimSize * x]) {
+                    maxIndexTMP.x = xIndex;
+                    maxIndexTMP.y = yIndex;
+                    maxIndexTMP.highestPeak = false;
+                    maxIndexVector.push_back(maxIndexTMP);
+                }
+            }
+        }
+    }
+    if (maxIndexVector.empty()){
+        maxIndexTMP.x = x;
+        maxIndexTMP.y = y;
+        maxIndexTMP.highestPeak = true;
+        maxIndexVector.push_back(maxIndexTMP);
+    }
+    return maxIndexVector;
+}
+
 void PeakFinder::findPeaks2D(double x0[], std::vector<indexPeak> &potentialPeaks, int dimSize) {
 
-    //std::vector<indexPeak> potentialPeaks;
+    // create a first list of potential peaks. currently all points are considered
+//    for (int i = 0; i < dimSize; i++) {
+//        for (int j = 0; j < dimSize; j++) {
+//            indexPeak peakTMP;
+//            peakTMP.x = i;
+//            peakTMP.y = j;
+//            potentialPeaks.push_back(peakTMP);
+//        }
+//    }
+
+//THIS IS NOT PERFECT IT IGNORES SOME LOCAL MAXIMA. BUT VERY LIKELY UNIMPORTANT ONE,SINCE BIG LOCAL MAX NEARBY
     for (int i = 0; i < dimSize; i++) {
-        for (int j = 0; j < dimSize; j++) {
+        int j=0;
+        if(i%2==0){
+            j=1;
+        }else{
+            j=0;
+        }
+        for (; j < dimSize; j=j+2) {
             indexPeak peakTMP;
             peakTMP.x = i;
             peakTMP.y = j;
@@ -295,10 +339,7 @@ void PeakFinder::findPeaks2D(double x0[], std::vector<indexPeak> &potentialPeaks
             break;
         }
     }
-
-
-
-
+    std:: cout<< "number of potential peaks: " <<potentialPeaks.size() <<std::endl;
 
 }
 

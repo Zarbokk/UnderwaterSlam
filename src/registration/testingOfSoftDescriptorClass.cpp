@@ -6,11 +6,11 @@
 
 int main(int argc,
          char **argv) {
-    int N = 256;
+    int N = 128;
     int bwIn = N / 2;
     int bwOut = N / 2;
     int degLim = bwOut - 1;
-    double cellSize = 0.25;
+    double cellSize = 0.5;
 
     softDescriptorRegistration myRegistrationClass(N,bwOut,bwIn,degLim);
 
