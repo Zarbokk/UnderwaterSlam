@@ -22,8 +22,8 @@ double phiIncrement(double index, int bandwidth) {
 
 
 double
-softDescriptorRegistration::getSpectrmFromPCL(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, double voxelData[], fftw_complex spectrum[],
-                  double magnitude[], double phase[], double fromTo, int N) {
+softDescriptorRegistration::getSpectrumFromPCL(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, double voxelData[], fftw_complex spectrum[],
+                                               double magnitude[], double phase[], double fromTo, int N) {
 
 
     for (int i = 0; i < N; i++) {
@@ -61,11 +61,11 @@ softDescriptorRegistration::getSpectrmFromPCL(pcl::PointCloud<pcl::PointXYZ>::Pt
     planToFourierVoxel = fftw_plan_dft_3d(N, N, N, inputSpacialData,
                                           spectrum, FFTW_FORWARD, FFTW_ESTIMATE);
 
-    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+//    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     fftw_execute(planToFourierVoxel);
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
-              << "[ms]" << std::endl;
+//    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+//    std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
+//              << "[ms]" << std::endl;
 
 
     //calc magnitude and phase
@@ -100,11 +100,15 @@ Eigen::Matrix4d
 softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1,
                                                  pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2,
                                                  const double cellSize) {
+    std::chrono::steady_clock::time_point begin1 = std::chrono::steady_clock::now();
+    double maximumScan1 = this->getSpectrumFromPCL(pointCloudInputData1, this->voxelData1, this->spectrum1,
+                                                   this->magnitude1, this->phase1, cellSize * this->N,
+                                                   this->N);
+    double maximumScan2 = this->getSpectrumFromPCL(pointCloudInputData2, this->voxelData2, this->spectrum2,
+                                                   this->magnitude2, this->phase2, cellSize * this->N,
+                                                   this->N);
 
-    double maximumScan1 = this->getSpectrmFromPCL(pointCloudInputData1, this->voxelData1, this->spectrum1, this->magnitude1, this->phase1, cellSize*this->N,
-                                                  this->N);
-    double maximumScan2 = this->getSpectrmFromPCL(pointCloudInputData2, this->voxelData2, this->spectrum2, this->magnitude2, this->phase2, cellSize*this->N,
-                                                  this->N);
+
 
     double globalMaximumMagnitude;
     if (maximumScan2 < maximumScan1) {
@@ -176,10 +180,21 @@ softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>:
 
     }
 
+    std::chrono::steady_clock::time_point end1 = std::chrono::steady_clock::now();
+    std::cout << "First Part: " << std::chrono::duration_cast<std::chrono::milliseconds>(end1 - begin1).count()
+              << "[ms]" << std::endl;
+    std::chrono::steady_clock::time_point begin2 = std::chrono::steady_clock::now();
+
+
+
+
     //use sofft descriptor to calculate the correlation
-    this->sofftCorrelationObject.correlationOfTwoSignalsInSO3();
+    this->sofftCorrelationObject.correlationOfTwoSignalsInSO3(resampledMagnitude1, resampledMagnitude2, resultingCorrelationComplex);
 
-
+    std::chrono::steady_clock::time_point end2 = std::chrono::steady_clock::now();
+    std::cout << "Second Part: " << std::chrono::duration_cast<std::chrono::milliseconds>(end2 - begin2).count()
+              << "[ms]" << std::endl;
+    std::chrono::steady_clock::time_point begin3 = std::chrono::steady_clock::now();
     double currentThetaAngle;
     double currentPsiAngle;
     double maxCorrelation = 0;
@@ -190,7 +205,7 @@ softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>:
             currentPsiAngle = j * 2.0 * M_PI / N;
             //[i + N * j]
             angleAndCorrelation tmpHolding;
-            tmpHolding.correlation = so3Sig[i + N * (j + N * 0)][0]; // real part
+            tmpHolding.correlation = resultingCorrelationComplex[i + N * (j + N * 0)][0]; // real part
             if (tmpHolding.correlation > maxCorrelation) {
                 maxCorrelation = tmpHolding.correlation;
             }
@@ -243,6 +258,12 @@ softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>:
             out[i] = out[i] - correlationAveraged.size();
         }
     }
+
+    std::chrono::steady_clock::time_point end3 = std::chrono::steady_clock::now();
+    std::cout << "Third Part: " << std::chrono::duration_cast<std::chrono::milliseconds>(end3 - begin3).count()
+              << "[ms]" << std::endl;
+    std::chrono::steady_clock::time_point begin4 = std::chrono::steady_clock::now();
+
     std::vector<double> xShiftList, yShiftList, heightPeakList, estimatedAngleList;
 
 
@@ -264,19 +285,14 @@ softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>:
         //copy the rotated PCL from PCL1 to PCL2
         pcl::transformPointCloud(*pointCloudInputData2, *pointCloudInputDataTMP2, rotationMatrixTMP);
 
+        std::chrono::steady_clock::time_point begin5 = std::chrono::steady_clock::now();
+        maximumScan1 = getSpectrumFromPCL(pointCloudInputData1, voxelData1, spectrum1, magnitude1, phase1,
+                                          cellSize * this->N,
+                                          N);
+        maximumScan2 = getSpectrumFromPCL(pointCloudInputDataTMP2, voxelData2, spectrum2, magnitude2, phase2,
+                                          cellSize * this->N,
+                                          N);
 
-        maximumScan1 = getSpectrmFromPCL(pointCloudInputData1, voxelData1, spectrum1, magnitude1, phase1, cellSize*this->N,
-                                         N);
-        maximumScan2 = getSpectrmFromPCL(pointCloudInputDataTMP2, voxelData2, spectrum2, magnitude2, phase2, cellSize*this->N,
-                                         N);
-
-
-        fftw_complex *resultingPhaseDiff, *resultingShiftPeaks;
-        resultingPhaseDiff = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * N * N * N);
-        resultingShiftPeaks = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * N * N * N);
-
-        double *resultingCorrelation;
-        resultingCorrelation = (double *) malloc(sizeof(double) * N * N * N);
         //calc phase diff and fftshift
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
@@ -297,10 +313,11 @@ softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>:
             }
         }
 
-        fftw_plan planToFourierVoxel;
-        planToFourierVoxel = fftw_plan_dft_3d(N, N, N, resultingPhaseDiff,
-                                              resultingShiftPeaks, FFTW_BACKWARD, FFTW_ESTIMATE);
+
         fftw_execute(planToFourierVoxel);
+        std::chrono::steady_clock::time_point end5 = std::chrono::steady_clock::now();
+        std::cout << "Time of Part translation: " << std::chrono::duration_cast<std::chrono::milliseconds>(end5 - begin5).count()
+                  << "[ms]" << std::endl;
         double maximumCorrelation = 0;
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
@@ -309,26 +326,25 @@ softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>:
                     int indexY = (N / 2 + j) % N;
                     int indexZ = (N / 2 + k) % N;
                     //calc magnitude and fftshift
-                    resultingCorrelation[indexZ + N * (indexY + N * indexX)] = sqrt(
+                    resultingCorrelationDouble[indexZ + N * (indexY + N * indexX)] = sqrt(
                             resultingShiftPeaks[k + N * (j + N * i)][0] *
                             resultingShiftPeaks[k + N * (j + N * i)][0] +
                             resultingShiftPeaks[k + N * (j + N * i)][1] *
                             resultingShiftPeaks[k + N *
                                                     (j + N * i)][1]); // real part;
 
-                    if (maximumCorrelation < resultingCorrelation[indexZ + N * (indexY + N * indexX)]) {
-                        maximumCorrelation = resultingCorrelation[indexZ + N * (indexY + N * indexX)];
+                    if (maximumCorrelation < resultingCorrelationDouble[indexZ + N * (indexY + N * indexX)]) {
+                        maximumCorrelation = resultingCorrelationDouble[indexZ + N * (indexY + N * indexX)];
                     }
                 }
             }
         }
 
 
-        double *correlation2DResult;
-        correlation2DResult = (double *) malloc(sizeof(double) * N * N);
+
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
-                correlation2DResult[j + N * i] = resultingCorrelation[N / 2 + N * (j + N * i)];
+                correlation2DResult[j + N * i] = resultingCorrelationDouble[N / 2 + N * (j + N * i)];
             }
         }
         std::vector<indexPeak> localMaximaVector;
@@ -354,14 +370,17 @@ softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>:
         estimatedAngleList.push_back(currentAngle);
 
 
-        free(resultingPhaseDiff);
-        free(resultingShiftPeaks);
-        free(resultingCorrelation);
+//        free(resultingPhaseDiff);
+//        free(resultingShiftPeaks);
+//        free(resultingCorrelation);
     }
 
     auto maxElementIter = std::max_element(heightPeakList.begin(), heightPeakList.end());
     int distanceToMaxElement = (int) std::distance(heightPeakList.begin(), maxElementIter);
 
+    std::chrono::steady_clock::time_point end4 = std::chrono::steady_clock::now();
+    std::cout << "Fourth Part: " << std::chrono::duration_cast<std::chrono::milliseconds>(end4 - begin4).count()
+              << "[ms]" << std::endl;
 
     std::cout << "#######################################################" << std::endl;
     std::cout << "Estimated  Angle: " << estimatedAngleList[distanceToMaxElement] << std::endl;
@@ -378,16 +397,13 @@ softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>:
     estimatedRotationScans(2, 3) = 0;
     estimatedRotationScans(3, 3) = 1;
 
-    std::cout << estimatedRotationScans << std::endl;
+    //std::cout << estimatedRotationScans << std::endl;
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2RotatedTo1(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::transformPointCloud(*pointCloudInputData2, *pointCloudInputData2RotatedTo1, estimatedRotationScans);
 
-    pcl::io::savePCDFileASCII(
-            "/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/rotatedAndThenRegisteredScan.pcd",
-            *pointCloudInputData2RotatedTo1);
-    pcl::io::savePCDFileASCII("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/originalScan.pcd",
-                              *pointCloudInputData1);
 
 
+
+    return estimatedRotationScans;
 }

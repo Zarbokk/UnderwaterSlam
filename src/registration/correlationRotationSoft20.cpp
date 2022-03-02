@@ -176,6 +176,7 @@ getSpectrmFromPCL(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, doubl
 
 int main(int argc,
          char **argv) {
+    std::chrono::steady_clock::time_point beginOverall = std::chrono::steady_clock::now();
     int N = 128;
     const double fromTo = 30;
 
@@ -584,9 +585,9 @@ int main(int argc,
     maxloc = 0;
     for (i = 0; i < 8 * bwOut * bwOut * bwOut; i++) {
         /*
-      if (so3Sig[i][0] >= maxval)
+      if (resultingCorrelation[i][0] >= maxval)
       {
-      maxval = so3Sig[i][0];
+      maxval = resultingCorrelation[i][0];
       maxloc = i ;
       }
         */
@@ -971,6 +972,12 @@ int main(int argc,
     free(magnitude2);
     free(magnitude1Shifted);
     free(magnitude2Shifted);
+
+    std::chrono::steady_clock::time_point endOverall = std::chrono::steady_clock::now();
+    std::cout << "Time difference complete Registration = " << std::chrono::duration_cast<std::chrono::milliseconds>(endOverall - beginOverall).count()
+              << "[ms]" << std::endl;
+
+
     return 0;
 
 }

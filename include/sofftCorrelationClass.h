@@ -16,12 +16,15 @@
 
 class sofftCorrelationClass {
 public:
-    sofftCorrelationClass(int N){
+    sofftCorrelationClass(int N,int bwOut,int bwIn,int degLim){
         this->N = N;
+        this->bwOut = bwOut;
+        this->bwIn = bwIn;
+        this->degLim = degLim;
 
-        bwIn = this->N / 2;
-        bwOut = this->N / 2;
-        degLim = bwOut - 1;
+//        bwIn = this->N / 2;
+//        bwOut = this->N / 2;
+//        degLim = bwOut - 1;
 
         sigR = (double *) calloc(this->N *this->N, sizeof(double));
         sigI = (double *) calloc(this->N *this->N, sizeof(double));
@@ -125,7 +128,9 @@ public:
 
 
     }
+
     void correlationOfTwoSignalsInSO3(double resampledMagnitude1[], double resampledMagnitude2[], fftw_complex so3SigReturn[]);
+
 private:
     int N;//describes the size of the overall voxel system
 

@@ -55,39 +55,39 @@ void sofftCorrelationClass::correlationOfTwoSignalsInSO3(double resampledMagnitu
                            0);
 
     /* now find max value */
-    maxval = 0.0;
-    maxloc = 0;
-    for (i = 0; i < 8 * bwOut * bwOut * bwOut; i++) {
-        /*
-      if (so3Sig[i][0] >= maxval)
-      {
-      maxval = so3Sig[i][0];
-      maxloc = i ;
-      }
-        */
-        tmpval = NORM(so3Sig[i]);
-        if (tmpval > maxval) {
-            maxval = tmpval;
-            maxloc = i;
-        }
+//    maxval = 0.0;
+//    maxloc = 0;
+//    for (i = 0; i < 8 * bwOut * bwOut * bwOut; i++) {
+//        /*
+//      if (resultingCorrelation[i][0] >= maxval)
+//      {
+//      maxval = resultingCorrelation[i][0];
+//      maxloc = i ;
+//      }
+//        */
+//        tmpval = NORM(so3Sig[i]);
+//        if (tmpval > maxval) {
+//            maxval = tmpval;
+//            maxloc = i;
+//        }
+//
+//    }
+//
+//    ii = floor(maxloc / (4. * bwOut * bwOut));
+//    tmp = maxloc - (ii * 4. * bwOut * bwOut);
+//    jj = floor(tmp / (2. * bwOut));
+//    tmp = maxloc - (ii * 4 * bwOut * bwOut) - jj * (2 * bwOut);
+//    kk = tmp;
 
-    }
-
-    ii = floor(maxloc / (4. * bwOut * bwOut));
-    tmp = maxloc - (ii * 4. * bwOut * bwOut);
-    jj = floor(tmp / (2. * bwOut));
-    tmp = maxloc - (ii * 4 * bwOut * bwOut) - jj * (2 * bwOut);
-    kk = tmp;
-
-    printf("ii = %d\tjj = %d\tkk = %d\n", ii, jj, kk);
-
-    printf("alpha = %f\nbeta = %f\ngamma = %f\n",
-           M_PI * jj / ((double) bwOut),
-           M_PI * (2 * ii + 1) / (4. * bwOut),
-           M_PI * kk / ((double) bwOut));
+//    printf("ii = %d\tjj = %d\tkk = %d\n", ii, jj, kk);
+//
+//    printf("alpha = %f\nbeta = %f\ngamma = %f\n",
+//           M_PI * jj / ((double) bwOut),
+//           M_PI * (2 * ii + 1) / (4. * bwOut),
+//           M_PI * kk / ((double) bwOut));
 
 
-    //this is the correlation:  return: so3Sig
+    //this is the correlation:  return: resultingCorrelation
 
     for(i = 0 ; i< (8 * bwOut * bwOut * bwOut);i++){
         so3SigReturn[i][0] = so3Sig[i][0];

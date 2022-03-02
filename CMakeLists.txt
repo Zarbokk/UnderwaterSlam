@@ -76,7 +76,7 @@ target_link_libraries(testFile ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 add_executable(soft20TestFile src/registration/soft20TestFile.cpp)
 target_link_libraries(soft20TestFile fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-add_executable(correlationRotationSoft20 src/registration/correlationRotationSoft20.cpp ${SOURCE_FILES})
+add_executable(correlationRotationSoft20 src/registration/correlationRotationSoft20.cpp include/PeakFinder.h src/slamTools/PeakFinder.cpp)
 target_link_libraries(correlationRotationSoft20 fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(hilbertMapTestFile src/testFiles/hilbertMapExample.cpp ${SOURCE_FILES})
@@ -104,4 +104,4 @@ add_executable(compensationSonarData src/movementCorrection/compensationSonarDat
 target_link_libraries(compensationSonarData ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 add_executable(softClassTest src/registration/testingOfSoftDescriptorClass.cpp ${SOURCE_FILES})
-target_link_libraries(softClassTest ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(softClassTest fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
