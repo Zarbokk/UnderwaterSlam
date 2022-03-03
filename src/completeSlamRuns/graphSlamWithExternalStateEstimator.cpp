@@ -9,7 +9,7 @@
 #include "ping360_sonar/SonarEcho.h"
 #include "generalHelpfulTools.h"
 #include <slamToolsRos.h>
-#include "underwaterslam/saveGraph.h"
+#include "commonbluerovmsg/saveGraph.h"
 
 class rosClassEKF {
 public:
@@ -369,7 +369,7 @@ private:
         return(returnCloud);
     }
 
-    bool saveGraph(underwaterslam::saveGraph::Request  &req, underwaterslam::saveGraph::Response &res){
+    bool saveGraph(commonbluerovmsg::saveGraph::Request  &req, commonbluerovmsg::saveGraph::Response &res){
         std::cout << "test for testing" << std::endl;
         this->saveGraphStructure = true;
         this->saveStringGraph = req.saveString;

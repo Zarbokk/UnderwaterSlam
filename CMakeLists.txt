@@ -10,18 +10,18 @@ project(underwaterslam)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg  roscpp pcl_ros soft20 ping360_sonar waterlinked_dvl message_generation cv_bridge)
+find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg  roscpp pcl_ros soft20 ping360_sonar waterlinked_dvl message_generation cv_bridge commonbluerovmsg)
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenCV REQUIRED)
 find_package(PCL 1.10 REQUIRED COMPONENTS common io visualization)
 
- add_service_files(
-   FILES
-   resetekf.srv
-   saveGraph.srv
+# add_service_files(
+#   FILES
+#   resetekf.srv
+#   saveGraph.srv
 #   Service1.srv
 #   Service2.srv
- )
+# )
 
 generate_messages(
         DEPENDENCIES
@@ -71,7 +71,7 @@ include
 
 
 add_executable(testFile src/testFiles/testFile.cpp ${SOURCE_FILES})
-target_link_libraries(testFile ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(testFile fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(soft20TestFile src/registration/soft20TestFile.cpp)
 target_link_libraries(soft20TestFile fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
@@ -80,28 +80,28 @@ add_executable(correlationRotationSoft20 src/registration/correlationRotationSof
 target_link_libraries(correlationRotationSoft20 fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(hilbertMapTestFile src/testFiles/hilbertMapExample.cpp ${SOURCE_FILES})
-target_link_libraries(hilbertMapTestFile ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(hilbertMapTestFile fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(stPereDatasetRosPublishing src/completeSlamRuns/stPereDatasetPublishingRos.cpp ${SOURCE_FILES})
-target_link_libraries(stPereDatasetRosPublishing ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(stPereDatasetRosPublishing fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 #add_executable(graphSlamWithROS src/completeSlamRuns/graphSlamWithROS.cpp ${SOURCE_FILES})
 #target_link_libraries(graphSlamWithROS ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(testEKF src/EKF/testEKF.cpp ${SOURCE_FILES} include/pose.h)
-target_link_libraries(testEKF ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(testEKF fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(ekfGraphSlam src/completeSlamRuns/ekfGraphSlam.cpp ${SOURCE_FILES})
-target_link_libraries(ekfGraphSlam ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(ekfGraphSlam fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(graphSlamExternalEstimator src/completeSlamRuns/graphSlamWithExternalStateEstimator.cpp ${SOURCE_FILES})
-target_link_libraries(graphSlamExternalEstimator ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(graphSlamExternalEstimator fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(EKFDVL src/EKF/ekfDVLnode.cpp ${SOURCE_FILES} include/pose.h src/EKF/ekfDVL.cpp)
-target_link_libraries(EKFDVL ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(EKFDVL fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(compensationSonarData src/movementCorrection/compensationSonarDataWithEKF.cpp)
-target_link_libraries(compensationSonarData ${catkin_LIBRARIES} ${OpenCV_LIBS})
+target_link_libraries(compensationSonarData fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 add_executable(softClassTest src/registration/testingOfSoftDescriptorClass.cpp ${SOURCE_FILES})
 target_link_libraries(softClassTest fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})

@@ -9,7 +9,7 @@
 #include "geometry_msgs/TwistStamped.h"
 #include "generalHelpfulTools.h"
 #include "waterlinked_dvl/TransducerReportStamped.h"
-#include "underwaterslam/resetekf.h"
+#include "commonbluerovmsg/resetekf.h"
 //#include <chrono>
 //#include <thread>
 
@@ -116,7 +116,7 @@ private:
         this->updateSlamMutex.unlock();
     }
 
-    bool resetEKF(underwaterslam::resetekf::Request  &req, underwaterslam::resetekf::Response &res){
+    bool resetEKF(commonbluerovmsg::resetekf::Request  &req, commonbluerovmsg::resetekf::Response &res){
         this->updateSlamMutex.lock();
         this->currentEkf.resetToPos(req.xPos,req.yPos,req.yaw,req.resetCovariances);
         this->updateSlamMutex.unlock();

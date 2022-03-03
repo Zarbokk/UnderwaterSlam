@@ -1,6 +1,0 @@
-bool resetCovariances
-float64 xPos
-float64 yPos
-float64 yaw
----
-bool resetDone

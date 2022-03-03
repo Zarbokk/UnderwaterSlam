@@ -59,6 +59,7 @@ softDescriptorRegistration::getSpectrumFromPCL3D(pcl::PointCloud<pcl::PointXYZ>:
 
 
 //    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
     fftw_execute(planVoxelToFourier3D);
 //    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 //    std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
@@ -162,9 +163,9 @@ softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>:
                                                  pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2,
                                                  const double cellSize) {
     std::chrono::steady_clock::time_point begin1 = std::chrono::steady_clock::now();
-    double maximumScan1 = this->getSpectrumFromPCL3D(pointCloudInputData1, this->voxelData1,this->magnitude1, this->phase1, cellSize * this->N,
+    double maximumScan1 = this->getSpectrumFromPCL2D(pointCloudInputData1, this->voxelData1,this->magnitude1, this->phase1, cellSize * this->N,
                                                    this->N);
-    double maximumScan2 = this->getSpectrumFromPCL3D(pointCloudInputData2, this->voxelData2,this->magnitude2, this->phase2, cellSize * this->N,
+    double maximumScan2 = this->getSpectrumFromPCL2D(pointCloudInputData2, this->voxelData2,this->magnitude2, this->phase2, cellSize * this->N,
                                                    this->N);
 
 
@@ -182,12 +183,12 @@ softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>:
             for (int k = 0; k < N; k++) {
                 int indexX = (N / 2 + i) % N;
                 int indexY = (N / 2 + j) % N;
-                int indexZ = (N / 2 + k) % N;
+//                int indexZ = (N / 2 + k) % N;
 
-                magnitude1Shifted[indexZ + N * (indexY + N * indexX)] =
-                        magnitude1[k + N * (j + N * i)] / globalMaximumMagnitude;
-                magnitude2Shifted[indexZ + N * (indexY + N * indexX)] =
-                        magnitude2[k + N * (j + N * i)] / globalMaximumMagnitude;
+                magnitude1Shifted[indexY + N * indexX] =
+                        magnitude1[j + N * i] / globalMaximumMagnitude;
+                magnitude2Shifted[indexY + N * indexX] =
+                        magnitude2[j + N * i] / globalMaximumMagnitude;
             }
         }
     }
@@ -212,12 +213,12 @@ softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>:
                                         std::cos(phiIncrement((double) k + 1, bandwidth)) + bandwidth) - 1;
                 int yIndex = std::round((double) r * std::sin(thetaIncrement((double) j + 1, bandwidth)) *
                                         std::sin(phiIncrement((double) k + 1, bandwidth)) + bandwidth) - 1;
-                int zIndex =
-                        std::round((double) r * std::cos(thetaIncrement((double) j + 1, bandwidth)) + bandwidth) - 1;
+//                int zIndex =
+//                        std::round((double) r * std::cos(thetaIncrement((double) j + 1, bandwidth)) + bandwidth) - 1;
                 resampledMagnitudeSO3_1TMP[k + j * bandwidth * 2] =
-                        255 * magnitude1Shifted[zIndex + N * (yIndex + N * xIndex)];
+                        255 * magnitude1Shifted[yIndex + N * xIndex];
                 resampledMagnitudeSO3_2TMP[k + j * bandwidth * 2] =
-                        255 * magnitude2Shifted[zIndex + N * (yIndex + N * xIndex)];
+                        255 * magnitude2Shifted[yIndex + N * xIndex];
             }
         }
         cv::Mat magTMP1(N, N, CV_64FC1, resampledMagnitudeSO3_1TMP);
@@ -242,6 +243,7 @@ softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>:
     std::chrono::steady_clock::time_point end1 = std::chrono::steady_clock::now();
     std::cout << "First Part: " << std::chrono::duration_cast<std::chrono::milliseconds>(end1 - begin1).count()
               << "[ms]" << std::endl;
+
     std::chrono::steady_clock::time_point begin2 = std::chrono::steady_clock::now();
 
 

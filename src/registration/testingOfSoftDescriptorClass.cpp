@@ -6,12 +6,16 @@
 
 int main(int argc,
          char **argv) {
+
+    //512 19.4 GB
+    //256 2.4 gb
+    //128 313,2 MB
     int N = 128;
     int bwIn = N / 2;
     int bwOut = N / 2;
     int degLim = bwOut - 1;
-    double cellSize = 0.5;
-
+    double cellSize = 0.25;
+    std::cout << "current size: " << N << std::endl;
     softDescriptorRegistration myRegistrationClass(N,bwOut,bwIn,degLim);
 
 
@@ -44,5 +48,5 @@ int main(int argc,
     std::cout << "Time difference complete Registration = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
               << "[ms]" << std::endl;
     std::cout << resultingTransformation <<std::endl;
-    return 1;
+    return 0;
 }
