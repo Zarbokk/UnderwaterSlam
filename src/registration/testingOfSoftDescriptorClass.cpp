@@ -3,6 +3,7 @@
 //
 
 #include "softDescriptorRegistration.h"
+#include <ros/package.h>
 
 int main(int argc,
          char **argv) {
@@ -23,7 +24,13 @@ int main(int argc,
     pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2(new pcl::PointCloud<pcl::PointXYZ>);
 
-    pcl::io::loadPCDFile("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/after_voxel_second.pcd",
+
+
+    std::string path = ros::package::getPath("underwaterslam");
+
+
+
+    pcl::io::loadPCDFile(path+"/testData/after_voxel_second.pcd",
                          *pointCloudInputData1);
 
     Eigen::Matrix4d transformationPCL;
