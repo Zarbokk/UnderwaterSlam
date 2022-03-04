@@ -66,3 +66,8 @@ Eigen::Matrix4d scanRegistrationClass::icpRegistration(const pcl::PointCloud<pcl
     return icp.getFinalTransformation().cast<double>();
 }
 
+
+Eigen::Matrix4d scanRegistrationClass::sofftRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1,
+                                  const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2, double cellSize, double goodGuessAlpha){
+    return myRegistrationClass.registrationOfTwoPCL(pointCloudInputData1,pointCloudInputData2,cellSize,goodGuessAlpha);
+}

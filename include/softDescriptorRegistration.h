@@ -19,13 +19,15 @@ struct angleAndCorrelation {
 
 class softDescriptorRegistration {
 public:
-    softDescriptorRegistration(int N,int bwOut,int bwIn,int degLim) : sofftCorrelationObject(N,bwOut, bwIn, degLim) {
+    softDescriptorRegistration(int N, int bwOut, int bwIn, int degLim) : sofftCorrelationObject(N, bwOut, bwIn,
+                                                                                                degLim) {
         this->N = N;
         this->bwOut = bwOut;
         this->bwIn = bwIn;
         this->degLim = degLim;
         this->resultingCorrelationDouble = (double *) malloc(sizeof(double) * N * N * N);
-        this->resultingCorrelationComplex = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * (8 * bwOut * bwOut * bwOut));
+        this->resultingCorrelationComplex = (fftw_complex *) fftw_malloc(
+                sizeof(fftw_complex) * (8 * bwOut * bwOut * bwOut));
         this->resultingPhaseDiff2D = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * N * N);
         this->resultingShiftPeaks2D = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * N * N);
 
@@ -49,7 +51,7 @@ public:
 //        planToFourierVoxel = fftw_plan_dft_3d(N, N, N, resultingPhaseDiff2D,
 //                                              resultingShiftPeaks2D, FFTW_BACKWARD, FFTW_ESTIMATE);
         planFourierToVoxel2D = fftw_plan_dft_2d(N, N, resultingPhaseDiff2D,
-                                              resultingShiftPeaks2D, FFTW_BACKWARD, FFTW_ESTIMATE);
+                                                resultingShiftPeaks2D, FFTW_BACKWARD, FFTW_ESTIMATE);
 //        correlation2DResult = (double *) malloc(sizeof(double) * N * N);
 
 
@@ -61,9 +63,15 @@ public:
 
     Eigen::Matrix4d registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1,
                                          pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2,
-                                         const double cellSize);//gives TFMatrix from 2 to 1
-    double getSpectrumFromPCL3D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, double voxelData[], double magnitude[], double phase[], double fromTo, int N);
-    double getSpectrumFromPCL2D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, double voxelData[], double magnitude[], double phase[], double fromTo, int N);
+                                         const double cellSize,bool debug = false,
+                                         double goodGuessAlpha = -100);//gives TFMatrix from 1 to 2
+    //-100 only for "no good guess given"
+    //initial guess has to be very good, else dont use it.
+    double getSpectrumFromPCL3D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, double voxelData[],
+                                double magnitude[], double phase[], double fromTo, int N);
+
+    double getSpectrumFromPCL2D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, double voxelData[],
+                                double magnitude[], double phase[], double fromTo, int N);
 
 private://here everything is created. malloc is done in the constructor
 
@@ -71,7 +79,7 @@ private://here everything is created. malloc is done in the constructor
 
 
     int N;//describes the size of the overall voxel system
-    int bwOut,bwIn,degLim;
+    int bwOut, bwIn, degLim;
     double *voxelData1;
     double *voxelData2;
 //    fftw_complex *spectrum1;

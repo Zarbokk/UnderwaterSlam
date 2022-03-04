@@ -13,13 +13,14 @@
 
 class rosClassEKF {
 public:
-    rosClassEKF(ros::NodeHandle n_) : graphSaved(3) {
+    rosClassEKF(ros::NodeHandle n_) : graphSaved(3), scanRegistrationObject() {
+
 //        lastUpdateEkf = currentEkf.copyEKF();
 //        subscriberIMU = n_.subscribe("mavros/imu/data_frd", 1000, &rosClassEKF::imuCallback, this);
         subscriberEKF = n_.subscribe("publisherPoseEkf", 1000, &rosClassEKF::stateEstimationCallback, this);
 //        subscriberDepth = n_.subscribe("mavros/altitude_frd", 1000, &rosClassEKF::depthCallback, this);
         subscriberIntensitySonar = n_.subscribe("sonar/intensity", 1000, &rosClassEKF::scanCallback, this);
-        this->serviceSaveGraph = n_.advertiseService("saveGraphOfSLAM",&rosClassEKF::saveGraph,this);
+        this->serviceSaveGraph = n_.advertiseService("saveGraphOfSLAM", &rosClassEKF::saveGraph, this);
 
 
 //        publisherPoseEkf = n_.advertise<geometry_msgs::PoseStamped>("publisherPoseEkf", 10);
@@ -41,7 +42,8 @@ public:
         transformationX180Degree(3, 3) = 1;
 //        std::cout << ros::Time::now().toSec() << std::endl;
         graphSaved.addVertex(0, Eigen::Vector3d(0, 0, 0), Eigen::Quaterniond(1, 0, 0, 0),
-                             Eigen::Vector3d(0, 0, 0), 0, ros::Time::now().toSec(), graphSlamSaveStructure::FIRST_ENTRY);
+                             Eigen::Vector3d(0, 0, 0), 0, ros::Time::now().toSec(),
+                             graphSlamSaveStructure::FIRST_ENTRY);
 
         std::deque<double> subgraphs{1, 3};
         graphSaved.initiallizeSubGraphs(subgraphs, 10);
@@ -53,16 +55,17 @@ public:
         pcl::PointCloud<pcl::PointXYZ>::Ptr tmpPCL2(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::PointCloud<pcl::PointXYZ>::Ptr tmpPCL3(new pcl::PointCloud<pcl::PointXYZ>);
         this->currentScan = tmpPCL1;
-        this->lastScan = tmpPCL2;
+        this->previousScan = tmpPCL2;
         this->Final = tmpPCL3;
         this->startTimeOfCorrection = 0;
         this->firstScan = true;
         this->saveGraphStructure = false;
+        this->numberOfScan = 0;
     }
 
 
-
 private:
+
     ros::Subscriber subscriberEKF, subscriberIntensitySonar;
     ros::Publisher publisherPoseSLAM;
     ros::ServiceServer serviceSaveGraph;
@@ -73,7 +76,7 @@ private:
 
     //PCL
     pcl::PointCloud<pcl::PointXYZ>::Ptr currentScan;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr lastScan;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr previousScan;
     pcl::PointCloud<pcl::PointXYZ>::Ptr Final;
     std::vector<ping360_sonar::SonarEcho> sonarIntensityList;
     //Matrices:
@@ -94,8 +97,10 @@ private:
     double lastAngle;
     double startTimeOfCorrection;
     graphSlamSaveStructure graphSaved;
-    bool firstScan,saveGraphStructure;
+    scanRegistrationClass scanRegistrationObject;
+    bool firstScan, saveGraphStructure;
     std::string saveStringGraph;
+    int numberOfScan;
 
     void slamCallback(const geometry_msgs::PoseStamped &msg) {
         Eigen::Quaterniond tmpRot;
@@ -153,47 +158,61 @@ private:
                 positionLastPcl++;
             }
             positionLastPcl++;
-            if(this->firstScan){
-//                *this->lastScan = *this->graphSaved.getVertexList().back().getPointCloudCorrected();
+            if (this->firstScan) {
+//                *this->previousScan = *this->graphSaved.getVertexList().back().getPointCloudCorrected();
                 this->firstScan = false;
 
-            }else{
+            } else {
 
 
                 //make scan matching with last scan, only if not the first scan available
-//                this->initialGuessTransformation =
-//                        this->graphSaved.getVertexList()[this->graphSaved.getVertexList().size() -
-//                                                         positionLastPcl].getTransformation().inverse() *
-//                        this->graphSaved.getVertexList().back().getTransformation();
-//                this->currentTransformation = scanRegistrationClass::generalizedIcpRegistration(
-//                        this->graphSaved.getVertexList().back().getPointCloudCorrected(), this->lastScan, this->Final,
-//                        this->fitnessScore,
-//                        this->initialGuessTransformation);
-//                std::cout << "current Fitness Score: " << sqrt(this->fitnessScore) << std::endl;
+                this->initialGuessTransformation =
+                        this->graphSaved.getVertexList()[this->graphSaved.getVertexList().size() -
+                                                         positionLastPcl].getTransformation().inverse() *
+                        this->graphSaved.getVertexList().back().getTransformation();
+
+
+//                std::cout << std::atan2(this->initialGuessTransformation(1,0),this->initialGuessTransformation(0,0))*180/M_PI << std::endl;
+//                std::cout << this->initialGuessTransformation << std::endl;
+//                double cellSize = 0.5;
+//                this->currentTransformation = scanRegistrationObject.sofftRegistration(
+//                        this->previousScan, this->graphSaved.getVertexList().back().getPointCloudCorrected(), cellSize,
+//                        std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)) *
+//                        180 / M_PI);
+//                std::cout << this->initialGuessTransformation << std::endl;
+//                std::cout << this->currentTransformation << std::endl;
+//                std::cout << this->currentTransformation.inverse() << std::endl;
+////                this->currentTransformation = scanRegistrationClass::generalizedIcpRegistration(
+////                        this->graphSaved.getVertexList().back().getPointCloudCorrected(), this->previousScan, this->Final,
+////                        this->fitnessScore,
+////                        this->initialGuessTransformation);
+//                //std::cout << "current Fitness Score: " << sqrt(this->fitnessScore) << std::endl;
 //
 //                Eigen::Quaterniond qTMP(this->currentTransformation.block<3, 3>(0, 0));
-//        graphSaved.addEdge(this->graphSaved.getVertexList().size() - positionLastPcl,
-//                           graphSaved.getVertexList().size() - 1,
-//                           this->currentTransformation.block<3, 1>(0, 3), qTMP,
-//                           Eigen::Vector3d(sqrt(this->fitnessScore), sqrt(this->fitnessScore), 0),
-//                           0.25 * sqrt(this->fitnessScore),
-//                           graphSlamSaveStructure::POINT_CLOUD_USAGE,
-//                           timeDiffScans * 0.1);//@TODO still not sure about size
+//                graphSaved.addEdge(this->graphSaved.getVertexList().size() - positionLastPcl,
+//                                   graphSaved.getVertexList().size() - 1,
+//                                   this->currentTransformation.block<3, 1>(0, 3), qTMP,
+//                                   Eigen::Vector3d(sqrt(this->fitnessScore), sqrt(this->fitnessScore), 0),
+//                                   0.25 * sqrt(this->fitnessScore),
+//                                   graphSlamSaveStructure::POINT_CLOUD_USAGE,
+//                                   timeDiffScans * 0.1);//@TODO still not sure about size
 
 
-    //        pcl::io::savePCDFileASCII("/home/auvatjacobs/dataFolder/savingRandomPCL/firstPCL.pcd",
-    //                                  *this->graphSaved.getVertexList().back().getPointCloudCorrected());
-    //        pcl::io::savePCDFileASCII("/home/auvatjacobs/dataFolder/savingRandomPCL/secondPCL.pcd", *this->lastScan);
+                pcl::io::savePCDFileASCII("/home/tim-linux/dataFolder/gazeboDataScansPCL/scanNumber_" + std::to_string(this->numberOfScan) + ".pcd",
+                                          *this->graphSaved.getVertexList().back().getPointCloudCorrected());
+                this->numberOfScan++;
+//                pcl::io::savePCDFileASCII("/home/tim-linux/dataFolder/savingRandomPCL/secondPCL.pcd", *this->previousScan);
                 pcl::PointCloud<pcl::PointXYZ>::Ptr tmpCloudPlotOnly(
                         new pcl::PointCloud<pcl::PointXYZ>);
                 *tmpCloudPlotOnly = *currentScan;
 
                 //pcl::transformPointCloud(*tmpCloudPlotOnly, *tmpCloudPlotOnly, transformationImu2PCL);
-                slamToolsRos::debugPlotting(this->lastScan, this->Final, tmpCloudPlotOnly,
+                slamToolsRos::debugPlotting(this->previousScan, this->Final, tmpCloudPlotOnly,
                                             this->graphSaved.getVertexList().back().getPointCloudCorrected(),
                                             this->publisherLastPCL, this->publisherRegistrationPCL,
                                             this->publisherBeforeCorrection, this->publisherAfterCorrection);
-                slamToolsRos::detectLoopClosure(this->graphSaved, this->sigmaScaling, 1.0, timeDiffScans * 0.1);//was 1.0
+                slamToolsRos::detectLoopClosure(this->graphSaved, this->sigmaScaling, 1.0,
+                                                timeDiffScans * 0.1);//was 1.0
             }
             //add position and optimize/publish everything
 
@@ -213,7 +232,7 @@ private:
             std::cout << "next: " << std::endl;
 //            std::cout << this->timeCurrentFullScan << std::endl;
 //            this->timeLastFullScan = this->timeCurrentFullScan;
-            *this->lastScan = *this->graphSaved.getVertexList().back().getPointCloudCorrected();
+            *this->previousScan = *this->graphSaved.getVertexList().back().getPointCloudCorrected();
 
             sonarIntensityList.clear();
             clearSavingsOfPoses(msg->header.stamp.toSec());
@@ -237,10 +256,10 @@ private:
 
         this->slamCallback(newMsg);
 
-        if (this->saveGraphStructure){
+        if (this->saveGraphStructure) {
             std::cout << "saving graph " << std::endl;
             this->graphSaved.saveGraphJson(this->saveStringGraph);
-            this->saveGraphStructure =false;
+            this->saveGraphStructure = false;
         }
 
     }
@@ -284,9 +303,9 @@ private:
     }
 
     std::deque<edge> calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endTimeToAdd) {
-        std::cout << startTimetoAdd << " : "<<endTimeToAdd << std::endl;
-        if(endTimeToAdd-startTimetoAdd>20){
-            std::cout <<endTimeToAdd-startTimetoAdd<<std::endl;
+        std::cout << startTimetoAdd << " : " << endTimeToAdd << std::endl;
+        if (endTimeToAdd - startTimetoAdd > 20) {
+            std::cout << endTimeToAdd - startTimetoAdd << std::endl;
         }
 
         std::lock_guard<std::mutex> lock(this->stateEstimationMutex);
@@ -296,7 +315,7 @@ private:
         while (this->timeVector[indexOfStart] < startTimetoAdd && this->timeVector.size() > indexOfStart) {
             indexOfStart++;
         }
-        if(indexOfStart>0){
+        if (indexOfStart > 0) {
             indexOfStart--;
         }
         int indexOfEnd = 0;
@@ -325,11 +344,11 @@ private:
 
             Eigen::Vector3d tmpPosition = diffMatrix.block<3, 1>(0, 3);
             //set z pos diff to zero
-            tmpPosition[2]=0;
+            tmpPosition[2] = 0;
             Eigen::Quaterniond tmpRot(diffMatrix.block<3, 3>(0, 0));
             Eigen::Vector3d rpyTMP = generalHelpfulTools::getRollPitchYaw(tmpRot);
             //set rp on zero only yaw interesting
-            tmpRot = generalHelpfulTools::getQuaternionFromRPY(0,0,rpyTMP[2]);
+            tmpRot = generalHelpfulTools::getQuaternionFromRPY(0, 0, rpyTMP[2]);
             edge tmpEdge(0, 0, tmpPosition, tmpRot, Eigen::Vector3d(0, 0, 0), 0, 3,
                          graphSlamSaveStructure::INTEGRATED_POS_USAGE);
             tmpEdge.setTimeStamp(this->timeVector[i + 1]);
@@ -358,18 +377,21 @@ private:
         pcl::PointCloud<pcl::PointXYZ> returnCloud;
         for (int i = 0; i < this->sonarIntensityList.size(); i++) {
             for (int j = 0; j < this->sonarIntensityList[i].intensities.size(); j++) {
-                if(this->sonarIntensityList[i].intensities[j]>threashHoldIntensity && j>4){
+                if (this->sonarIntensityList[i].intensities[j] > threashHoldIntensity && j > 4) {
                     //calculate position of the point in xy coordinates
-                    double distanceFromRobot = (double)j*this->sonarIntensityList[i].range/this->sonarIntensityList[i].number_of_samples;
-                    pcl::PointXYZ tmpPoint(distanceFromRobot*cos(this->sonarIntensityList[i].angle/400*2*M_PI),distanceFromRobot*sin(this->sonarIntensityList[i].angle/400*2*M_PI),0);
+                    double distanceFromRobot = (double) j * this->sonarIntensityList[i].range /
+                                               this->sonarIntensityList[i].number_of_samples;
+                    pcl::PointXYZ tmpPoint(distanceFromRobot * cos(this->sonarIntensityList[i].angle / 400 * 2 * M_PI),
+                                           distanceFromRobot * sin(this->sonarIntensityList[i].angle / 400 * 2 * M_PI),
+                                           0);
                     returnCloud.push_back(tmpPoint);
                 }
             }
         }
-        return(returnCloud);
+        return (returnCloud);
     }
 
-    bool saveGraph(commonbluerovmsg::saveGraph::Request  &req, commonbluerovmsg::saveGraph::Response &res){
+    bool saveGraph(commonbluerovmsg::saveGraph::Request &req, commonbluerovmsg::saveGraph::Response &res) {
         std::cout << "test for testing" << std::endl;
         this->saveGraphStructure = true;
         this->saveStringGraph = req.saveString;
@@ -385,6 +407,9 @@ int main(int argc, char **argv) {
     ros::start();
     ros::NodeHandle n_;
     rosClassEKF rosClassForTests(n_);
+
+    double cellSize = 0.25;
+
 
     ros::spin();
 

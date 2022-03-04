@@ -266,7 +266,7 @@ std::vector<indexPeak> findBiggerNeighbors(double x0[], int x, int y, int dimSiz
             }
         }
     }
-    if (maxIndexVector.empty()){
+    if (maxIndexVector.empty()) {
         maxIndexTMP.x = x;
         maxIndexTMP.y = y;
         maxIndexTMP.highestPeak = true;
@@ -289,13 +289,13 @@ void PeakFinder::findPeaks2D(double x0[], std::vector<indexPeak> &potentialPeaks
 
 //THIS IS NOT PERFECT IT IGNORES SOME LOCAL MAXIMA. BUT VERY LIKELY UNIMPORTANT ONE,SINCE BIG LOCAL MAX NEARBY
     for (int i = 0; i < dimSize; i++) {
-        int j=0;
-        if(i%2==0){
-            j=1;
-        }else{
-            j=0;
+        int j = 0;
+        if (i % 2 == 0) {
+            j = 1;
+        } else {
+            j = 0;
         }
-        for (; j < dimSize; j=j+2) {
+        for (; j < dimSize; j = j + 2) {
             indexPeak peakTMP;
             peakTMP.x = i;
             peakTMP.y = j;
@@ -318,12 +318,13 @@ void PeakFinder::findPeaks2D(double x0[], std::vector<indexPeak> &potentialPeaks
             //for each peak find maximum neighbor
             bool isUnique = true;
 
-            for (int j = 0; j < uniquePotentialPeaks.size(); j++){
-                if(uniquePotentialPeaks[j].x==newPotentialPeaks[i].x &&uniquePotentialPeaks[j].y==newPotentialPeaks[i].y){
+            for (int j = 0; j < uniquePotentialPeaks.size(); j++) {
+                if (uniquePotentialPeaks[j].x == newPotentialPeaks[i].x &&
+                    uniquePotentialPeaks[j].y == newPotentialPeaks[i].y) {
                     isUnique = false;
                 }
             }
-            if(isUnique){
+            if (isUnique) {
                 uniquePotentialPeaks.push_back(newPotentialPeaks[i]);
             }
         }
@@ -339,7 +340,7 @@ void PeakFinder::findPeaks2D(double x0[], std::vector<indexPeak> &potentialPeaks
             break;
         }
     }
-    std:: cout<< "number of potential peaks: " <<potentialPeaks.size() <<std::endl;
+    std::cout << "number of potential peaks: " << potentialPeaks.size() << std::endl;
 
 }
 

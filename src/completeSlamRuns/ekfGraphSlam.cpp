@@ -49,7 +49,7 @@ public:
         pcl::PointCloud<pcl::PointXYZ>::Ptr tmpPCL2(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::PointCloud<pcl::PointXYZ>::Ptr tmpPCL3(new pcl::PointCloud<pcl::PointXYZ>);
         this->currentScan = tmpPCL1;
-        this->lastScan = tmpPCL2;
+        this->previousScan = tmpPCL2;
         this->Final = tmpPCL3;
 
     }
@@ -69,7 +69,7 @@ private:
     ros::Publisher publisherKeyFrameClouds, publisherPathOverTime, publisherMarkerArray, publisherPathOverTimeGT, publisherMarkerArrayLoopClosures, publisherLastPCL, publisherRegistrationPCL, publisherBeforeCorrection, publisherAfterCorrection;
     //PCL
     pcl::PointCloud<pcl::PointXYZ>::Ptr currentScan;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr lastScan;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr previousScan;
     pcl::PointCloud<pcl::PointXYZ>::Ptr Final;
 
     //Matrices:
@@ -296,7 +296,7 @@ private:
         if (this->timeLastFullScan == 0) {
             this->timeLastFullScan = this->timeCurrentFullScan;
             this->graphSaved.getVertexByIndex(0)->setTimeStamp(this->timeCurrentFullScan);
-            *this->lastScan = *this->currentScan;
+            *this->previousScan = *this->currentScan;
             return;
         }
 
@@ -347,19 +347,19 @@ private:
                                                  positionLastPcl].getTransformation().inverse() *
                 this->graphSaved.getVertexList().back().getTransformation();
         this->currentTransformation = scanRegistrationClass::generalizedIcpRegistration(
-                this->graphSaved.getVertexList().back().getPointCloudCorrected(), this->lastScan, this->Final,
+                this->graphSaved.getVertexList().back().getPointCloudCorrected(), this->previousScan, this->Final,
                 this->fitnessScore,
                 this->initialGuessTransformation);
         std::cout << "current Fitness Score: " << sqrt(this->fitnessScore) << std::endl;
         pcl::io::savePCDFileASCII("/home/auvatjacobs/dataFolder/savingRandomPCL/firstPCL.pcd",*this->graphSaved.getVertexList().back().getPointCloudCorrected());
-        pcl::io::savePCDFileASCII("/home/auvatjacobs/dataFolder/savingRandomPCL/secondPCL.pcd",*this->lastScan);
+        pcl::io::savePCDFileASCII("/home/auvatjacobs/dataFolder/savingRandomPCL/secondPCL.pcd",*this->previousScan);
 
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr tmpCloudPlotOnly(
                 new pcl::PointCloud<pcl::PointXYZ>);
         *tmpCloudPlotOnly = *currentScan;
         //pcl::transformPointCloud(*tmpCloudPlotOnly, *tmpCloudPlotOnly, transformationImu2PCL);
-        slamToolsRos::debugPlotting(this->lastScan, this->Final, tmpCloudPlotOnly,
+        slamToolsRos::debugPlotting(this->previousScan, this->Final, tmpCloudPlotOnly,
                                     this->graphSaved.getVertexList().back().getPointCloudCorrected(),
                                     this->publisherLastPCL, this->publisherRegistrationPCL,
                                     this->publisherBeforeCorrection, this->publisherAfterCorrection);
@@ -392,7 +392,7 @@ private:
                                             NULL, this->numberOfEdgesBetweenScans);
         std::cout << "next: " << std::endl;
         this->timeLastFullScan = this->timeCurrentFullScan;
-        *this->lastScan = *this->graphSaved.getVertexList().back().getPointCloudCorrected();
+        *this->previousScan = *this->graphSaved.getVertexList().back().getPointCloudCorrected();
 
         geometry_msgs::PoseStamped newMsg;
         newMsg.header.stamp = msg->header.stamp;

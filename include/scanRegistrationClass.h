@@ -8,14 +8,14 @@
 #include <pcl/registration/gicp.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/common/projection_matrix.h>
+#include "softDescriptorRegistration.h"
 #ifndef SIMULATION_BLUEROV_SCANREGISTRATIONCLASS_H
 #define SIMULATION_BLUEROV_SCANREGISTRATIONCLASS_H
 
 
 class scanRegistrationClass {
 public:
-    scanRegistrationClass()
-    {
+    scanRegistrationClass(int N = 128, int bwOut = 128/2, int bwIn = 128/2, int degLim = 128/2-1) : myRegistrationClass(N, bwOut, bwIn, degLim) {
 
     }
     static Eigen::Matrix4d generalizedIcpRegistrationSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
@@ -29,7 +29,8 @@ public:
                                                const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
                                     pcl::PointCloud<pcl::PointXYZ>::Ptr &Final,
                                     double &fitnessScore,Eigen::Matrix4d &initialGuessTransformation);
-
+    Eigen::Matrix4d sofftRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1,
+                                      const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2, double cellSize, double goodGuessAlpha = -100);
 
 
 
@@ -37,7 +38,7 @@ public:
                                     const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
                          pcl::PointCloud<pcl::PointXYZ> &Final);
 private:
-
+    softDescriptorRegistration myRegistrationClass;
 
 };
 
