@@ -27,9 +27,14 @@ int main(int argc,
     std::string path = ros::package::getPath("underwaterslam");
 
 
-    pcl::io::loadPCDFile(path + "/testData/after_voxel_second.pcd",
+//    pcl::io::loadPCDFile(path + "/testData/after_voxel_second.pcd",
+//                         *pointCloudInputData1);
+//    pcl::io::loadPCDFile(path + "/testData/after_voxel_second.pcd",
+//                         *pointCloudInputData2);
+    int indexPCLRegistrate = 8;
+    pcl::io::loadPCDFile("/home/tim-linux/dataFolder/gazeboDataScansPCL/scanNumber_"+std::to_string(indexPCLRegistrate)+".pcd",
                          *pointCloudInputData1);
-    pcl::io::loadPCDFile(path + "/testData/after_voxel_second.pcd",
+    pcl::io::loadPCDFile("/home/tim-linux/dataFolder/gazeboDataScansPCL/scanNumber_"+std::to_string(indexPCLRegistrate+1)+".pcd",
                          *pointCloudInputData2);
     Eigen::Matrix4d transformationPCL;
     //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
@@ -47,7 +52,7 @@ int main(int argc,
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
     Eigen::Matrix4d resultingTransformation = myRegistrationClass.registrationOfTwoPCL(pointCloudInputData1,
-                                                                                       pointCloudInputData2, cellSize);
+                                                                                       pointCloudInputData2, cellSize,true);
                                                                                        //-93.0 / 180.0 * 3.14159);
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Time difference complete Registration = "

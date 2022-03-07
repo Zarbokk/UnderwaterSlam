@@ -8,6 +8,33 @@ bool compareTwoAngleCorrelation(angleAndCorrelation i1, angleAndCorrelation i2) 
     return (i1.angle < i2.angle);
 }
 
+std::vector<double> linspace(double start_in, double end_in, int num_in) {
+    if (num_in < 0) {
+        std::cout << "number of linspace negative" << std::endl;
+        exit(-1);
+    }
+    std::vector<double> linspaced;
+
+    double start = start_in;
+    double end = end_in;
+    auto num = (double) num_in;
+
+    if (num == 0) { return linspaced; }
+    if (num == 1) {
+        linspaced.push_back(start);
+        return linspaced;
+    }
+
+    double delta = (end - start) / (num - 1);//stepSize
+
+    for (int i = 0; i < num - 1; ++i) {
+        linspaced.push_back(start + delta * i);
+    }
+    linspaced.push_back(end); // I want to ensure that start and end
+    // are exactly the same as the input
+    return linspaced;
+}
+
 bool compareTwoPeaks(indexPeak i1, indexPeak i2) {
     return (i1.height > i2.height);
 }
@@ -108,19 +135,48 @@ softDescriptorRegistration::getSpectrumFromPCL2D(pcl::PointCloud<pcl::PointXYZ>:
 
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
-            voxelData[j + N * i] = 0;
+            voxelData[j + N * i] = 0.0;
         }
     }
-
     for (int i = 0; i < pointCloudInputData->points.size(); i++) {
-        double positionPointX = pointCloudInputData->points[i].x;
-        double positionPointY = pointCloudInputData->points[i].y;
-        double positionPointZ = pointCloudInputData->points[i].z;
-        int indexX = (int) std::round((positionPointX + fromTo) / (fromTo * 2) * N) - 1;
-        int indexY = (int) std::round((positionPointY + fromTo) / (fromTo * 2) * N) - 1;
-        int indexZ = (int) std::round((positionPointZ + fromTo) / (fromTo * 2) * N) - 1;//set to zero
-        voxelData[indexX + N * indexY] = 1;
+        int numberOfPoints = 40;
+        std::vector<double> vectorForSettingZeroX= linspace(0,pointCloudInputData->points[i].x,numberOfPoints);
+        std::vector<double> vectorForSettingZeroY= linspace(0,pointCloudInputData->points[i].y,numberOfPoints);
+
+
+        for(int j = 0 ; j < numberOfPoints - 1; j++){
+            double positionPointX = vectorForSettingZeroX[j];
+            double positionPointY = vectorForSettingZeroY[j];
+            double positionPointZ = 0;
+            int indexX = (int) std::round((positionPointX + fromTo) / (fromTo * 2) * N) - 1;
+            int indexY = (int) std::round((positionPointY + fromTo) / (fromTo * 2) * N) - 1;
+            int indexZ = (int) std::round((positionPointZ + fromTo) / (fromTo * 2) * N) - 1;//set to zero
+            voxelData[indexX + N * indexY] = 0.5;
+
+        }
+
     }
+    for (int i = 0; i < pointCloudInputData->points.size(); i++) {
+
+            double positionPointX = pointCloudInputData->points[i].x;
+            double positionPointY = pointCloudInputData->points[i].y;
+            double positionPointZ = 0;
+            int indexX = (int) std::round((positionPointX + fromTo) / (fromTo * 2) * N) - 1;
+            int indexY = (int) std::round((positionPointY + fromTo) / (fromTo * 2) * N) - 1;
+            int indexZ = (int) std::round((positionPointZ + fromTo) / (fromTo * 2) * N) - 1;//set to zero
+            voxelData[indexX + N * indexY] = 1.0;
+
+
+    }
+//    for (int i = 0; i < pointCloudInputData->points.size(); i++) {
+//        double positionPointX = pointCloudInputData->points[i].x;
+//        double positionPointY = pointCloudInputData->points[i].y;
+//        double positionPointZ = pointCloudInputData->points[i].z;
+//        int indexX = (int) std::round((positionPointX + fromTo) / (fromTo * 2) * N) - 1;
+//        int indexY = (int) std::round((positionPointY + fromTo) / (fromTo * 2) * N) - 1;
+//        int indexZ = (int) std::round((positionPointZ + fromTo) / (fromTo * 2) * N) - 1;//set to zero
+//        voxelData[indexX + N * indexY] = 1;
+//    }
 
 //    fftw_complex *inputSpacialData;
 //    inputSpacialData = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * N * N);
@@ -423,7 +479,140 @@ softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>:
         startIndex = indexCorrectAngle;
         endIndex = indexCorrectAngle + 1;
     }
+    ///////////////////////////////////// THIS IS THE OLD SHIFT CALCULATION /////////////////////////////////////
+//    for (int angleIndex = startIndex; angleIndex < endIndex; ++angleIndex) {
+//
+//        double currentAngle = -angleList[out[angleIndex]];//describes angle from A to B, therefore we have to reverse the angle
+//        pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputDataTMP2(new pcl::PointCloud<pcl::PointXYZ>);
+//        Eigen::Matrix4d rotationMatrixTMP;
+//        //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
+//        Eigen::AngleAxisd tmpRotVec(currentAngle, Eigen::Vector3d(0, 0, 1));
+//        Eigen::Matrix3d tmpMatrix3d = tmpRotVec.toRotationMatrix();
+//        rotationMatrixTMP.block<3, 3>(0, 0) = tmpMatrix3d;
+//        rotationMatrixTMP(0, 3) = 0;//x
+//        rotationMatrixTMP(1, 3) = 0;//y
+//        rotationMatrixTMP(2, 3) = 0;//z
+//        rotationMatrixTMP(3, 3) = 1;//1
+//        //copy the rotated PCL from PCL1 to PCL2
+//        pcl::transformPointCloud(*pointCloudInputData2, *pointCloudInputDataTMP2, rotationMatrixTMP);
+//
+//
+//        maximumScan1 = getSpectrumFromPCL2D(pointCloudInputData1, voxelData1, magnitude1, phase1,
+//                                            cellSize * this->N,
+//                                            N);
+//        maximumScan2 = getSpectrumFromPCL2D(pointCloudInputDataTMP2, voxelData2, magnitude2, phase2,
+//                                            cellSize * this->N,
+//                                            N);
+//
+//        //calc phase diff and fftshift + reduce to 2D
+//        for (int i = 0; i < N; i++) {
+//            for (int j = 0; j < N; j++) {
+//
+//                int indexX = (N / 2 + i) % N;
+//                int indexY = (N / 2 + j) % N;
+//                std::complex<double> tmpComplex;
+//                tmpComplex.real(0);
+//                tmpComplex.imag(
+//                        phase1[indexY + N * indexX] - phase2[indexY + N * indexX]);
+//                std::complex<double> resultCompexNumber = std::exp(tmpComplex);
+//                resultingPhaseDiff2D[j + N * i][0] = resultCompexNumber.real();
+//                resultingPhaseDiff2D[j + N * i][1] = resultCompexNumber.imag();
+//
+//
+//            }
+//        }
+//
+//
+//        fftw_execute(planFourierToVoxel2D);
+//
+//        std::chrono::steady_clock::time_point begin5 = std::chrono::steady_clock::now();
+//        double meanCorrelation = 0;
+//        double maximumCorrelation = 0;
+//        for (int i = 0; i < N; i++) {
+//            for (int j = 0; j < N; j++) {
+//                int indexX = (N / 2 + i) % N;
+//                int indexY = (N / 2 + j) % N;
+//                //calc magnitude and fftshift
+//                resultingCorrelationDouble[indexY + N * indexX] = sqrt(
+//                        resultingShiftPeaks2D[j + N * i][0] *
+//                        resultingShiftPeaks2D[j + N * i][0] +
+//                        resultingShiftPeaks2D[j + N * i][1] *
+//                        resultingShiftPeaks2D[j + N * i][1]); // real part;
+//                meanCorrelation = meanCorrelation + resultingCorrelationDouble[indexY + N * indexX];
+//                if (maximumCorrelation < resultingCorrelationDouble[indexY + N * indexX]) {
+//                    maximumCorrelation = resultingCorrelationDouble[indexY + N * indexX];
+//                }
+//
+//            }
+//        }
+//        meanCorrelation=(meanCorrelation/N)/N;
+//
+//        double variance = 0;
+//        for( int i=0; i < N*N; i++ )
+//        {
+//            variance += (resultingCorrelationDouble[i] - meanCorrelation) * (resultingCorrelationDouble[i] - meanCorrelation);
+//        }
+//        variance =variance/ (N*N);
+//
+////        for (int i = 0; i < N; i++) {
+////            for (int j = 0; j < N; j++) {
+////                correlation2DResult[j + N * i] = resultingCorrelationDouble[N / 2 + N * (j + N * i)];
+////            }
+////        }
+//        std::vector<indexPeak> localMaximaVector;
+//        PeakFinder::findPeaks2D(resultingCorrelationDouble, localMaximaVector, N);
+//
+//        std::chrono::steady_clock::time_point end5 = std::chrono::steady_clock::now();
+//        std::cout << "Time of Part translation: "
+//                  << std::chrono::duration_cast<std::chrono::milliseconds>(end5 - begin5).count()
+//                  << "[ms]" << std::endl;
+//
+//        std::sort(localMaximaVector.begin(), localMaximaVector.end(), compareTwoPeaks);
+//
+//        std::vector<double> differencePeaks;
+//        int maximumDiffIterator = 0;
+//        double maximumDiffValue = 0;
+//        for (int i = 1; i < localMaximaVector.size(); i++) {
+//            differencePeaks.push_back(localMaximaVector[i - 1].height - localMaximaVector[i].height);
+//            if (localMaximaVector[i - 1].height - localMaximaVector[i].height > maximumDiffValue) {
+//                maximumDiffValue = localMaximaVector[i - 1].height - localMaximaVector[i].height;
+//                maximumDiffIterator = i - 1;
+//            }
+//        }
+//        maximumDiffIterator = 0;//set it anyway to zero; can be used to know if the result seems valid
+//
+//        heightPeakList.push_back(localMaximaVector[maximumDiffIterator].height);
+//        xShiftList.push_back((localMaximaVector[maximumDiffIterator].y - N / 2.0) * cellSize * this->N * 2.0 / N);
+//        yShiftList.push_back((localMaximaVector[maximumDiffIterator].x - N / 2.0) * cellSize * this->N * 2.0 / N);
+//        estimatedAngleList.push_back(currentAngle);
+//
+//        //currently these metrics are not used.
+//        std::cout << "current angle: " << currentAngle << std::endl;
+//        std::cout << "SNR peak/mean: " << heightPeakList[heightPeakList.size()-1]/meanCorrelation << std::endl;
+//        std::cout << "SNR var/mean: " << variance/meanCorrelation << std::endl;
+//        std::cout << "height of Peak: "<< heightPeakList[heightPeakList.size()-1] << std::endl;
+//
+//        if(debug){
+//            std::ofstream myFile10;
+//            myFile10.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/resultingCorrelationShift.csv");
+//
+//            for (int i = 0; i < N; i++) {
+//                for (int j = 0; j < N; j++) {
+//                    myFile10 << resultingCorrelationDouble[j + N * i];
+//                    myFile10 << "\n";
+//                }
+//            }
+//            myFile10.close();
+//        }
+//    }
+
+
+
+
+// THIS IS THE NEW CALCULATION OF SHIFT
     for (int angleIndex = startIndex; angleIndex < endIndex; ++angleIndex) {
+
+        std::chrono::steady_clock::time_point begin5 = std::chrono::steady_clock::now();
 
         double currentAngle = -angleList[out[angleIndex]];//describes angle from A to B, therefore we have to reverse the angle
         pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputDataTMP2(new pcl::PointCloud<pcl::PointXYZ>);
@@ -447,20 +636,18 @@ softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>:
                                             cellSize * this->N,
                                             N);
 
-        //calc phase diff and fftshift + reduce to 2D
+        //fftshift and calculate multiplication of spectrums
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
 
-                int indexX = (N / 2 + i) % N;
-                int indexY = (N / 2 + j) % N;
-                std::complex<double> tmpComplex;
-                tmpComplex.real(0);
-                tmpComplex.imag(
-                        phase1[indexY + N * indexX] - phase2[indexY + N * indexX]);
-                std::complex<double> resultCompexNumber = std::exp(tmpComplex);
-                resultingPhaseDiff2D[j + N * i][0] = resultCompexNumber.real();
-                resultingPhaseDiff2D[j + N * i][1] = resultCompexNumber.imag();
+                int indexX = i;//(N / 2 + i) % N;
+                int indexY = j;//(N / 2 + j) % N;
+                //calculate the spectrum back
+                std::complex<double> tmpComplex1 = magnitude1[indexY + N * indexX]*std::exp(std::complex<double>(0,phase1[indexY + N * indexX]));
+                std::complex<double> tmpComplex2 = magnitude2[indexY + N * indexX]*std::exp(std::complex<double>(0,phase2[indexY + N * indexX]));
 
+                resultingPhaseDiff2D[j + N * i][0] = ((tmpComplex1)*conj(tmpComplex2)).real();
+                resultingPhaseDiff2D[j + N * i][1] = ((tmpComplex1)*conj(tmpComplex2)).imag();
 
             }
         }
@@ -468,73 +655,68 @@ softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>:
 
         fftw_execute(planFourierToVoxel2D);
 
-        std::chrono::steady_clock::time_point begin5 = std::chrono::steady_clock::now();
-        double meanCorrelation = 0;
+
+
+        // fftshift and magnitude
+        //double meanCorrelation = 0;
+        int indexMaximumCorrelationI;
+        int indexMaximumCorrelationJ;
         double maximumCorrelation = 0;
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
                 int indexX = (N / 2 + i) % N;
                 int indexY = (N / 2 + j) % N;
-                //calc magnitude and fftshift
+
                 resultingCorrelationDouble[indexY + N * indexX] = sqrt(
                         resultingShiftPeaks2D[j + N * i][0] *
                         resultingShiftPeaks2D[j + N * i][0] +
                         resultingShiftPeaks2D[j + N * i][1] *
                         resultingShiftPeaks2D[j + N * i][1]); // real part;
-                meanCorrelation = meanCorrelation + resultingCorrelationDouble[indexY + N * indexX];
+                //meanCorrelation = meanCorrelation + resultingCorrelationDouble[indexY + N * indexX];
                 if (maximumCorrelation < resultingCorrelationDouble[indexY + N * indexX]) {
                     maximumCorrelation = resultingCorrelationDouble[indexY + N * indexX];
+                    indexMaximumCorrelationI=indexX;
+                    indexMaximumCorrelationJ=indexY;
                 }
 
             }
         }
-        meanCorrelation=(meanCorrelation/N)/N;
 
-        double variance = 0;
-        for( int i=0; i < N*N; i++ )
-        {
-            variance += (resultingCorrelationDouble[i] - meanCorrelation) * (resultingCorrelationDouble[i] - meanCorrelation);
-        }
-        variance =variance/ (N*N);
-
-//        for (int i = 0; i < N; i++) {
-//            for (int j = 0; j < N; j++) {
-//                correlation2DResult[j + N * i] = resultingCorrelationDouble[N / 2 + N * (j + N * i)];
+        //meanCorrelation=(meanCorrelation/N)/N;
+//        std::vector<indexPeak> localMaximaVector;
+//        PeakFinder::findPeaks2D(resultingCorrelationDouble, localMaximaVector, N);
+//
+//
+//
+//        std::sort(localMaximaVector.begin(), localMaximaVector.end(), compareTwoPeaks);
+//
+//        std::vector<double> differencePeaks;
+//        int maximumDiffIterator = 0;
+//        double maximumDiffValue = 0;
+//        for (int i = 1; i < localMaximaVector.size(); i++) {
+//            differencePeaks.push_back(localMaximaVector[i - 1].height - localMaximaVector[i].height);
+//            if (localMaximaVector[i - 1].height - localMaximaVector[i].height > maximumDiffValue) {
+//                maximumDiffValue = localMaximaVector[i - 1].height - localMaximaVector[i].height;
+//                maximumDiffIterator = i - 1;
 //            }
 //        }
-        std::vector<indexPeak> localMaximaVector;
-        PeakFinder::findPeaks2D(resultingCorrelationDouble, localMaximaVector, N);
-
+//        maximumDiffIterator = 0;//set it anyway to zero; can be used to know if the result seems valid
         std::chrono::steady_clock::time_point end5 = std::chrono::steady_clock::now();
         std::cout << "Time of Part translation: "
                   << std::chrono::duration_cast<std::chrono::milliseconds>(end5 - begin5).count()
                   << "[ms]" << std::endl;
-
-        std::sort(localMaximaVector.begin(), localMaximaVector.end(), compareTwoPeaks);
-
-        std::vector<double> differencePeaks;
-        int maximumDiffIterator = 0;
-        double maximumDiffValue = 0;
-        for (int i = 1; i < localMaximaVector.size(); i++) {
-            differencePeaks.push_back(localMaximaVector[i - 1].height - localMaximaVector[i].height);
-            if (localMaximaVector[i - 1].height - localMaximaVector[i].height > maximumDiffValue) {
-                maximumDiffValue = localMaximaVector[i - 1].height - localMaximaVector[i].height;
-                maximumDiffIterator = i - 1;
-            }
-        }
-        maximumDiffIterator = 0;//set it anyway to zero; can be used to know if the result seems valid
-
-        heightPeakList.push_back(localMaximaVector[maximumDiffIterator].height);
-        xShiftList.push_back((localMaximaVector[maximumDiffIterator].y - N / 2.0) * cellSize * this->N * 2.0 / N);
-        yShiftList.push_back((localMaximaVector[maximumDiffIterator].x - N / 2.0) * cellSize * this->N * 2.0 / N);
+        heightPeakList.push_back(maximumCorrelation);
+        xShiftList.push_back((indexMaximumCorrelationJ - N / 2.0) * cellSize );
+        yShiftList.push_back((indexMaximumCorrelationI - N / 2.0) * cellSize );
         estimatedAngleList.push_back(currentAngle);
 
         //currently these metrics are not used.
         std::cout << "current angle: " << currentAngle << std::endl;
-        std::cout << "SNR peak/mean: " << heightPeakList[heightPeakList.size()-1]/meanCorrelation << std::endl;
-        std::cout << "SNR var/mean: " << variance/meanCorrelation << std::endl;
+//        std::cout << "SNR peak/mean: " << heightPeakList[heightPeakList.size()-1]/meanCorrelation << std::endl;
+//        std::cout << "SNR var/mean: " << variance/meanCorrelation << std::endl;
         std::cout << "height of Peak: "<< heightPeakList[heightPeakList.size()-1] << std::endl;
-
+        std::cout << "index I: " <<  indexMaximumCorrelationI << std::endl;
+        std::cout << "index J: " <<  indexMaximumCorrelationJ << std::endl;
         if(debug){
             std::ofstream myFile10;
             myFile10.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/resultingCorrelationShift.csv");
@@ -549,8 +731,12 @@ softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>:
         }
     }
 
+
+
     auto maxElementIter = std::max_element(heightPeakList.begin(), heightPeakList.end());
     int distanceToMaxElement = (int) std::distance(heightPeakList.begin(), maxElementIter);
+
+
 
     std::chrono::steady_clock::time_point end4 = std::chrono::steady_clock::now();
     std::cout << "Fourth Part: " << std::chrono::duration_cast<std::chrono::milliseconds>(end4 - begin4).count()

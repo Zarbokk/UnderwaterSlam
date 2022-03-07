@@ -7,6 +7,7 @@
 
 #include "sofftCorrelationClass.h"
 #include "PeakFinder.h"
+//#include "slamToolsRos.h"
 
 #include <pcl/io/pcd_io.h>
 #include <pcl/common/transforms.h>
