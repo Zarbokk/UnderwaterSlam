@@ -62,7 +62,7 @@ public:
 
     void setCurrentMap(const Eigen::MatrixXd &currentMap);
 
-    void trainClassifier(std::vector<dataPointStruct> &dataSet);
+    void trainClassifier(std::vector<dataPointStruct> &dataSet,int numberOfUsedDatapoints);
 
     double calculateOccupancy(Eigen::Vector3d pointOfInterest);
 

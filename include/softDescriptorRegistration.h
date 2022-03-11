@@ -14,6 +14,12 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/Min_sphere_of_spheres_d.h>
+#include <CGAL/Min_sphere_of_points_d_traits_2.h>
+#include <CGAL/Random.h>
+
+
 struct angleAndCorrelation {
     double angle, correlation;
 };
@@ -63,16 +69,24 @@ public:
     }
 
     Eigen::Matrix4d registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1,
-                                         pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2,
-                                         const double cellSize,bool debug = false,
-                                         double goodGuessAlpha = -100);//gives TFMatrix from 1 to 2
+                                         pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2, double &fitnessX,
+                                         double &fitnessY, double goodGuessAlpha = -100,
+                                         bool debug = false);//gives TFMatrix from 1 to 2
     //-100 only for "no good guess given"
     //initial guess has to be very good, else dont use it.
     double getSpectrumFromPCL3D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, double voxelData[],
                                 double magnitude[], double phase[], double fromTo, int N);
 
     double getSpectrumFromPCL2D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, double voxelData[],
-                                double magnitude[], double phase[], double fromTo, int N);
+                                double magnitude[], double phase[], double fromTo, bool gaussianBlur = false);
+
+    double
+    getSpectrumFromVoxelData2D(double voxelData[], double magnitude[], double phase[], bool gaussianBlur = false);
+
+    void PCL2Voxel(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, double voxelData[], double fromTo);
+
+    double movePCLtoMiddle(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, Eigen::Matrix4d &transformationPCL);
+
 
 private://here everything is created. malloc is done in the constructor
 

@@ -4,12 +4,13 @@
 
 #include "scanRegistrationClass.h"
 
-Eigen::Matrix4d scanRegistrationClass::generalizedIcpRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                                                                  const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
-                                                       pcl::PointCloud<pcl::PointXYZ>::Ptr &Final,
-                                                       double &fitnessScore,Eigen::Matrix4d &initialGuessTransformation){
+Eigen::Matrix4d
+scanRegistrationClass::generalizedIcpRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
+                                                  const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
+                                                  pcl::PointCloud<pcl::PointXYZ>::Ptr &Final,
+                                                  double &fitnessScore, Eigen::Matrix4d &initialGuessTransformation) {
 
-    pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ,pcl::PointXYZ> gicp;
+    pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> gicp;
     gicp.setInputSource(cloudFirstScan);
     gicp.setInputTarget(cloudSecondScan);
     //gicp.setSourceCovariances(source_covariances);
@@ -21,16 +22,17 @@ Eigen::Matrix4d scanRegistrationClass::generalizedIcpRegistration(const pcl::Poi
 //    gicp.setMaximumIterations(100);
 //    gicp.setRANSACIterations(100);
 
-    gicp.align(*Final,initialGuessTransformation.cast<float>());
+    gicp.align(*Final, initialGuessTransformation.cast<float>());
     //std::cout << "has converged:" << gicp.hasConverged() << " score: " <<
     //          gicp.getFitnessScore() << std::endl;
     fitnessScore = gicp.getFitnessScore();
     return gicp.getFinalTransformation().cast<double>();
 }
 
-Eigen::Matrix4d scanRegistrationClass::generalizedIcpRegistrationSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                                                                  const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
-                                                                  double &fitnessScore){
+Eigen::Matrix4d
+scanRegistrationClass::generalizedIcpRegistrationSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
+                                                        const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
+                                                        double &fitnessScore) {
     Eigen::Matrix4d guess;
     guess << 1, 0, 0, 0,
             0, 1, 0, 0,
@@ -38,24 +40,23 @@ Eigen::Matrix4d scanRegistrationClass::generalizedIcpRegistrationSimple(const pc
             0, 0, 0, 1;
     pcl::PointCloud<pcl::PointXYZ>::Ptr Final(new pcl::PointCloud<pcl::PointXYZ>);
     return scanRegistrationClass::generalizedIcpRegistration(cloudFirstScan, cloudSecondScan, Final,
-                                           fitnessScore,guess);
+                                                             fitnessScore, guess);
 }
 
-Eigen::Matrix4d scanRegistrationClass::generalizedIcpRegistrationSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                                                                        const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
-                                                                        double &fitnessScore,Eigen::Matrix4d &guess){
+Eigen::Matrix4d
+scanRegistrationClass::generalizedIcpRegistrationSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
+                                                        const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
+                                                        double &fitnessScore, Eigen::Matrix4d &guess) {
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr Final(new pcl::PointCloud<pcl::PointXYZ>);
     return scanRegistrationClass::generalizedIcpRegistration(cloudFirstScan, cloudSecondScan, Final,
-                                                             fitnessScore,guess);
+                                                             fitnessScore, guess);
 }
-
-
 
 
 Eigen::Matrix4d scanRegistrationClass::icpRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
                                                        const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
-                                            pcl::PointCloud<pcl::PointXYZ> &Final){
+                                                       pcl::PointCloud<pcl::PointXYZ> &Final) {
     pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
     icp.setInputSource(cloudFirstScan);
     icp.setInputTarget(cloudSecondScan);
@@ -67,7 +68,13 @@ Eigen::Matrix4d scanRegistrationClass::icpRegistration(const pcl::PointCloud<pcl
 }
 
 
-Eigen::Matrix4d scanRegistrationClass::sofftRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1,
-                                  const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2, double cellSize, double goodGuessAlpha){
-    return myRegistrationClass.registrationOfTwoPCL(pointCloudInputData1,pointCloudInputData2,cellSize,goodGuessAlpha);
+Eigen::Matrix4d scanRegistrationClass::sofftRegistration(const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1,
+                                                         const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2, double &fitnessX, double &fitnessY,
+                                                         double goodGuessAlpha,bool debug) {
+
+    const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1New(pointCloudInputData1.makeShared());
+    const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2New(pointCloudInputData2.makeShared());
+
+    return myRegistrationClass.registrationOfTwoPCL(pointCloudInputData1New, pointCloudInputData2New, fitnessX,
+                                                    fitnessY, goodGuessAlpha,debug);
 }

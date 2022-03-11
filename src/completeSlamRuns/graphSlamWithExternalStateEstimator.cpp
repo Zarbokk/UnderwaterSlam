@@ -124,6 +124,7 @@ private:
         }
         //we always assume positive turning sonars for now
         if (this->lastAngle > msg->angle) {
+            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             double timeDiffScans = msg->header.stamp.toSec() - this->startTimeOfCorrection;
             double lastTimeofScan = this->startTimeOfCorrection;//msg->header.stamp.toSec()-this->startTimeOfCorrection;
             this->startTimeOfCorrection = msg->header.stamp.toSec();
@@ -160,7 +161,9 @@ private:
             positionLastPcl++;
             if (this->firstScan) {
 //                *this->previousScan = *this->graphSaved.getVertexList().back().getPointCloudCorrected();
-                this->firstScan = false;
+                if (numberOfScan > 0) {
+                    this->firstScan = false;
+                }
 
             } else {
 
@@ -175,12 +178,26 @@ private:
 //                std::cout << std::atan2(this->initialGuessTransformation(1,0),this->initialGuessTransformation(0,0))*180/M_PI << std::endl;
 //                std::cout << this->initialGuessTransformation << std::endl;
 //                double cellSize = 0.5;
-//                this->currentTransformation = scanRegistrationObject.sofftRegistration(
-//                        this->previousScan, this->graphSaved.getVertexList().back().getPointCloudCorrected(), cellSize,
-//                        std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)) *
-//                        180 / M_PI);
+                double fitnessScoreX, fitnessScoreY;
+//                std::cout << "Initial Guess Angle: " << std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)) << std::endl;
+//                std::cout << "Initial Guess:" << std::endl;
 //                std::cout << this->initialGuessTransformation << std::endl;
+                //we need inverse transformation
+                this->currentTransformation = scanRegistrationObject.sofftRegistration(
+                        *this->previousScan, *this->graphSaved.getVertexList().back().getPointCloudCorrected(),
+                        fitnessScoreX, fitnessScoreY,
+                        std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)),
+                        false).inverse();
+//                std::cout << "Estimation Registration:" << std::endl;
 //                std::cout << this->currentTransformation << std::endl;
+//                std::cout << "current Fitness Score X: " << fitnessScoreX << std::endl;
+//                std::cout << "current Fitness Score Y: " << fitnessScoreY << std::endl;
+
+
+
+
+
+
 //                std::cout << this->currentTransformation.inverse() << std::endl;
 ////                this->currentTransformation = scanRegistrationClass::generalizedIcpRegistration(
 ////                        this->graphSaved.getVertexList().back().getPointCloudCorrected(), this->previousScan, this->Final,
@@ -188,19 +205,19 @@ private:
 ////                        this->initialGuessTransformation);
 //                //std::cout << "current Fitness Score: " << sqrt(this->fitnessScore) << std::endl;
 //
-//                Eigen::Quaterniond qTMP(this->currentTransformation.block<3, 3>(0, 0));
-//                graphSaved.addEdge(this->graphSaved.getVertexList().size() - positionLastPcl,
-//                                   graphSaved.getVertexList().size() - 1,
-//                                   this->currentTransformation.block<3, 1>(0, 3), qTMP,
-//                                   Eigen::Vector3d(sqrt(this->fitnessScore), sqrt(this->fitnessScore), 0),
-//                                   0.25 * sqrt(this->fitnessScore),
-//                                   graphSlamSaveStructure::POINT_CLOUD_USAGE,
-//                                   timeDiffScans * 0.1);//@TODO still not sure about size
+                Eigen::Quaterniond qTMP(this->currentTransformation.block<3, 3>(0, 0));
+                graphSaved.addEdge(this->graphSaved.getVertexList().size() - positionLastPcl,
+                                   graphSaved.getVertexList().size() - 1,
+                                   this->currentTransformation.block<3, 1>(0, 3), qTMP,
+                                   Eigen::Vector3d(fitnessScoreX, fitnessScoreY, 0),
+                                   0.1,
+                                   graphSlamSaveStructure::POINT_CLOUD_USAGE,
+                                   timeDiffScans * 0.1);//@TODO still not sure about size
 
 
-                pcl::io::savePCDFileASCII("/home/tim-linux/dataFolder/gazeboDataScansPCL/scanNumber_" + std::to_string(this->numberOfScan) + ".pcd",
-                                          *this->graphSaved.getVertexList().back().getPointCloudCorrected());
-                this->numberOfScan++;
+//                pcl::io::savePCDFileASCII("/home/tim-linux/dataFolder/gazeboDataScansPCL/scanNumber_" + std::to_string(this->numberOfScan) + ".pcd",
+//                                          *this->graphSaved.getVertexList().back().getPointCloudCorrected());
+
 //                pcl::io::savePCDFileASCII("/home/tim-linux/dataFolder/savingRandomPCL/secondPCL.pcd", *this->previousScan);
                 pcl::PointCloud<pcl::PointXYZ>::Ptr tmpCloudPlotOnly(
                         new pcl::PointCloud<pcl::PointXYZ>);
@@ -211,8 +228,14 @@ private:
                                             this->graphSaved.getVertexList().back().getPointCloudCorrected(),
                                             this->publisherLastPCL, this->publisherRegistrationPCL,
                                             this->publisherBeforeCorrection, this->publisherAfterCorrection);
-                slamToolsRos::detectLoopClosure(this->graphSaved, this->sigmaScaling, 1.0,
-                                                timeDiffScans * 0.1);//was 1.0
+                std::chrono::steady_clock::time_point begin1 = std::chrono::steady_clock::now();
+                slamToolsRos::detectLoopClosureSOFFT(this->graphSaved, this->sigmaScaling, timeDiffScans * 0.1,
+                                                     this->scanRegistrationObject);//was 1.0
+
+                std::chrono::steady_clock::time_point end1 = std::chrono::steady_clock::now();
+                std::cout << "Time difference of loop-closure = "
+                          << std::chrono::duration_cast<std::chrono::milliseconds>(end1 - begin1).count()
+                          << "[ms]" << std::endl;
             }
             //add position and optimize/publish everything
 
@@ -232,11 +255,15 @@ private:
             std::cout << "next: " << std::endl;
 //            std::cout << this->timeCurrentFullScan << std::endl;
 //            this->timeLastFullScan = this->timeCurrentFullScan;
+            this->numberOfScan++;
             *this->previousScan = *this->graphSaved.getVertexList().back().getPointCloudCorrected();
 
             sonarIntensityList.clear();
             clearSavingsOfPoses(msg->header.stamp.toSec());
-
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            std::cout << "Time difference of complete slam operation = "
+                      << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
+                      << "[ms]" << std::endl;
         }
 
 
@@ -303,7 +330,7 @@ private:
     }
 
     std::deque<edge> calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endTimeToAdd) {
-        std::cout << startTimetoAdd << " : " << endTimeToAdd << std::endl;
+        //std::cout << startTimetoAdd << " : " << endTimeToAdd << std::endl;
         if (endTimeToAdd - startTimetoAdd > 20) {
             std::cout << endTimeToAdd - startTimetoAdd << std::endl;
         }

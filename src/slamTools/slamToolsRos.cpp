@@ -651,8 +651,8 @@ void slamToolsRos::calculatePositionOverTime(std::deque<ImuData> &angularVelocit
 
 }
 
-bool slamToolsRos::detectLoopClosure(graphSlamSaveStructure &graphSaved,
-                                     double sigmaScaling, double cutoffFitnessOnDetect, double maxTimeOptimization) {
+bool slamToolsRos::detectLoopClosureSOFFT(graphSlamSaveStructure &graphSaved,
+                                     double sigmaScaling, double maxTimeOptimization,scanRegistrationClass &scanRegistrationObject) {
     Eigen::Vector3d estimatedPosLastPoint = graphSaved.getVertexList().back().getPositionVertex();
     pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudLast = graphSaved.getVertexList().back().getPointCloudCorrected();
     Eigen::ArrayXXf dist;
@@ -664,7 +664,61 @@ bool slamToolsRos::detectLoopClosure(graphSlamSaveStructure &graphSaved,
                       pow((estimatedPosLastPoint.y() - graphSaved.getVertexList()[s].getPositionVertex().y()), 2) /
                       pow((sigmaScaling * graphSaved.getVertexList()[s].getCovariancePosition().y()), 2);
     }
-    const int ignoreLastNLoopClosures = 1;
+    const int ignoreLastNLoopClosures = 3;
+    std::vector<int> has2beChecked;
+    if (dist.size() > ignoreLastNLoopClosures) {
+        for (int i = 0; i < dist.size() - ignoreLastNLoopClosures; i++) {
+            if (dist(i, 0) < 1 &&
+                graphSaved.getVertexList()[i].getTypeOfVertex() == graphSlamSaveStructure::POINT_CLOUD_USAGE) {
+                has2beChecked.push_back(i);
+            }
+        }
+        std::cout << "Create " << has2beChecked.size() << " loop closures"<<std::endl;
+        std::shuffle(has2beChecked.begin(), has2beChecked.end(), std::mt19937(std::random_device()()));
+        int loopclosureNumber = 0;
+        for (const auto &has2beCheckedElemenet: has2beChecked) {
+
+            Eigen::Matrix4d currentTransformation, guess;
+            guess = graphSaved.getVertexList().back().getTransformation().inverse() *
+                    graphSaved.getVertexList()[has2beCheckedElemenet].getTransformation();
+            double fitnessScoreX, fitnessScoreY;
+            currentTransformation = scanRegistrationObject.sofftRegistration(
+                    *graphSaved.getVertexList()[has2beCheckedElemenet].getPointCloudCorrected(), *graphSaved.getVertexList().back().getPointCloudCorrected(),
+                    fitnessScoreX, fitnessScoreY,
+                    std::atan2(guess(1, 0), guess(0, 0)),
+                    false).inverse();
+                Eigen::Vector3d currentPosDiff;
+                Eigen::Quaterniond currentRotDiff(currentTransformation.block<3, 3>(0, 0));
+                currentPosDiff.x() = currentTransformation(0, 3);
+                currentPosDiff.y() = currentTransformation(1, 3);
+                currentPosDiff.z() = 0;
+                Eigen::Vector3d positionCovariance(fitnessScoreX, fitnessScoreY, 0);
+                graphSaved.addEdge((int) graphSaved.getVertexList().size() - 1, has2beCheckedElemenet, currentPosDiff,
+                                   currentRotDiff, positionCovariance, 0.1,
+                                   graphSlamSaveStructure::POINT_CLOUD_USAGE, maxTimeOptimization);
+                loopclosureNumber++;
+                if (loopclosureNumber > 5) { break; }// break if multiple loop closures are found
+
+        }
+    }
+    return true;
+}
+
+
+bool slamToolsRos::detectLoopClosureIPC(graphSlamSaveStructure &graphSaved,
+                                     double sigmaScaling, double cutoffFitnessOnDetect, double maxTimeOptimization,scanRegistrationClass &scanRegistrationObject) {
+    Eigen::Vector3d estimatedPosLastPoint = graphSaved.getVertexList().back().getPositionVertex();
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudLast = graphSaved.getVertexList().back().getPointCloudCorrected();
+    Eigen::ArrayXXf dist;
+    dist.resize(graphSaved.getVertexList().size() - 1, 1);
+    for (int s = 0; s < graphSaved.getVertexList().size() - 1; s++) {
+        //dist.row(s) = (graphSaved.getVertexList()[s].getPositionVertex() - estimatedPosLastPoint).norm();
+        dist.row(s) = pow((estimatedPosLastPoint.x() - graphSaved.getVertexList()[s].getPositionVertex().x()), 2) /
+                      pow((sigmaScaling * graphSaved.getVertexList()[s].getCovariancePosition().x()), 2) +
+                      pow((estimatedPosLastPoint.y() - graphSaved.getVertexList()[s].getPositionVertex().y()), 2) /
+                      pow((sigmaScaling * graphSaved.getVertexList()[s].getCovariancePosition().y()), 2);
+    }
+    const int ignoreLastNLoopClosures = 3;
     std::vector<int> has2beChecked;
     if (dist.size() > ignoreLastNLoopClosures) {
         for (int i = 0; i < dist.size() - ignoreLastNLoopClosures; i++) {
@@ -686,17 +740,20 @@ bool slamToolsRos::detectLoopClosure(graphSlamSaveStructure &graphSaved,
             Eigen::Matrix4d currentTransformation, guess;
             guess = graphSaved.getVertexList().back().getTransformation().inverse() *
                     graphSaved.getVertexList()[has2beCheckedElemenet].getTransformation();
-            currentTransformation = scanRegistrationClass::generalizedIcpRegistrationSimple(
+            currentTransformation = scanRegistrationObject.generalizedIcpRegistrationSimple(
                     graphSaved.getVertexList()[has2beCheckedElemenet].getPointCloudCorrected(),
                     graphSaved.getVertexList().back().getPointCloudCorrected(),
                     fitnessScore, guess);
+
             fitnessScore = sqrt(fitnessScore);
             if (fitnessScore < cutoffFitnessOnDetect) {//@TODO was 0.1
-                std::cout << "Found Loop Closure with fitnessScore: " << fitnessScore << std::endl;
-                if (fitnessScore < 0.01) {
-                    std::cout << "FitnessScore Very Low: " << fitnessScore << std::endl;
-                    fitnessScore = 0.01;
-                }
+
+
+//                std::cout << "Found Loop Closure with fitnessScore: " << fitnessScore << std::endl;
+//                if (fitnessScore < 0.01) {
+//                    std::cout << "FitnessScore Very Low: " << fitnessScore << std::endl;
+//                    fitnessScore = 0.01;
+//                }
 
 //                pcl::io::savePCDFileASCII(
 //                        "/home/tim/DataForTests/justShit/after_voxel_first.pcd",
@@ -716,18 +773,20 @@ bool slamToolsRos::detectLoopClosure(graphSlamSaveStructure &graphSaved,
                 graphSaved.addEdge((int) graphSaved.getVertexList().size() - 1, has2beCheckedElemenet, currentPosDiff,
                                    currentRotDiff, positionCovariance, 0.25 * sqrt(fitnessScore),
                                    graphSlamSaveStructure::POINT_CLOUD_USAGE, maxTimeOptimization);
+
                 foundLoopClosure = true;
                 loopclosureNumber++;
-                if (loopclosureNumber > 2) { break; }// break if multiple loop closures are found
+                if (loopclosureNumber > 3) { break; }// break if multiple loop closures are found
+
+            }
+            if (foundLoopClosure) {
+                return true;
             }
         }
-        if (foundLoopClosure) {
-            return true;
-        }
-
     }
     return false;
 }
+
 
 void slamToolsRos::appendEdgesToGraph(graphSlamSaveStructure &currentGraph,
                                       std::deque<edge> &listOfEdges, double noiseVelocityIntigration,

@@ -56,7 +56,7 @@ Eigen::VectorXd hilbertMap::getGradient(Eigen::Vector3d pointOfInterest,double o
     }
 }
 
-void hilbertMap::trainClassifier(std::vector<dataPointStruct> &dataSet) {
+void hilbertMap::trainClassifier(std::vector<dataPointStruct> &dataSet,int numberOfUsedDatapoints) {
     std::cout << "huhu1" << std::endl;
     Eigen::VectorXd gradient = Eigen::VectorXd::Zero(
             this->numberOfFeaturesForEachDimension * this->numberOfFeaturesForEachDimension);
@@ -65,7 +65,7 @@ void hilbertMap::trainClassifier(std::vector<dataPointStruct> &dataSet) {
     // randomly shuffles the dataset
     std::shuffle(dataSet.begin(), dataSet.end(), std::mt19937(std::random_device()()));
 
-    for (int i = 0; i < 30000; i++) {//dataSet.size(); i++) {
+    for (int i = 0; i < numberOfUsedDatapoints; i++) {//dataSet.size(); i++) {
         Eigen::Vector3d testX(dataSet[i].x, dataSet[i].y, 0);
         double testLabel = dataSet[i].occupancy;
 
@@ -201,7 +201,7 @@ hilbertMap::createOccupancyMapOfHilbert(double threshholdOccupancy) {
     //int pointsDimensionInMap = currentHilbertMap.getDiscritisationSize();
     nav_msgs::OccupancyGrid map;
 
-    map.header.frame_id = "map_ned";
+
     map.info.height = this->numberOfPointsToCalculateOccupancy;
     map.info.width = this->numberOfPointsToCalculateOccupancy;
     map.info.resolution = this->quadraticOccupancyMapSize / this->numberOfPointsToCalculateOccupancy;

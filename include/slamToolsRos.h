@@ -79,8 +79,10 @@ public:
                   ros::Publisher &publisherRegistrationPCL, ros::Publisher &publisherBeforeCorrection,
                   ros::Publisher &publisherAfterCorrection);
 
-    static bool detectLoopClosure(graphSlamSaveStructure &graphSaved,
-                                  double sigmaScaling, double cutoffFitnessOnDetect, double maxTimeOptimization);
+    static bool detectLoopClosureSOFFT(graphSlamSaveStructure &graphSaved,
+                                  double sigmaScaling, double maxTimeOptimization,scanRegistrationClass &scanRegistrationObject);
+    static bool detectLoopClosureIPC(graphSlamSaveStructure &graphSaved,
+                                       double sigmaScaling, double cutoffFitnessOnDetect, double maxTimeOptimization,scanRegistrationClass &scanRegistrationObject);
 
     static std::vector<double> linspace(double start_in, double end_in, int num_in);
 
