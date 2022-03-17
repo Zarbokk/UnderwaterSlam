@@ -88,25 +88,10 @@ public:
 
     void setPointCloud(const pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloud);
 
-
-private:
-    int fromVertex;
-    int toVertex;
-    Eigen::Vector3d covariancePosition;//estimated covarianze for this measurement in x y z
-    double covarianceQuaternion;//estimated covarianze for this measurement in q = w x y z (rotation)
-    bool hasPointCloud;
-public:
     bool getHasPointCloud() const;
 
     void setHasPointCloud(bool hasPointCloud);
 
-private:
-    Eigen::Vector3d positionDifference;
-    Eigen::Quaterniond rotationDifference;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloud;//measurement
-    int typeOfEdge;// 0=pointCloud    %%%%%%%%%   1 = integratedPosDiff
-    double timeStamp;
-public:
     bool isHasPointCloud() const;
 
     int getTypeOfEdge() const;
@@ -118,6 +103,19 @@ public:
     void setTimeStamp(double timeStamp);
 
     Eigen::Matrix4d getTransformation();
+
+private:
+    int fromVertex;
+    int toVertex;
+    Eigen::Vector3d covariancePosition;//estimated covarianze for this measurement in x y z
+    double covarianceQuaternion;//estimated covarianze for this measurement in q = w x y z (rotation)
+    bool hasPointCloud;
+    Eigen::Vector3d positionDifference;
+    Eigen::Quaterniond rotationDifference;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloud;//measurement
+    int typeOfEdge;// 0=pointCloud    %%%%%%%%%   1 = integratedPosDiff
+    double timeStamp;
+
 };
 
 

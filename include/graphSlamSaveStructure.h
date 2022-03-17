@@ -61,7 +61,7 @@ public:
 
     vertex* getVertexByIndex(int i);
 
-    std::vector<vertex> getVertexList();
+    std::vector<vertex> *getVertexList();
 
     std::vector<edge> *getEdgeList();
 

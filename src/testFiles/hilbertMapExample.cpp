@@ -7,7 +7,7 @@
 #include "json.h"
 
 
-std::vector<dataPointStruct> readGraphSlamJson(std::string fileName) {
+std::vector<dataPointStruct> readGraphSlamJson(std::string fileName,double shiftX, double shiftY) {
     Json::Value keyFrames;
     std::ifstream keyFramesFile(fileName, std::ifstream::binary);
     keyFramesFile >> keyFrames;
@@ -33,8 +33,8 @@ std::vector<dataPointStruct> readGraphSlamJson(std::string fileName) {
                                      keyFrames["keyFrames"][i]["pointCloud"][j]["point"]["z"].asDouble());
             pointPos = currentRotationMatrix * pointPos + currentShift;
             dataPointStruct tmpDP;
-            tmpDP.x = pointPos.x();
-            tmpDP.y = pointPos.y();
+            tmpDP.x = shiftX+pointPos.x();
+            tmpDP.y = shiftY+pointPos.y();
             tmpDP.z = pointPos.z();
             tmpDP.occupancy = 1;
             dataSet.push_back(tmpDP);
@@ -47,15 +47,13 @@ std::vector<dataPointStruct> readGraphSlamJson(std::string fileName) {
 
             double randomNumber = std::rand() / double(RAND_MAX);// should be between 0 and 1
             pointPosTwo = currentShift + randomNumber * pointPosTwo;
-            tmpDP.x = pointPosTwo.x();
-            tmpDP.y = pointPosTwo.y();
+            tmpDP.x = shiftX+pointPosTwo.x();
+            tmpDP.y = shiftY+pointPosTwo.y();
             tmpDP.z = pointPosTwo.z();
             tmpDP.occupancy = -1;
             dataSet.push_back(tmpDP);
         }
     }
-
-
     return dataSet;
 }
 
@@ -68,26 +66,27 @@ main(int argc, char **argv) {
     ros::Publisher publisherMarkerArray;
     publisherMarkerArray = n_.advertise<nav_msgs::OccupancyGrid>("occupancyHilbertMap", 10);
 
-    hilbertMap mapRepresentation(64,128,
-                                 60,hilbertMap::SPARSE_RANDOM_FEATURES);
-    mapRepresentation.createRandomMap();//initialize everything with 0.4
+    hilbertMap mapRepresentation(256,128,
+                                 60,hilbertMap::HINGED_FEATURES);
+    mapRepresentation.createRandomMap();//initialize everything with 0.5
 
     ros::Rate loop_rate(1);
 
 
     std::vector<dataPointStruct> dataSet = readGraphSlamJson(
-            "/home/tim-linux/dataFolder/savingGraphs/savedGraphTest.json");
+            "/home/tim-linux/dataFolder/savingGraphs/savedGraphTest.json",-5,0);
 
-
+    double i=0;
     while (ros::ok()) {
         std::cout << "currently starting training" << std::endl;
-        mapRepresentation.trainClassifier(dataSet,3000);
-        nav_msgs::OccupancyGrid map = mapRepresentation.createOccupancyMapOfHilbert();
+        mapRepresentation.trainClassifier(dataSet,30000);
+        nav_msgs::OccupancyGrid map = mapRepresentation.createOccupancyMapOfHilbert(10,10,15);
         map.header.stamp = ros::Time::now();
         map.header.frame_id = "map_ned";
         publisherMarkerArray.publish(map);
         ros::spinOnce();
         loop_rate.sleep();
+        i=i+1;
         //std::cout << ros::Time::now() << std::endl;
     }
 

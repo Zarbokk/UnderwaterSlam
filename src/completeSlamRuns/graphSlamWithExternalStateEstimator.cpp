@@ -10,10 +10,13 @@
 #include "generalHelpfulTools.h"
 #include <slamToolsRos.h>
 #include "commonbluerovmsg/saveGraph.h"
+#include <hilbertMap.h>
 
 class rosClassEKF {
 public:
-    rosClassEKF(ros::NodeHandle n_) : graphSaved(3), scanRegistrationObject() {
+    rosClassEKF(ros::NodeHandle n_) : graphSaved(3),
+                                      scanRegistrationObject(),
+                                      occupancyMap(256, 128, 70, hilbertMap::HINGED_FEATURES) {
 
 //        lastUpdateEkf = currentEkf.copyEKF();
 //        subscriberIMU = n_.subscribe("mavros/imu/data_frd", 1000, &rosClassEKF::imuCallback, this);
@@ -34,7 +37,7 @@ public:
         publisherRegistrationPCL = n_.advertise<sensor_msgs::PointCloud2>("registratedPCL", 10);
         publisherBeforeCorrection = n_.advertise<sensor_msgs::PointCloud2>("beforeCorrection", 10);
         publisherAfterCorrection = n_.advertise<sensor_msgs::PointCloud2>("afterCorrection", 10);
-
+        publisherOccupancyMap = n_.advertise<nav_msgs::OccupancyGrid>("occupancyHilbertMap", 10);
 
         Eigen::AngleAxisd rotation_vector2(180.0 / 180.0 * 3.14159, Eigen::Vector3d(1, 0, 0));
         Eigen::Matrix3d tmpMatrix3d = rotation_vector2.toRotationMatrix();
@@ -61,16 +64,23 @@ public:
         this->firstScan = true;
         this->saveGraphStructure = false;
         this->numberOfScan = 0;
+        this->occupancyMap.createRandomMap();
+
+
+//        hilbertMap mapRepresentation(256,128,
+//                                     60,hilbertMap::HINGED_FEATURES);
+
+
     }
 
 
 private:
 
     ros::Subscriber subscriberEKF, subscriberIntensitySonar;
-    ros::Publisher publisherPoseSLAM;
+    ros::Publisher publisherPoseSLAM, publisherOccupancyMap;
     ros::ServiceServer serviceSaveGraph;
     std::mutex stateEstimationMutex;
-
+    std::mutex graphSlamMutex;
     //GraphSlam things
     ros::Publisher publisherKeyFrameClouds, publisherPathOverTime, publisherMarkerArray, publisherPathOverTimeGT, publisherMarkerArrayLoopClosures, publisherLastPCL, publisherRegistrationPCL, publisherBeforeCorrection, publisherAfterCorrection;
 
@@ -94,6 +104,7 @@ private:
     double fitnessScore;
     double sigmaScaling;
     //double maxTimeOptimization;
+    double beginningAngleOfRotation;
     double lastAngle;
     double startTimeOfCorrection;
     graphSlamSaveStructure graphSaved;
@@ -101,6 +112,8 @@ private:
     bool firstScan, saveGraphStructure;
     std::string saveStringGraph;
     int numberOfScan;
+    hilbertMap occupancyMap;
+
 
     void slamCallback(const geometry_msgs::PoseStamped &msg) {
         Eigen::Quaterniond tmpRot;
@@ -113,8 +126,9 @@ private:
     }
 
     void scanCallback(const ping360_sonar::SonarEcho::ConstPtr &msg) {
-
+        std::lock_guard<std::mutex> lock(this->graphSlamMutex);
         if (this->startTimeOfCorrection == 0) {
+            this->beginningAngleOfRotation = msg->angle/400.0*M_PI*2.0;
             this->startTimeOfCorrection = msg->header.stamp.toSec();
             this->graphSaved.getVertexByIndex(0)->setTimeStamp(msg->header.stamp.toSec());
         }
@@ -143,7 +157,7 @@ private:
 
             //correct the scan depending on the EKF callback
             slamToolsRos::correctPointCloudAtPos(this->graphSaved.getVertexList().back().getVertexNumber(),
-                                                 this->graphSaved, 0, 2 * M_PI, false,
+                                                 this->graphSaved, this->beginningAngleOfRotation, 2 * M_PI, false,
                                                  Eigen::Matrix4d::Identity());
 
             //find position of last pcl entry
@@ -164,7 +178,7 @@ private:
                 if (numberOfScan > 0) {
                     this->firstScan = false;
                 }
-
+                this->beginningAngleOfRotation = 0;
             } else {
 
 
@@ -188,6 +202,11 @@ private:
                         fitnessScoreX, fitnessScoreY,
                         std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)),
                         false).inverse();
+
+                double differenceAngleBeforeAfter = generalHelpfulTools::angleDiff(
+                        std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)),
+                        std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)));
+
 //                std::cout << "Estimation Registration:" << std::endl;
 //                std::cout << this->currentTransformation << std::endl;
 //                std::cout << "current Fitness Score X: " << fitnessScoreX << std::endl;
@@ -205,16 +224,23 @@ private:
 ////                        this->initialGuessTransformation);
 //                //std::cout << "current Fitness Score: " << sqrt(this->fitnessScore) << std::endl;
 //
-                Eigen::Quaterniond qTMP(this->currentTransformation.block<3, 3>(0, 0));
-                graphSaved.addEdge(this->graphSaved.getVertexList().size() - positionLastPcl,
-                                   graphSaved.getVertexList().size() - 1,
-                                   this->currentTransformation.block<3, 1>(0, 3), qTMP,
-                                   Eigen::Vector3d(fitnessScoreX, fitnessScoreY, 0),
-                                   0.1,
-                                   graphSlamSaveStructure::POINT_CLOUD_USAGE,
-                                   timeDiffScans * 0.1);//@TODO still not sure about size
 
 
+
+                std::cout << "difference of angle after Registration: " << differenceAngleBeforeAfter << std::endl;
+
+                if (abs(differenceAngleBeforeAfter) < 10.0 / 180.0 * M_PI) {
+                    Eigen::Quaterniond qTMP(this->currentTransformation.block<3, 3>(0, 0));
+                    graphSaved.addEdge(this->graphSaved.getVertexList().size() - positionLastPcl,
+                                       graphSaved.getVertexList().size() - 1,
+                                       this->currentTransformation.block<3, 1>(0, 3), qTMP,
+                                       Eigen::Vector3d(fitnessScoreX, fitnessScoreY, 0),
+                                       0.1,
+                                       graphSlamSaveStructure::POINT_CLOUD_USAGE,
+                                       timeDiffScans * 0.1);//@TODO still not sure about size
+                } else {
+                    std::cout << "we just skipped that registration" << std::endl;
+                }
 //                pcl::io::savePCDFileASCII("/home/tim-linux/dataFolder/gazeboDataScansPCL/scanNumber_" + std::to_string(this->numberOfScan) + ".pcd",
 //                                          *this->graphSaved.getVertexList().back().getPointCloudCorrected());
 
@@ -222,20 +248,18 @@ private:
                 pcl::PointCloud<pcl::PointXYZ>::Ptr tmpCloudPlotOnly(
                         new pcl::PointCloud<pcl::PointXYZ>);
                 *tmpCloudPlotOnly = *currentScan;
-
+                this->beginningAngleOfRotation = 0;
                 //pcl::transformPointCloud(*tmpCloudPlotOnly, *tmpCloudPlotOnly, transformationImu2PCL);
                 slamToolsRos::debugPlotting(this->previousScan, this->Final, tmpCloudPlotOnly,
                                             this->graphSaved.getVertexList().back().getPointCloudCorrected(),
                                             this->publisherLastPCL, this->publisherRegistrationPCL,
                                             this->publisherBeforeCorrection, this->publisherAfterCorrection);
-                std::chrono::steady_clock::time_point begin1 = std::chrono::steady_clock::now();
-                slamToolsRos::detectLoopClosureSOFFT(this->graphSaved, this->sigmaScaling, timeDiffScans * 0.1,
-                                                     this->scanRegistrationObject);//was 1.0
 
-                std::chrono::steady_clock::time_point end1 = std::chrono::steady_clock::now();
-                std::cout << "Time difference of loop-closure = "
-                          << std::chrono::duration_cast<std::chrono::milliseconds>(end1 - begin1).count()
-                          << "[ms]" << std::endl;
+//                slamToolsRos::detectLoopClosureSOFFT(this->graphSaved, this->sigmaScaling, timeDiffScans * 0.1,
+//                                                     this->scanRegistrationObject);//was 1.0
+
+                slamToolsRos::detectLoopClosureIPC(this->graphSaved, this->sigmaScaling, 1.0, timeDiffScans * 0.1,
+                                                   this->scanRegistrationObject);//was 1.0
             }
             //add position and optimize/publish everything
 
@@ -264,6 +288,23 @@ private:
             std::cout << "Time difference of complete slam operation = "
                       << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
                       << "[ms]" << std::endl;
+
+            // ###################################### Hilbert MAP EXPERIMENT ######################################
+//            std::chrono::steady_clock::time_point begin1 = std::chrono::steady_clock::now();
+//
+//            std::cout << "calculate the Hilbert Map:" << std::endl;
+//            if(this->graphSaved.getVertexList().size()>100){
+
+
+
+
+
+//            }
+//            std::chrono::steady_clock::time_point end1 = std::chrono::steady_clock::now();
+//            std::cout << "Time difference of HilbertMapThings = "
+//                      << std::chrono::duration_cast<std::chrono::milliseconds>(end1 - begin1).count()
+//                      << "[ms]" << std::endl;
+
         }
 
 
@@ -368,7 +409,7 @@ private:
             transformationEnd(2, 3) = this->zPositionVector[i + 1];
             transformationEnd(3, 3) = 1;
             Eigen::Matrix4d diffMatrix = transformationStart.inverse() * transformationEnd;
-
+            //std::cout << diffMatrix << std::endl;
             Eigen::Vector3d tmpPosition = diffMatrix.block<3, 1>(0, 3);
             //set z pos diff to zero
             tmpPosition[2] = 0;
@@ -426,6 +467,98 @@ private:
         return true;
     }
 
+    std::vector<dataPointStruct> getDatasetFromGraph(int numberOfPointsInDataset) {
+        std::lock_guard<std::mutex> lock(this->graphSlamMutex);
+        std::vector<dataPointStruct> dataSet;
+        std::random_device rd;  // Will be used to obtain a seed for the random number engine
+        std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
+        std::uniform_real_distribution<> dis(0.0, 1.0);
+
+        for (int i = 0; i < numberOfPointsInDataset; i++) {
+
+            //get some random number indexPointCloud and Random Number of Point
+            int indexPointCloud = (int) (dis(gen) *
+                                         (double) (this->graphSaved.getVertexList().size() - 1));
+
+            int addingValueIndex = 1;
+            if (this->graphSaved.getVertexList().size() - indexPointCloud < 10 &&
+                this->graphSaved.getVertexList().size() > 50) {
+                addingValueIndex = -1;
+            }
+
+
+            while (true) {
+                indexPointCloud += addingValueIndex;
+
+
+                if (this->graphSaved.getVertexList()[indexPointCloud].getTypeOfVertex() ==
+                    graphSaved.POINT_CLOUD_USAGE) {
+                    break;
+                }
+            }
+            int indexOfPointInPointcloud = (int) (dis(gen) *
+                                                  (double) this->graphSaved.getVertexList()->at(indexPointCloud).getPointCloudCorrected()->points.size());
+
+
+            Eigen::Matrix4d transformationOfPointcloud = this->graphSaved.getVertexList()[indexPointCloud].getTransformation();
+
+
+            Eigen::Vector4d pointPos(
+                    this->graphSaved.getVertexList()[indexPointCloud].getPointCloudCorrected()->points[indexOfPointInPointcloud].x,
+                    this->graphSaved.getVertexList()[indexPointCloud].getPointCloudCorrected()->points[indexOfPointInPointcloud].y,
+                    0,
+                    1);
+            pointPos = transformationOfPointcloud * pointPos;
+            dataPointStruct tmpDP;
+            tmpDP.x = pointPos.x();
+            tmpDP.y = pointPos.y();
+            tmpDP.z = pointPos.z();
+            tmpDP.occupancy = 1;
+            dataSet.push_back(tmpDP);
+
+            //create 3 additional point where occupancy = -1
+            for (int j = 0; j < 2; j++) {
+                Eigen::Vector4d pointPosTwo(
+                        this->graphSaved.getVertexList()[indexPointCloud].getPointCloudCorrected()->points[indexOfPointInPointcloud].x,
+                        this->graphSaved.getVertexList()[indexPointCloud].getPointCloudCorrected()->points[indexOfPointInPointcloud].y,
+                        0,
+                        1);
+
+
+                //double randomNumber = dis(gen);// should be between 0 and 1
+                pointPosTwo = transformationOfPointcloud * dis(gen) * pointPosTwo;
+                tmpDP.x = pointPosTwo.x();
+                tmpDP.y = pointPosTwo.y();
+                tmpDP.z = pointPosTwo.z();
+                tmpDP.occupancy = -1;
+                dataSet.push_back(tmpDP);
+            }
+        }
+        return dataSet;
+    }
+
+public:
+    void updateHilbertMap(){
+        std::cout << "started Hilbert Shift:" << std::endl;
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        std::vector<dataPointStruct> dataSet = this->getDatasetFromGraph(10000);
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+        std::cout << "Time it takes to get the dataset = "
+                  << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
+                  << "[ms]" << std::endl;
+
+        std::chrono::steady_clock::time_point begin2 = std::chrono::steady_clock::now();
+        this->occupancyMap.trainClassifier(dataSet, 25000);
+        nav_msgs::OccupancyGrid map = this->occupancyMap.createOccupancyMapOfHilbert(0, 0, 70, true);
+        std::chrono::steady_clock::time_point end2 = std::chrono::steady_clock::now();
+        std::cout << "Time it takes to train the dataset = "
+                  << std::chrono::duration_cast<std::chrono::milliseconds>(end2 - begin2).count()
+                  << "[ms]" << std::endl;
+
+        map.header.stamp = ros::Time::now();
+        map.header.frame_id = "map_ned";
+        this->publisherOccupancyMap.publish(map);
+    }
 };
 
 
@@ -435,10 +568,24 @@ int main(int argc, char **argv) {
     ros::NodeHandle n_;
     rosClassEKF rosClassForTests(n_);
 
-    double cellSize = 0.25;
+
+//    ros::spin();
 
 
-    ros::spin();
+    ros::Rate loop_rate(0.1);
+    ros::AsyncSpinner spinner(4); // Use 4 threads
+    spinner.start();
+    ros::Duration(15).sleep();
+
+    while (ros::ok()) {
+//        ros::spinOnce();
+
+        rosClassForTests.updateHilbertMap();
+        loop_rate.sleep();
+
+        //std::cout << ros::Time::now() << std::endl;
+    }
+
 
     return (0);
 }

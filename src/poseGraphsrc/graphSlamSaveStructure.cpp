@@ -734,8 +734,8 @@ vertex *graphSlamSaveStructure::getVertexByIndex(const int i) {
     return &this->vertexList[i];
 }
 
-std::vector<vertex> graphSlamSaveStructure::getVertexList() {
-    return this->vertexList;
+std::vector<vertex> *graphSlamSaveStructure::getVertexList() {
+    return &this->vertexList;
 }
 
 std::vector<edge> *graphSlamSaveStructure::getEdgeList() {
@@ -844,7 +844,7 @@ void graphSlamSaveStructure::optimizeGraphWithSlamTopDown(bool verbose, double c
 
 
         // next the covariance should be added at lower levels
-        for (auto &currentSubGraphVertex : this->hierachicalGraph->getVertexList()) {// get the vertex list
+        for (auto &currentSubGraphVertex : *this->hierachicalGraph->getVertexList()) {// get the vertex list
             for (int indexVertex : this->lookUpTableCell[currentSubGraphVertex.getVertexNumber()]) {// change the covariance for each cellmember dependend on the covariance of vertex
                 this->vertexList[indexVertex].setCovariancePosition(currentSubGraphVertex.getCovariancePosition());
                 this->vertexList[indexVertex].setCovarianceQuaternion(
@@ -1502,7 +1502,7 @@ graphSlamSaveStructure::calculateCovarianceInCloseProximity(double maxTimeOptimi
     std::vector<int> holdStill{(int) (listOfContainingVertex.size() - 1)};
     currentSubGraph.optimizeGraphWithSlam(false, holdStill,maxTimeOptimization);
     //now put in the covariances to the main graph
-    for (auto &currentVertex : currentSubGraph.getVertexList()) {
+    for (auto &currentVertex : *currentSubGraph.getVertexList()) {
         this->vertexList[listOfContainingVertex[currentVertex.getVertexNumber()]].setCovariancePosition(
                 currentVertex.getCovariancePosition());
         this->vertexList[listOfContainingVertex[currentVertex.getVertexNumber()]].setCovarianceQuaternion(

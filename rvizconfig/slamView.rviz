@@ -8,10 +8,9 @@ Panels:
         - /Status1
         - /Grid1
         - /Grid1/Offset1
-        - /PointCloud22
         - /Axes1
-        - /PoseWithCovariance1
         - /PoseWithCovariance1/Status1
+        - /Map1
       Splitter Ratio: 0.550000011920929
     Tree Height: 746
   - Class: rviz/Selection
@@ -87,34 +86,6 @@ Visualization Manager:
       Use rainbow: true
       Value: false
     - Alpha: 1
-      Autocompute Intensity Bounds: true
-      Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
-        Value: true
-      Axis: Z
-      Channel Name: intensity
-      Class: rviz/PointCloud2
-      Color: 238; 238; 236
-      Color Transformer: FlatColor
-      Decay Time: 0
-      Enabled: true
-      Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Min Color: 0; 0; 0
-      Name: PointCloud2
-      Position Transformer: XYZ
-      Queue Size: 10
-      Selectable: true
-      Size (Pixels): 3
-      Size (m): 0.05000000074505806
-      Style: Flat Squares
-      Topic: /currentScanTransformed
-      Unreliable: false
-      Use Fixed Frame: true
-      Use rainbow: true
-      Value: true
-    - Alpha: 1
       Class: rviz/Axes
       Enabled: true
       Length: 1
@@ -188,18 +159,10 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /covariance
-      Name: MarkerArray
-      Namespaces:
-        "": true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
       Marker Topic: /loopClosures
       Name: MarkerArray
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -233,6 +196,52 @@ Visualization Manager:
       Topic: /publisherPoseEkf
       Unreliable: false
       Value: true
+    - Alpha: 0.699999988079071
+      Class: rviz/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic: /occupancyHilbertMap
+      Unreliable: false
+      Use Timestamp: false
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /covariance
+      Name: MarkerArray
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 238; 238; 236
+      Color Transformer: FlatColor
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.05000000074505806
+      Style: Flat Squares
+      Topic: /currentScanTransformed
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -261,7 +270,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 47.7122688293457
+      Distance: 67.03230285644531
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -269,17 +278,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -11.570806503295898
-        Y: 7.31361198425293
-        Z: 4.2042646408081055
+        X: -7.359584331512451
+        Y: 7.421274662017822
+        Z: 3.7803773880004883
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: true
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.9897966384887695
+      Pitch: 1.4697961807250977
       Target Frame: map_ned
-      Yaw: 3.2603821754455566
+      Yaw: 3.235381603240967
     Saved: ~
 Window Geometry:
   Displays:
@@ -298,4 +307,4 @@ Window Geometry:
     collapsed: false
   Width: 1920
   X: 0
-  Y: 0
+  Y: 461

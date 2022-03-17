@@ -351,7 +351,7 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
             }
         }
         if (j == 0) {
-            if (timeStepsForCorrection[i] == startTime) {
+            if (abs(timeStepsForCorrection[i] - startTime)<0.001) {
                 //add everything
                 for (int k = j; k < posDiff.size(); k++) {
                     //calculate transformation of edge
@@ -435,12 +435,12 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
         //calc correct transformation for one angle:
 
         //calc timestamp desired which transformation is of interest:
-        double timestampDesired =
+        double relativeTimestampDesired =
                 (endTime - startTime) * (vectorOfPointsAngle[i].angle - beginAngle) / (endAngle - beginAngle);
 
 
         //find nearest timeStamp
-        int positionInArray = (int) (timestampDesired / (endTime - startTime) * timeStepsForCorrection.size());
+        int positionInArray = (int) (relativeTimestampDesired / (endTime - startTime) * timeStepsForCorrection.size());
         //positionInArray=positionInArray;
         //if scan direction is reserved calculate correct position in array
         if (reverseScanDirection) {
@@ -687,15 +687,26 @@ bool slamToolsRos::detectLoopClosureSOFFT(graphSlamSaveStructure &graphSaved,
                     fitnessScoreX, fitnessScoreY,
                     std::atan2(guess(1, 0), guess(0, 0)),
                     false).inverse();
-                Eigen::Vector3d currentPosDiff;
+
+            double differenceAngleBeforeAfter = generalHelpfulTools::angleDiff(std::atan2(guess(1, 0), guess(0, 0)),std::atan2(currentTransformation(1, 0), currentTransformation(0, 0)));
+
+
+
+
+
+            Eigen::Vector3d currentPosDiff;
                 Eigen::Quaterniond currentRotDiff(currentTransformation.block<3, 3>(0, 0));
                 currentPosDiff.x() = currentTransformation(0, 3);
                 currentPosDiff.y() = currentTransformation(1, 3);
                 currentPosDiff.z() = 0;
                 Eigen::Vector3d positionCovariance(fitnessScoreX, fitnessScoreY, 0);
-                graphSaved.addEdge((int) graphSaved.getVertexList().size() - 1, has2beCheckedElemenet, currentPosDiff,
-                                   currentRotDiff, positionCovariance, 0.1,
-                                   graphSlamSaveStructure::POINT_CLOUD_USAGE, maxTimeOptimization);
+                if (abs(differenceAngleBeforeAfter)<10.0/180.0*M_PI) {
+                    graphSaved.addEdge((int) graphSaved.getVertexList().size() - 1, has2beCheckedElemenet, currentPosDiff,
+                                       currentRotDiff, positionCovariance, 0.1,
+                                       graphSlamSaveStructure::POINT_CLOUD_USAGE, maxTimeOptimization);
+                }else{
+                    std::cout << "skipped loop closure: "<< differenceAngleBeforeAfter/M_PI*180.0 << std::endl;
+                }
                 loopclosureNumber++;
                 if (loopclosureNumber > 5) { break; }// break if multiple loop closures are found
 
@@ -749,7 +760,7 @@ bool slamToolsRos::detectLoopClosureIPC(graphSlamSaveStructure &graphSaved,
             if (fitnessScore < cutoffFitnessOnDetect) {//@TODO was 0.1
 
 
-//                std::cout << "Found Loop Closure with fitnessScore: " << fitnessScore << std::endl;
+                std::cout << "Found Loop Closure with fitnessScore: " << fitnessScore << std::endl;
 //                if (fitnessScore < 0.01) {
 //                    std::cout << "FitnessScore Very Low: " << fitnessScore << std::endl;
 //                    fitnessScore = 0.01;
