@@ -5,27 +5,19 @@
 #include "edge.h"
 
 int edge::getFromVertex() const {
-    return edge::fromVertex;
+    return this->fromVertex;
 }
 
-void edge::setFromVertex(int fromVertex) {
-    edge::fromVertex = fromVertex;
+void edge::setFromVertex(int &fromVertexInput) {
+    this->fromVertex = fromVertexInput;
 }
 
 int edge::getToVertex() const {
-    return edge::toVertex;
+    return this->toVertex;
 }
 
-void edge::setToVertex(int toVertex) {
-    edge::toVertex = toVertex;
-}
-
-const pcl::PointCloud<pcl::PointXYZ>::Ptr &edge::getPointCloud() const {
-    return edge::pointCloud;
-}
-
-void edge::setPointCloud(const pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloud) {
-    *edge::pointCloud = *pointCloud;
+void edge::setToVertex(int &toVertexInput) {
+    this->toVertex = toVertexInput;
 }
 
 Eigen::Vector3d edge::getCovariancePosition() const {
@@ -37,68 +29,47 @@ void edge::setEdge(edge &edgeToCopy){
     this->toVertex = edgeToCopy.getToVertex();
     this->covariancePosition = edgeToCopy.getCovariancePosition();
     this->covarianceQuaternion = edgeToCopy.getCovarianceQuaternion();
-    this->hasPointCloud = edgeToCopy.getHasPointCloud();
     this->positionDifference = edgeToCopy.getPositionDifference();
     this->rotationDifference = edgeToCopy.getRotationDifference();
-    this->pointCloud = edgeToCopy.getPointCloud();
-
 }
 
-void edge::setCovariancePosition(Eigen::Vector3d covariancePosition) {
-    edge::covariancePosition = covariancePosition;
+void edge::setCovariancePosition(Eigen::Vector3d &covariancePositionInput) {
+    this->covariancePosition = covariancePositionInput;
 }
 
 double edge::getCovarianceQuaternion() const {
     return covarianceQuaternion;
 }
 
-void edge::setCovarianceQuaternion(double covarianceQuaternion) {
-    edge::covarianceQuaternion = covarianceQuaternion;
+void edge::setCovarianceQuaternion(double &covarianceQuaternionInput) {
+    this->covarianceQuaternion = covarianceQuaternionInput;
 }
 
-const Eigen::Vector3d &edge::getPositionDifference() const {
+Eigen::Vector3d edge::getPositionDifference() const {
     return positionDifference;
 }
 
-void edge::setPositionDifference(const Eigen::Vector3d &positionDifference) {
-    edge::positionDifference = positionDifference;
+void edge::setPositionDifference(const Eigen::Vector3d &positionDifferenceInput) {
+    this->positionDifference = positionDifferenceInput;
 }
 
-const Eigen::Quaterniond &edge::getRotationDifference() const {
+Eigen::Quaterniond edge::getRotationDifference() const {
     return rotationDifference;
 }
 
-void edge::setRotationDifference(const Eigen::Quaterniond &rotationDifference) {
-    edge::rotationDifference = rotationDifference;
-}
-
-bool edge::getHasPointCloud() const {
-    return hasPointCloud;
-}
-
-void edge::setHasPointCloud(bool hasPointCloud) {
-    edge::hasPointCloud = hasPointCloud;
-}
-
-bool edge::isHasPointCloud() const {
-    return hasPointCloud;
+void edge::setRotationDifference(const Eigen::Quaterniond &rotationDifferenceInput) {
+    this->rotationDifference = rotationDifferenceInput;
 }
 
 int edge::getTypeOfEdge() const {
     return typeOfEdge;
 }
 
-void edge::setTypeOfEdge(int typeOfEdge) {// 0=pointCloud    %%%%%%%%%   1 = integratedPosDiff
-    edge::typeOfEdge = typeOfEdge;
+void edge::setTypeOfEdge(int &typeOfEdgeInput) {// 0=pointCloud    %%%%%%%%%   1 = integratedPosDiff
+    this->typeOfEdge = typeOfEdgeInput;
 }
 
-double edge::getTimeStamp() const {
-    return timeStamp;
-}
 
-void edge::setTimeStamp(double timeStamp) {
-    edge::timeStamp = timeStamp;
-}
 
 Eigen::Matrix4d edge::getTransformation(){
     Eigen::Matrix4d transformation;

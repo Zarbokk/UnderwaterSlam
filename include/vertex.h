@@ -8,81 +8,120 @@
 #include <Eigen/Geometry>
 #include <pcl/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include "generalStructs.h"
 
 class vertex {
 
 public:
+    //no point cloud or intensities
     vertex(int vertexNumber, const Eigen::Vector3d &positionVertex, const Eigen::Quaterniond &rotationVertex,
            int degreeOfFreedom, const Eigen::Vector3d &covariancePosition, const double covarianceQuaternion,
            double timeStamp, int typeOfVertex) {
-        vertex::vertexNumber = vertexNumber;
-        vertex::positionVertex = positionVertex;
-        vertex::rotationVertex = rotationVertex;
-        pcl::PointCloud<pcl::PointXYZ>::Ptr tmp(new pcl::PointCloud<pcl::PointXYZ>);
-        vertex::pointCloudRaw = tmp;
-        pcl::PointCloud<pcl::PointXYZ>::Ptr tmp2(new pcl::PointCloud<pcl::PointXYZ>);
-        vertex::pointCloudCorrected = tmp2;
-        vertex::covariancePosition = covariancePosition;
-        vertex::covarianceQuaternion = covarianceQuaternion;
-        this->typeOfVertex = typeOfVertex;
-        this->timeStamp = timeStamp;
+        if (degreeOfFreedom == 3) {
+            vertex::vertexNumber = vertexNumber;
+            vertex::positionVertex = positionVertex;
+            vertex::rotationVertex = rotationVertex;
+            pcl::PointCloud<pcl::PointXYZ>::Ptr tmp(new pcl::PointCloud<pcl::PointXYZ>);
+            vertex::pointCloudRaw = tmp;
+            pcl::PointCloud<pcl::PointXYZ>::Ptr tmp2(new pcl::PointCloud<pcl::PointXYZ>);
+            vertex::pointCloudCorrected = tmp2;
+            vertex::covariancePosition = covariancePosition;
+            vertex::covarianceQuaternion = covarianceQuaternion;
+            this->typeOfVertex = typeOfVertex;
+            this->timeStamp = timeStamp;
+        } else {
+            std::cout << "not yet implemented DOF 6" << std::endl;
+            std::exit(-1);
+        }
     }
-
+    // point cloud and no intensities
     vertex(int vertexNumber, const Eigen::Vector3d &positionVertex, const Eigen::Quaterniond &rotationVertex,
-           int degreeOfFreedom, pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloudRaw1,
+           int degreeOfFreedom, const pcl::PointCloud<pcl::PointXYZ>::Ptr& pointCloudRaw1,
            const Eigen::Vector3d &covariancePosition,
            const double covarianceQuaternion, double timeStamp, int typeOfVertex) {
-        vertex::vertexNumber = vertexNumber;
-        vertex::positionVertex = positionVertex;
-        vertex::rotationVertex = rotationVertex;
-        pcl::PointCloud<pcl::PointXYZ>::Ptr tmp(new pcl::PointCloud<pcl::PointXYZ>);
-        vertex::pointCloudRaw = tmp;
-        pcl::PointCloud<pcl::PointXYZ>::Ptr tmp2(new pcl::PointCloud<pcl::PointXYZ>);
-        vertex::pointCloudCorrected = tmp2;
-        vertex::covariancePosition = covariancePosition;
-        vertex::covarianceQuaternion = covarianceQuaternion;
-        setPointCloudRaw(pointCloudRaw1);
-        this->typeOfVertex = typeOfVertex;
-        this->timeStamp = timeStamp;
+        if (degreeOfFreedom == 3) {
+            vertex::vertexNumber = vertexNumber;
+            vertex::positionVertex = positionVertex;
+            vertex::rotationVertex = rotationVertex;
+            pcl::PointCloud<pcl::PointXYZ>::Ptr tmp(new pcl::PointCloud<pcl::PointXYZ>);
+            vertex::pointCloudRaw = tmp;
+            pcl::PointCloud<pcl::PointXYZ>::Ptr tmp2(new pcl::PointCloud<pcl::PointXYZ>);
+            vertex::pointCloudCorrected = tmp2;
+            vertex::covariancePosition = covariancePosition;
+            vertex::covarianceQuaternion = covarianceQuaternion;
+            setPointCloudRawPTRCP(pointCloudRaw1);
+            this->typeOfVertex = typeOfVertex;
+            this->timeStamp = timeStamp;
+        } else {
+            std::cout << "not yet implemented DOF 6" << std::endl;
+            std::exit(-1);
+        }
     }
 
-    int getVertexNumber() const;
+    // only intensities
+    vertex(int vertexNumber, const Eigen::Vector3d &positionVertex, const Eigen::Quaterniond &rotationVertex,
+           int degreeOfFreedom, intensityMeasurement &intensities,
+           const Eigen::Vector3d &covariancePosition,
+           const double covarianceQuaternion, double timeStamp, int typeOfVertex) {
+        if (degreeOfFreedom == 3) {
+            vertex::vertexNumber = vertexNumber;
+            vertex::positionVertex = positionVertex;
+            vertex::rotationVertex = rotationVertex;
+            vertex::covariancePosition = covariancePosition;
+            vertex::covarianceQuaternion = covarianceQuaternion;
+            this->intensities = intensities;
+            this->typeOfVertex = typeOfVertex;
+            this->timeStamp = timeStamp;
+        } else {
+            std::cout << "not yet implemented DOF 6" << std::endl;
+            std::exit(-1);
+        }
+    }
 
-    void setVertexNumber(int vertexNumber);
 
-    const Eigen::Vector3d &getPositionVertex() const;
 
-    void setPositionVertex(const Eigen::Vector3d &positionVertex);
+    [[nodiscard]] int getVertexNumber() const;
 
-    const Eigen::Quaterniond &getRotationVertex() const;
+    void setVertexNumber(int &vertexNumberInput);
 
-    void setRotationVertex(const Eigen::Quaterniond &rotationVertex);
+    [[nodiscard]] Eigen::Vector3d getPositionVertex() const;
 
-    const pcl::PointCloud<pcl::PointXYZ>::Ptr &getPointCloudCorrected() const;
+    void setPositionVertex(const Eigen::Vector3d &positionVertexInput);
+
+    [[nodiscard]] Eigen::Quaterniond getRotationVertex() const;
+
+    void setRotationVertex(const Eigen::Quaterniond &rotationVertexInput);
+
+    [[nodiscard]] pcl::PointCloud<pcl::PointXYZ>::Ptr getPointCloudCorrected() const;
 
     void setPointCloudCorrected(const pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloud);
 
-    const pcl::PointCloud<pcl::PointXYZ>::Ptr &getPointCloudRaw() const;
+    [[nodiscard]] pcl::PointCloud<pcl::PointXYZ>::Ptr getPointCloudRaw() const;
 
-    void setPointCloudRaw(const pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloud);
+    void setPointCloudRawPTRCP(const pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloud);
 
-    Eigen::Vector3d getCovariancePosition() const;
+    [[nodiscard]] const Eigen::Vector3d getCovariancePosition() const;
 
-    void setCovariancePosition(Eigen::Vector3d covariancePosition);
+    void setCovariancePosition(Eigen::Vector3d covariancePositionInput);
 
-    double getCovarianceQuaternion() const;
+    [[nodiscard]] double getCovarianceQuaternion() const;
 
-    void setCovarianceQuaternion(double covarianceQuaternion);
+    void setCovarianceQuaternion(double covarianceQuaternionInput);
 
     Eigen::Matrix4d getTransformation();
 
-    int getTypeOfVertex() const;
+    [[nodiscard]] int getTypeOfVertex() const;
 
-    void setTypeOfVertex(int typeOfVertex);
+    void setTypeOfVertex(int &typeOfVertexInput);
 
-    double getTimeStamp() const;
+    [[nodiscard]] double getTimeStamp() const;
 
-    void setTimeStamp(double timeStamp);
+    void setTimeStamp(double timeStampInput);
+
+    [[nodiscard]] intensityMeasurement getIntensities() const;
+
+    void setIntensities(const intensityMeasurement &intensitiesInput);
+
 
 private:
     int vertexNumber;
@@ -92,8 +131,8 @@ private:
     double covarianceQuaternion;
     pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudRaw;//measurement by edge from this vertex to previous vertex
     pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudCorrected;//measurement by edge from this vertex to previous vertex
+    intensityMeasurement intensities;
     int typeOfVertex;// 0=pointCloud    %%%%%%%%%   1 = integratedPosDiff
-
     double timeStamp;
 };
 

@@ -31,7 +31,7 @@ void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros
         pcl::transformPointCloud(*vertexElement.getPointCloudCorrected(), currentScanTransformed,
                                  completeTransformation);
         completeCloudWithPos += currentScanTransformed;
-//        if(vertexElement.getTypeOfVertex()==graphSlamSaveStructure::POINT_CLOUD_USAGE){
+//        if(vertexElement.getTypeOfVertex()==graphSlamSaveStructure::POINT_CLOUD_SAVED){
 //            pcl::io::savePCDFileASCII("/home/jurobotics/DataForTests/savingRandomPCL/firstPCL.pcd",*vertexElement.getPointCloudCorrected());
 //            pcl::io::savePCDFileASCII("/home/jurobotics/DataForTests/savingRandomPCL/secondPCL.pcd",currentScanTransformed);
 //        }
@@ -208,7 +208,7 @@ slamToolsRos::correctPointCloudAtPos(int positionToCorrect, graphSlamSaveStructu
     int j = 1;
     while (true) {
         if (currentGraph.getVertexList()->at(positionToCorrect - j).getTypeOfVertex() ==
-            graphSlamSaveStructure::POINT_CLOUD_USAGE ||
+            graphSlamSaveStructure::POINT_CLOUD_SAVED ||
             currentGraph.getVertexList()->at(positionToCorrect - j).getTypeOfVertex() ==
             graphSlamSaveStructure::FIRST_ENTRY) {
             lastIndex = positionToCorrect - j;
@@ -227,7 +227,7 @@ slamToolsRos::correctPointCloudAtPos(int positionToCorrect, graphSlamSaveStructu
 
         Eigen::Quaterniond qTMP(transofrmationCurrentEdge.block<3, 3>(0, 0));
         edge currentEdge(0, 0, transofrmationCurrentEdge.block<3, 1>(0, 3), qTMP, Eigen::Vector3d(0, 0, 0), 0, 3,
-                         graphSlamSaveStructure::INTEGRATED_POS_USAGE);
+                         graphSlamSaveStructure::INTEGRATED_POSE);
         currentEdge.setTimeStamp(currentGraph.getVertexList()->at(lastIndex + i + 1).getTimeStamp());
         posDiff.push_back(currentEdge);
         i++;
@@ -240,7 +240,7 @@ slamToolsRos::correctPointCloudAtPos(int positionToCorrect, graphSlamSaveStructu
                                               endAngle, reverseScanDirection,
                                               transformationPosData2PclCoord);
     currentGraph.getVertexList()->at(positionToCorrect).setPointCloudCorrected(correctedPointCloud);
-    currentGraph.getVertexByIndex(positionToCorrect)->setTypeOfVertex(graphSlamSaveStructure::POINT_CLOUD_USAGE);
+    currentGraph.getVertexByIndex(positionToCorrect)->setTypeOfVertex(graphSlamSaveStructure::POINT_CLOUD_SAVED);
 }
 
 void
@@ -250,7 +250,7 @@ slamToolsRos::correctEveryPointCloud(graphSlamSaveStructure &currentGraph,
                                      Eigen::Matrix4d transformationPosData2PclCoord) {
 
     for (int i = 1; i < currentGraph.getVertexList()->size(); i++) {
-        if (currentGraph.getVertexList()->at(i).getTypeOfVertex() == graphSlamSaveStructure::POINT_CLOUD_USAGE) {
+        if (currentGraph.getVertexList()->at(i).getTypeOfVertex() == graphSlamSaveStructure::POINT_CLOUD_SAVED) {
             slamToolsRos::correctPointCloudAtPos(i, currentGraph, beginAngle, endAngle,
                                                  reverseScanDirection, transformationPosData2PclCoord);
         }
@@ -261,7 +261,7 @@ void
 slamToolsRos::recalculatePCLEdges(graphSlamSaveStructure &currentGraph) {
 
     for (int i = 1; i < currentGraph.getEdgeList()->size(); i++) {
-        if (currentGraph.getEdgeList()->data()[i].getTypeOfEdge() == graphSlamSaveStructure::POINT_CLOUD_USAGE) {
+        if (currentGraph.getEdgeList()->data()[i].getTypeOfEdge() == graphSlamSaveStructure::POINT_CLOUD_SAVED) {
             //recalculate edge
             pcl::PointCloud<pcl::PointXYZ>::Ptr Final(
                     new pcl::PointCloud<pcl::PointXYZ>);
@@ -644,7 +644,7 @@ void slamToolsRos::calculatePositionOverTime(std::deque<ImuData> &angularVelocit
                                                          Eigen::Vector3d::UnitZ());
         Eigen::Vector3d covariancePos(0, 0, 0);
         edge currentEdge(0, 0, posDiff, rotDiff, covariancePos, 0, 3,
-                         graphSlamSaveStructure::INTEGRATED_POS_USAGE);
+                         graphSlamSaveStructure::INTEGRATED_POSE);
         currentEdge.setTimeStamp(timeSteps[i + 1]);
         posOverTimeEdge.push_back(currentEdge);
     }
@@ -669,7 +669,7 @@ bool slamToolsRos::detectLoopClosureSOFFT(graphSlamSaveStructure &graphSaved,
     if (dist.size() > ignoreLastNLoopClosures) {
         for (int i = 0; i < dist.size() - ignoreLastNLoopClosures; i++) {
             if (dist(i, 0) < 1 &&
-                graphSaved.getVertexList()->at(i).getTypeOfVertex() == graphSlamSaveStructure::POINT_CLOUD_USAGE) {
+                graphSaved.getVertexList()->at(i).getTypeOfVertex() == graphSlamSaveStructure::POINT_CLOUD_SAVED) {
                 has2beChecked.push_back(i);
             }
         }
@@ -703,7 +703,7 @@ bool slamToolsRos::detectLoopClosureSOFFT(graphSlamSaveStructure &graphSaved,
                 if (abs(differenceAngleBeforeAfter)<10.0/180.0*M_PI) {
                     graphSaved.addEdge((int) graphSaved.getVertexList()->size() - 1, has2beCheckedElemenet, currentPosDiff,
                                        currentRotDiff, positionCovariance, 0.1,
-                                       graphSlamSaveStructure::POINT_CLOUD_USAGE, maxTimeOptimization);
+                                       graphSlamSaveStructure::POINT_CLOUD_SAVED, maxTimeOptimization);
                 }else{
                     std::cout << "skipped loop closure: "<< differenceAngleBeforeAfter/M_PI*180.0 << std::endl;
                 }
@@ -734,7 +734,7 @@ bool slamToolsRos::detectLoopClosureIPC(graphSlamSaveStructure &graphSaved,
     if (dist.size() > ignoreLastNLoopClosures) {
         for (int i = 0; i < dist.size() - ignoreLastNLoopClosures; i++) {
             if (dist(i, 0) < 1 &&
-                graphSaved.getVertexList()->at(i).getTypeOfVertex() == graphSlamSaveStructure::POINT_CLOUD_USAGE) {
+                graphSaved.getVertexList()->at(i).getTypeOfVertex() == graphSlamSaveStructure::POINT_CLOUD_SAVED) {
                 has2beChecked.push_back(i);
             }
         }
@@ -783,7 +783,7 @@ bool slamToolsRos::detectLoopClosureIPC(graphSlamSaveStructure &graphSaved,
                 Eigen::Vector3d positionCovariance(sqrt(fitnessScore), sqrt(fitnessScore), 0);
                 graphSaved.addEdge((int) graphSaved.getVertexList()->size() - 1, has2beCheckedElemenet, currentPosDiff,
                                    currentRotDiff, positionCovariance, 0.25 * sqrt(fitnessScore),
-                                   graphSlamSaveStructure::POINT_CLOUD_USAGE, maxTimeOptimization);
+                                   graphSlamSaveStructure::POINT_CLOUD_SAVED, maxTimeOptimization);
 
                 foundLoopClosure = true;
                 loopclosureNumber++;
@@ -831,7 +831,7 @@ void slamToolsRos::appendEdgesToGraph(graphSlamSaveStructure &currentGraph,
             Eigen::Quaterniond qTMP(currentTransformation.block<3, 3>(0, 0));
             Eigen::Vector3d covariancePos(0, 0, 0);
             edge currentEdge(0, 0, currentTransformation.block<3, 1>(0, 3), qTMP, covariancePos, 0, 3,
-                             graphSlamSaveStructure::INTEGRATED_POS_USAGE);
+                             graphSlamSaveStructure::INTEGRATED_POSE);
             currentEdge.setTimeStamp(timestampsForEdge[i]);
             listOfEdgesForForLoop.push_back(currentEdge);
 
@@ -853,14 +853,14 @@ void slamToolsRos::appendEdgesToGraph(graphSlamSaveStructure &currentGraph,
 
         currentGraph.addVertex(lastVertex.getVertexNumber() + 1, pos, rot, lastVertex.getCovariancePosition(),
                                lastVertex.getCovarianceQuaternion(), currentEdge.getTimeStamp(),
-                               graphSlamSaveStructure::INTEGRATED_POS_USAGE);
+                               graphSlamSaveStructure::INTEGRATED_POSE);
         currentGraph.addEdge(lastVertex.getVertexNumber(), lastVertex.getVertexNumber() + 1,
                              currentEdge.getPositionDifference(), currentEdge.getRotationDifference(),
                              Eigen::Vector3d(noiseVelocityIntigration, noiseVelocityIntigration, 0),
-                             scalingAngle * noiseVelocityIntigration, graphSlamSaveStructure::INTEGRATED_POS_USAGE,
+                             scalingAngle * noiseVelocityIntigration, graphSlamSaveStructure::INTEGRATED_POSE,
                              maxTimeOptimization);
 //        graphSaved.getVertexList()->back().setTypeOfVertex(
-//                graphSlamSaveStructure::INTEGRATED_POS_USAGE);//1 for vertex defined by dead reckoning
+//                graphSlamSaveStructure::INTEGRATED_POSE);//1 for vertex defined by dead reckoning
         i++;
     }
 }

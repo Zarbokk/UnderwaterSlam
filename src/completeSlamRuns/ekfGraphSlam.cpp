@@ -322,7 +322,7 @@ private:
 //                                                this->timeCurrentFullScan, 0.1,this->numberOfEdgesBetweenScans);
         this->posDiffOverTimeEdges = this->currentEkf.getLastPoses();
         slamToolsRos::appendEdgesToGraph(this->graphSaved, this->posDiffOverTimeEdges, 0.3, 0.25, maxTimeOptimization,this->numberOfEdgesBetweenScans);
-        this->graphSaved.getVertexList().back().setPointCloudRaw(this->currentScan);
+        this->graphSaved.getVertexList().back().setPointCloudRawPTRCP(this->currentScan);
         //correct the scan depending on the Imu and Velocity callback
         slamToolsRos::correctPointCloudAtPos(this->graphSaved.getVertexList().back().getVertexNumber(),
                                              this->graphSaved, 0, 2 * M_PI, true,
@@ -333,7 +333,7 @@ private:
         int sizeOfVertexList = this->graphSaved.getVertexList().size();
         while (true) {
             if (this->graphSaved.getVertexList()[sizeOfVertexList - positionLastPcl - 1].getTypeOfVertex() ==
-                graphSlamSaveStructure::POINT_CLOUD_USAGE ||
+                graphSlamSaveStructure::POINT_CLOUD_SAVED ||
                 this->graphSaved.getVertexList()[sizeOfVertexList - positionLastPcl - 1].getTypeOfVertex() ==
                 graphSlamSaveStructure::FIRST_ENTRY) {
                 break;
@@ -371,7 +371,7 @@ private:
 //                           this->currentTransformation.block<3, 1>(0, 3), qTMP,
 //                           Eigen::Vector3d(sqrt(this->fitnessScore), sqrt(this->fitnessScore), 0),
 //                           0.25 * sqrt(this->fitnessScore),
-//                           graphSlamSaveStructure::POINT_CLOUD_USAGE,
+//                           graphSlamSaveStructure::POINT_CLOUD_SAVED,
 //                           maxTimeOptimization);//@TODO still not sure about size
 //
         slamToolsRos::detectLoopClosure(this->graphSaved, this->sigmaScaling, 1.0, maxTimeOptimization);//was 1.0

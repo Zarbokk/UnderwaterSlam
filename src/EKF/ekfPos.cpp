@@ -68,7 +68,7 @@ void ekfClass::predictionImu(double xAccel, double yAccel, double zAccel, Eigen:
     Eigen::AngleAxisd rotation_vector(differenceStateAfterUpdate(8), Eigen::Vector3d(0, 0, 1));
     Eigen::Quaterniond yawRotation(rotation_vector);
     Eigen::Vector3d covariancePos(0, 0, 0);
-    edge currentEdge(0,0,positionDifference,yawRotation,covariancePos,0,3,graphSlamSaveStructure::INTEGRATED_POS_USAGE);
+    edge currentEdge(0,0,positionDifference,yawRotation,covariancePos,0,3,graphSlamSaveStructure::INTEGRATED_POSE);
     currentEdge.setTimeStamp(timeStamp.toSec());
     this->lastPositionDifferences.push_back(currentEdge);
 
@@ -132,7 +132,7 @@ void ekfClass::updateIMU(double roll, double pitch, double xAngularVel, double y
     Eigen::AngleAxisd rotation_vector(differenceStateAfterUpdate(8), Eigen::Vector3d(0, 0, 1));
     Eigen::Quaterniond yawRotation(rotation_vector);
     Eigen::Vector3d covariancePos(0, 0, 0);
-    edge currentEdge(0,0,positionDifference,yawRotation,covariancePos,0,3,graphSlamSaveStructure::INTEGRATED_POS_USAGE);
+    edge currentEdge(0,0,positionDifference,yawRotation,covariancePos,0,3,graphSlamSaveStructure::INTEGRATED_POSE);
     currentEdge.setTimeStamp(timeStamp.toSec());
     this->lastPositionDifferences.push_back(currentEdge);
 }
@@ -175,7 +175,7 @@ void ekfClass::updateDVL(double xVel, double yVel, double zVel, ros::Time timeSt
     Eigen::AngleAxisd rotation_vector(differenceStateAfterUpdate(8), Eigen::Vector3d(0, 0, 1));
     Eigen::Quaterniond yawRotation(rotation_vector);
     Eigen::Vector3d covariancePos(0, 0, 0);
-    edge currentEdge(0,0,positionDifference,yawRotation,covariancePos,0,3,graphSlamSaveStructure::INTEGRATED_POS_USAGE);
+    edge currentEdge(0,0,positionDifference,yawRotation,covariancePos,0,3,graphSlamSaveStructure::INTEGRATED_POSE);
     currentEdge.setTimeStamp(timeStamp.toSec());
     this->lastPositionDifferences.push_back(currentEdge);
 
@@ -206,7 +206,7 @@ void ekfClass::updateDepth(double depth, ros::Time timeStamp) {
     Eigen::AngleAxisd rotation_vector(differenceStateAfterUpdate(8), Eigen::Vector3d(0, 0, 1));
     Eigen::Quaterniond yawRotation(rotation_vector);
     Eigen::Vector3d covariancePos(0, 0, 0);
-    edge currentEdge(0,0,positionDifference,yawRotation,covariancePos,0,3,graphSlamSaveStructure::INTEGRATED_POS_USAGE);
+    edge currentEdge(0,0,positionDifference,yawRotation,covariancePos,0,3,graphSlamSaveStructure::INTEGRATED_POSE);
     currentEdge.setTimeStamp(timeStamp.toSec());
     this->lastPositionDifferences.push_back(currentEdge);
 

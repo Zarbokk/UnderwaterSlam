@@ -14,7 +14,7 @@
 
 class rosClassEKF {
 public:
-    rosClassEKF(ros::NodeHandle n_) : graphSaved(3),
+    rosClassEKF(ros::NodeHandle n_) : graphSaved(3,POINT_CLOUD_BASED_GRAPH),
                                       scanRegistrationObject(),
                                       occupancyMap(256, 128, 70, hilbertMap::HINGED_FEATURES) {
 
@@ -46,7 +46,7 @@ public:
 //        std::cout << ros::Time::now().toSec() << std::endl;
         graphSaved.addVertex(0, Eigen::Vector3d(0, 0, 0), Eigen::Quaterniond(1, 0, 0, 0),
                              Eigen::Vector3d(0, 0, 0), 0, ros::Time::now().toSec(),
-                             graphSlamSaveStructure::FIRST_ENTRY);
+                             FIRST_ENTRY);
 
         std::deque<double> subgraphs{1, 3};
         graphSaved.initiallizeSubGraphs(subgraphs, 10);
@@ -61,7 +61,7 @@ public:
         this->previousScan = tmpPCL2;
         this->Final = tmpPCL3;
         this->startTimeOfCorrection = 0;
-        this->firstScan = true;
+        this->firstSonarInput = true;
         this->saveGraphStructure = false;
         this->numberOfScan = 0;
         this->occupancyMap.createRandomMap();
@@ -109,7 +109,7 @@ private:
     double startTimeOfCorrection;
     graphSlamSaveStructure graphSaved;
     scanRegistrationClass scanRegistrationObject;
-    bool firstScan, saveGraphStructure;
+    bool firstSonarInput, saveGraphStructure;
     std::string saveStringGraph;
     int numberOfScan;
     hilbertMap occupancyMap;
@@ -153,7 +153,7 @@ private:
             *this->currentScan = createPointCloudFromIntensities();
 
 
-            this->graphSaved.getVertexList()->back().setPointCloudRaw(this->currentScan);
+            this->graphSaved.getVertexList()->back().setPointCloudRawPTRCP(this->currentScan);
 
             //correct the scan depending on the EKF callback
             slamToolsRos::correctPointCloudAtPos(this->graphSaved.getVertexList()->back().getVertexNumber(),
@@ -165,18 +165,18 @@ private:
             int sizeOfVertexList = this->graphSaved.getVertexList()->size();
             while (true) {
                 if (this->graphSaved.getVertexList()->at(sizeOfVertexList - positionLastPcl - 1).getTypeOfVertex() ==
-                    graphSlamSaveStructure::POINT_CLOUD_USAGE ||
+                    POINT_CLOUD_SAVED ||
                     this->graphSaved.getVertexList()->at(sizeOfVertexList - positionLastPcl - 1).getTypeOfVertex() ==
-                    graphSlamSaveStructure::FIRST_ENTRY) {
+                    FIRST_ENTRY) {
                     break;
                 }
                 positionLastPcl++;
             }
             positionLastPcl++;
-            if (this->firstScan) {
+            if (this->firstSonarInput) {
 //                *this->previousScan = *this->graphSaved.getVertexList()->back().getPointCloudCorrected();
                 if (numberOfScan > 0) {
-                    this->firstScan = false;
+                    this->firstSonarInput = false;
                 }
                 this->beginningAngleOfRotation = 0;
             } else {
@@ -236,7 +236,7 @@ private:
                                        this->currentTransformation.block<3, 1>(0, 3), qTMP,
                                        Eigen::Vector3d(fitnessScoreX, fitnessScoreY, 0),
                                        0.1,
-                                       graphSlamSaveStructure::POINT_CLOUD_USAGE,
+                                       POINT_CLOUD_SAVED,
                                        timeDiffScans * 0.1);//@TODO still not sure about size
                 } else {
                     std::cout << "we just skipped that registration" << std::endl;
@@ -418,8 +418,8 @@ private:
             //set rp on zero only yaw interesting
             tmpRot = generalHelpfulTools::getQuaternionFromRPY(0, 0, rpyTMP[2]);
             edge tmpEdge(0, 0, tmpPosition, tmpRot, Eigen::Vector3d(0, 0, 0), 0, 3,
-                         graphSlamSaveStructure::INTEGRATED_POS_USAGE);
-            tmpEdge.setTimeStamp(this->timeVector[i + 1]);
+            INTEGRATED_POSE);
+            //tmpEdge.setTimeStamp(this->timeVector[i + 1]);
             tmpEdgeList.push_back(tmpEdge);
             i++;
         }
@@ -496,7 +496,7 @@ private:
 
 
                 if (this->graphSaved.getVertexList()->at(indexPointCloud).getTypeOfVertex() ==
-                    graphSaved.POINT_CLOUD_USAGE) {
+                    POINT_CLOUD_SAVED) {
                     break;
                 }
             }

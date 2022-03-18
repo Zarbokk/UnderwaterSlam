@@ -17,32 +17,37 @@
 
 class graphSlamSaveStructure {
 public:
-    graphSlamSaveStructure(int degreeOfFreedom) {
+    graphSlamSaveStructure(int degreeOfFreedom,int typeOfGraphSlam) {
         if (degreeOfFreedom == 3) {
-            graphSlamSaveStructure::degreeOfFreedom = degreeOfFreedom;
-            graphSlamSaveStructure::numberOfEdges = 0;
-            graphSlamSaveStructure::numberOfVertex = 0;
-            hasHierachicalGraph = false;
+            this->degreeOfFreedom = degreeOfFreedom;
+            this->numberOfEdges = 0;
+            this->numberOfVertex = 0;
+            this->hasHierachicalGraph = false;
+            this->typeOfGraphSlam =typeOfGraphSlam;
         } else {
             std::cout << "not yet implemented DOF 6" << std::endl;
             std::exit(-1);
         }
     }
 
-    void addEdge(const int fromVertex, const int toVertex, const Eigen::Vector3d &positionDifference,
-                 const Eigen::Quaterniond &rotationDifference, const Eigen::Vector3d covariancePosition,
-                 const double covarianceQuaternion,int typeOfEdge, double maxTimeOptimization);
+    void addEdge(int fromVertex, int toVertex, Eigen::Vector3d positionDifference,
+                 Eigen::Quaterniond rotationDifference,  Eigen::Vector3d covariancePosition,
+                  double covarianceQuaternion,int typeOfEdge, double maxTimeOptimization);
 
-    void addEdge(const int fromVertex, const int toVertex, const Eigen::Vector3d &positionDifference,
-                 const Eigen::Quaterniond &rotationDifference, const Eigen::Vector3d covariancePosition,
-                 const double covarianceQuaternion, pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloud,int typeOfEdge, double maxTimeOptimization);
-
-    void addVertex(int vertexNumber, const Eigen::Vector3d &positionVertex, const Eigen::Quaterniond &rotationVertex,
-                   const Eigen::Vector3d &covariancePosition, const double covarianceQuaternion,double timeStamp,int typeOfVertex);
+    void addEdge( int fromVertex,  int toVertex,  Eigen::Vector3d positionDifference,
+                  Eigen::Quaterniond rotationDifference, Eigen::Vector3d covariancePosition,
+                  double covarianceQuaternion, pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloud,int typeOfEdge, double maxTimeOptimization);
 
     void addVertex(int vertexNumber, const Eigen::Vector3d &positionVertex, const Eigen::Quaterniond &rotationVertex,
-                   const Eigen::Vector3d &covariancePosition, const double covarianceQuaternion,
+                   const Eigen::Vector3d &covariancePosition, double covarianceQuaternion,double timeStamp,int typeOfVertex);
+
+    void addVertex(int vertexNumber, const Eigen::Vector3d &positionVertex, const Eigen::Quaterniond &rotationVertex,
+                   const Eigen::Vector3d &covariancePosition, double covarianceQuaternion,
                    pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloud,double timeStamp,int typeOfVertex);
+
+    void addVertex(int vertexNumber, const Eigen::Vector3d &positionVertex, const Eigen::Quaterniond &rotationVertex,
+                   const Eigen::Vector3d &covariancePosition, double covarianceQuaternion,
+                   intensityMeasurement intensityInput,double timeStamp,int typeOfVertex);
 
     Eigen::SparseMatrix<double> getInformationMatrix();
 
@@ -88,9 +93,11 @@ public:
 
     void saveGraphJson(std::string nameSavingFile);
 
-    static const int POINT_CLOUD_USAGE = 0;
-    static const int INTEGRATED_POS_USAGE = 1;
-    static const int FIRST_ENTRY = 2;
+
+
+
+
+
 private:
 
     void removeRowColumn(Eigen::SparseMatrix<double> &matrix, int rowToRemove) const;
@@ -114,12 +121,14 @@ private:
     int degreeOfFreedom;//3 for [x y alpha] or 6 for [x y z alpha beta gamma]
     int numberOfEdges;
     int numberOfVertex;
+    int typeOfGraphSlam;
     std::vector<edge> edgeList;
     std::vector<vertex> vertexList;
     bool hasHierachicalGraph;
     double cellSize;
     std::vector<std::vector<int>> lookUpTableCell;// [i][j] i = cell j=vertex (cell of sub graph and vertex of graph)
     graphSlamSaveStructure *hierachicalGraph;
+
 };
 
 
