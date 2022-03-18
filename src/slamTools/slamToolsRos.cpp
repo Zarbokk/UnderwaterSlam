@@ -18,9 +18,9 @@ void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros
     pcl::PointCloud<pcl::PointXYZ> completeCloudWithPos;
     visualization_msgs::MarkerArray markerArray;
     int k = 0;
-    std::vector<vertex> vertexList = graphSaved.getVertexList();
-    for (int i = 1; i < vertexList.size(); i++) {//skip the first pointCloud
-        vertex vertexElement = vertexList[i];
+    //std::vector<vertex> vertexList =;
+    for (int i = 1; i <  graphSaved.getVertexList()->size(); i++) {//skip the first pointCloud
+        vertex vertexElement =  graphSaved.getVertexList()->at(i);
         pcl::PointCloud<pcl::PointXYZ> currentScanTransformed;
         completeTransformation << 1, 0, 0, vertexElement.getPositionVertex().x(),
                 0, 1, 0, vertexElement.getPositionVertex().y(),
@@ -83,7 +83,7 @@ void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros
     publisherCloud.publish(cloudMsg2);
 
 
-    //int timeToPrintGT = plotGTToTime;// (int) (graphSaved.getVertexList().size() / 9) + 1;
+    //int timeToPrintGT = plotGTToTime;// (int) (graphSaved.getVertexList()->size() / 9) + 1;
     //calculate path GT
     if (groundTruthSorted != NULL) {
 
@@ -132,13 +132,13 @@ void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros
             geometry_msgs::Point startPoint;
             geometry_msgs::Point endPoint;
 
-            startPoint.x = graphSaved.getVertexList()[currentEdgeOfInterest.getFromVertex()].getPositionVertex()[0];
-            startPoint.y = graphSaved.getVertexList()[currentEdgeOfInterest.getFromVertex()].getPositionVertex()[1];
-            startPoint.z = graphSaved.getVertexList()[currentEdgeOfInterest.getFromVertex()].getPositionVertex()[2];
+            startPoint.x = graphSaved.getVertexList()->at(currentEdgeOfInterest.getFromVertex()).getPositionVertex()[0];
+            startPoint.y = graphSaved.getVertexList()->at(currentEdgeOfInterest.getFromVertex()).getPositionVertex()[1];
+            startPoint.z = graphSaved.getVertexList()->at(currentEdgeOfInterest.getFromVertex()).getPositionVertex()[2];
 
-            endPoint.x = graphSaved.getVertexList()[currentEdgeOfInterest.getToVertex()].getPositionVertex()[0];
-            endPoint.y = graphSaved.getVertexList()[currentEdgeOfInterest.getToVertex()].getPositionVertex()[1];
-            endPoint.z = graphSaved.getVertexList()[currentEdgeOfInterest.getToVertex()].getPositionVertex()[2];
+            endPoint.x = graphSaved.getVertexList()->at(currentEdgeOfInterest.getToVertex()).getPositionVertex()[0];
+            endPoint.y = graphSaved.getVertexList()->at(currentEdgeOfInterest.getToVertex()).getPositionVertex()[1];
+            endPoint.z = graphSaved.getVertexList()->at(currentEdgeOfInterest.getToVertex()).getPositionVertex()[2];
             currentMarker.points.push_back(startPoint);
             currentMarker.points.push_back(endPoint);
             currentMarker.type = 0;
@@ -207,9 +207,9 @@ slamToolsRos::correctPointCloudAtPos(int positionToCorrect, graphSlamSaveStructu
     int lastIndex;
     int j = 1;
     while (true) {
-        if (currentGraph.getVertexList()[positionToCorrect - j].getTypeOfVertex() ==
+        if (currentGraph.getVertexList()->at(positionToCorrect - j).getTypeOfVertex() ==
             graphSlamSaveStructure::POINT_CLOUD_USAGE ||
-            currentGraph.getVertexList()[positionToCorrect - j].getTypeOfVertex() ==
+            currentGraph.getVertexList()->at(positionToCorrect - j).getTypeOfVertex() ==
             graphSlamSaveStructure::FIRST_ENTRY) {
             lastIndex = positionToCorrect - j;
             break;
@@ -221,25 +221,25 @@ slamToolsRos::correctPointCloudAtPos(int positionToCorrect, graphSlamSaveStructu
     std::vector<edge> posDiff;
     int i = 0;
     while (lastIndex + i != positionToCorrect) {
-        Eigen::Matrix4d fromTransformation = currentGraph.getVertexList()[lastIndex + i].getTransformation();//from
-        Eigen::Matrix4d toTransformation = currentGraph.getVertexList()[lastIndex + i + 1].getTransformation();//to
+        Eigen::Matrix4d fromTransformation = currentGraph.getVertexList()->at(lastIndex + i).getTransformation();//from
+        Eigen::Matrix4d toTransformation = currentGraph.getVertexList()->at(lastIndex + i + 1).getTransformation();//to
         Eigen::Matrix4d transofrmationCurrentEdge = fromTransformation.inverse() * toTransformation;
 
         Eigen::Quaterniond qTMP(transofrmationCurrentEdge.block<3, 3>(0, 0));
         edge currentEdge(0, 0, transofrmationCurrentEdge.block<3, 1>(0, 3), qTMP, Eigen::Vector3d(0, 0, 0), 0, 3,
                          graphSlamSaveStructure::INTEGRATED_POS_USAGE);
-        currentEdge.setTimeStamp(currentGraph.getVertexList()[lastIndex + i + 1].getTimeStamp());
+        currentEdge.setTimeStamp(currentGraph.getVertexList()->at(lastIndex + i + 1).getTimeStamp());
         posDiff.push_back(currentEdge);
         i++;
     }
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloudScan = currentGraph.getVertexList()[positionToCorrect].getPointCloudRaw();
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloudScan = currentGraph.getVertexList()->at(positionToCorrect).getPointCloudRaw();
     pcl::PointCloud<pcl::PointXYZ>::Ptr correctedPointCloud(new pcl::PointCloud<pcl::PointXYZ>);
     *correctedPointCloud = *cloudScan;
     slamToolsRos::correctPointCloudByPosition(correctedPointCloud, posDiff,
-                                              currentGraph.getVertexList()[lastIndex].getTimeStamp(), beginAngle,
+                                              currentGraph.getVertexList()->at(lastIndex).getTimeStamp(), beginAngle,
                                               endAngle, reverseScanDirection,
                                               transformationPosData2PclCoord);
-    currentGraph.getVertexList()[positionToCorrect].setPointCloudCorrected(correctedPointCloud);
+    currentGraph.getVertexList()->at(positionToCorrect).setPointCloudCorrected(correctedPointCloud);
     currentGraph.getVertexByIndex(positionToCorrect)->setTypeOfVertex(graphSlamSaveStructure::POINT_CLOUD_USAGE);
 }
 
@@ -249,8 +249,8 @@ slamToolsRos::correctEveryPointCloud(graphSlamSaveStructure &currentGraph,
                                      double endAngle, bool reverseScanDirection,
                                      Eigen::Matrix4d transformationPosData2PclCoord) {
 
-    for (int i = 1; i < currentGraph.getVertexList().size(); i++) {
-        if (currentGraph.getVertexList()[i].getTypeOfVertex() == graphSlamSaveStructure::POINT_CLOUD_USAGE) {
+    for (int i = 1; i < currentGraph.getVertexList()->size(); i++) {
+        if (currentGraph.getVertexList()->at(i).getTypeOfVertex() == graphSlamSaveStructure::POINT_CLOUD_USAGE) {
             slamToolsRos::correctPointCloudAtPos(i, currentGraph, beginAngle, endAngle,
                                                  reverseScanDirection, transformationPosData2PclCoord);
         }
@@ -272,13 +272,13 @@ slamToolsRos::recalculatePCLEdges(graphSlamSaveStructure &currentGraph) {
 
             double fitnessScore;
             Eigen::Matrix4d initialGuessTransformation =
-                    currentGraph.getVertexList()[currentGraph.getEdgeList()->data()[i].getFromVertex()].getTransformation().inverse() *
-                    currentGraph.getVertexList()[currentGraph.getEdgeList()->data()[i].getToVertex()].getTransformation();//@todo understand if 9 is correct
+                    currentGraph.getVertexList()->at(currentGraph.getEdgeList()->data()[i].getFromVertex()).getTransformation().inverse() *
+                    currentGraph.getVertexList()->at(currentGraph.getEdgeList()->data()[i].getToVertex()).getTransformation();//@todo understand if 9 is correct
             Eigen::Matrix4d currentTransformation;
 
-            *lastScan = *currentGraph.getVertexList()[currentGraph.getEdgeList()->data()[i].getFromVertex()].getPointCloudCorrected();
+            *lastScan = *currentGraph.getVertexList()->at(currentGraph.getEdgeList()->data()[i].getFromVertex()).getPointCloudCorrected();
 
-            *currentScan = *currentGraph.getVertexList()[currentGraph.getEdgeList()->data()[i].getToVertex()].getPointCloudCorrected();
+            *currentScan = *currentGraph.getVertexList()->at(currentGraph.getEdgeList()->data()[i].getToVertex()).getPointCloudCorrected();
 
             currentTransformation = scanRegistrationClass::generalizedIcpRegistration(currentScan, lastScan, Final,
                                                                                       fitnessScore,
@@ -653,23 +653,23 @@ void slamToolsRos::calculatePositionOverTime(std::deque<ImuData> &angularVelocit
 
 bool slamToolsRos::detectLoopClosureSOFFT(graphSlamSaveStructure &graphSaved,
                                      double sigmaScaling, double maxTimeOptimization,scanRegistrationClass &scanRegistrationObject) {
-    Eigen::Vector3d estimatedPosLastPoint = graphSaved.getVertexList().back().getPositionVertex();
-    pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudLast = graphSaved.getVertexList().back().getPointCloudCorrected();
+    Eigen::Vector3d estimatedPosLastPoint = graphSaved.getVertexList()->back().getPositionVertex();
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudLast = graphSaved.getVertexList()->back().getPointCloudCorrected();
     Eigen::ArrayXXf dist;
-    dist.resize(graphSaved.getVertexList().size() - 1, 1);
-    for (int s = 0; s < graphSaved.getVertexList().size() - 1; s++) {
-        //dist.row(s) = (graphSaved.getVertexList()[s].getPositionVertex() - estimatedPosLastPoint).norm();
-        dist.row(s) = pow((estimatedPosLastPoint.x() - graphSaved.getVertexList()[s].getPositionVertex().x()), 2) /
-                      pow((sigmaScaling * graphSaved.getVertexList()[s].getCovariancePosition().x()), 2) +
-                      pow((estimatedPosLastPoint.y() - graphSaved.getVertexList()[s].getPositionVertex().y()), 2) /
-                      pow((sigmaScaling * graphSaved.getVertexList()[s].getCovariancePosition().y()), 2);
+    dist.resize(graphSaved.getVertexList()->size() - 1, 1);
+    for (int s = 0; s < graphSaved.getVertexList()->size() - 1; s++) {
+        //dist.row(s) = (graphSaved.getVertexList()->at(s].getPositionVertex() - estimatedPosLastPoint).norm();
+        dist.row(s) = pow((estimatedPosLastPoint.x() - graphSaved.getVertexList()->at(s).getPositionVertex().x()), 2) /
+                      pow((sigmaScaling * graphSaved.getVertexList()->at(s).getCovariancePosition().x()), 2) +
+                      pow((estimatedPosLastPoint.y() - graphSaved.getVertexList()->at(s).getPositionVertex().y()), 2) /
+                      pow((sigmaScaling * graphSaved.getVertexList()->at(s).getCovariancePosition().y()), 2);
     }
     const int ignoreLastNLoopClosures = 3;
     std::vector<int> has2beChecked;
     if (dist.size() > ignoreLastNLoopClosures) {
         for (int i = 0; i < dist.size() - ignoreLastNLoopClosures; i++) {
             if (dist(i, 0) < 1 &&
-                graphSaved.getVertexList()[i].getTypeOfVertex() == graphSlamSaveStructure::POINT_CLOUD_USAGE) {
+                graphSaved.getVertexList()->at(i).getTypeOfVertex() == graphSlamSaveStructure::POINT_CLOUD_USAGE) {
                 has2beChecked.push_back(i);
             }
         }
@@ -679,11 +679,11 @@ bool slamToolsRos::detectLoopClosureSOFFT(graphSlamSaveStructure &graphSaved,
         for (const auto &has2beCheckedElemenet: has2beChecked) {
 
             Eigen::Matrix4d currentTransformation, guess;
-            guess = graphSaved.getVertexList().back().getTransformation().inverse() *
-                    graphSaved.getVertexList()[has2beCheckedElemenet].getTransformation();
+            guess = graphSaved.getVertexList()->back().getTransformation().inverse() *
+                    graphSaved.getVertexList()->at(has2beCheckedElemenet).getTransformation();
             double fitnessScoreX, fitnessScoreY;
             currentTransformation = scanRegistrationObject.sofftRegistration(
-                    *graphSaved.getVertexList()[has2beCheckedElemenet].getPointCloudCorrected(), *graphSaved.getVertexList().back().getPointCloudCorrected(),
+                    *graphSaved.getVertexList()->at(has2beCheckedElemenet).getPointCloudCorrected(), *graphSaved.getVertexList()->back().getPointCloudCorrected(),
                     fitnessScoreX, fitnessScoreY,
                     std::atan2(guess(1, 0), guess(0, 0)),
                     false).inverse();
@@ -701,7 +701,7 @@ bool slamToolsRos::detectLoopClosureSOFFT(graphSlamSaveStructure &graphSaved,
                 currentPosDiff.z() = 0;
                 Eigen::Vector3d positionCovariance(fitnessScoreX, fitnessScoreY, 0);
                 if (abs(differenceAngleBeforeAfter)<10.0/180.0*M_PI) {
-                    graphSaved.addEdge((int) graphSaved.getVertexList().size() - 1, has2beCheckedElemenet, currentPosDiff,
+                    graphSaved.addEdge((int) graphSaved.getVertexList()->size() - 1, has2beCheckedElemenet, currentPosDiff,
                                        currentRotDiff, positionCovariance, 0.1,
                                        graphSlamSaveStructure::POINT_CLOUD_USAGE, maxTimeOptimization);
                 }else{
@@ -718,23 +718,23 @@ bool slamToolsRos::detectLoopClosureSOFFT(graphSlamSaveStructure &graphSaved,
 
 bool slamToolsRos::detectLoopClosureIPC(graphSlamSaveStructure &graphSaved,
                                      double sigmaScaling, double cutoffFitnessOnDetect, double maxTimeOptimization,scanRegistrationClass &scanRegistrationObject) {
-    Eigen::Vector3d estimatedPosLastPoint = graphSaved.getVertexList().back().getPositionVertex();
-    pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudLast = graphSaved.getVertexList().back().getPointCloudCorrected();
+    Eigen::Vector3d estimatedPosLastPoint = graphSaved.getVertexList()->back().getPositionVertex();
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudLast = graphSaved.getVertexList()->back().getPointCloudCorrected();
     Eigen::ArrayXXf dist;
-    dist.resize(graphSaved.getVertexList().size() - 1, 1);
-    for (int s = 0; s < graphSaved.getVertexList().size() - 1; s++) {
-        //dist.row(s) = (graphSaved.getVertexList()[s].getPositionVertex() - estimatedPosLastPoint).norm();
-        dist.row(s) = pow((estimatedPosLastPoint.x() - graphSaved.getVertexList()[s].getPositionVertex().x()), 2) /
-                      pow((sigmaScaling * graphSaved.getVertexList()[s].getCovariancePosition().x()), 2) +
-                      pow((estimatedPosLastPoint.y() - graphSaved.getVertexList()[s].getPositionVertex().y()), 2) /
-                      pow((sigmaScaling * graphSaved.getVertexList()[s].getCovariancePosition().y()), 2);
+    dist.resize(graphSaved.getVertexList()->size() - 1, 1);
+    for (int s = 0; s < graphSaved.getVertexList()->size() - 1; s++) {
+        //dist.row(s) = (graphSaved.getVertexList()->at(s].getPositionVertex() - estimatedPosLastPoint).norm();
+        dist.row(s) = pow((estimatedPosLastPoint.x() - graphSaved.getVertexList()->at(s).getPositionVertex().x()), 2) /
+                      pow((sigmaScaling * graphSaved.getVertexList()->at(s).getCovariancePosition().x()), 2) +
+                      pow((estimatedPosLastPoint.y() - graphSaved.getVertexList()->at(s).getPositionVertex().y()), 2) /
+                      pow((sigmaScaling * graphSaved.getVertexList()->at(s).getCovariancePosition().y()), 2);
     }
     const int ignoreLastNLoopClosures = 3;
     std::vector<int> has2beChecked;
     if (dist.size() > ignoreLastNLoopClosures) {
         for (int i = 0; i < dist.size() - ignoreLastNLoopClosures; i++) {
             if (dist(i, 0) < 1 &&
-                graphSaved.getVertexList()[i].getTypeOfVertex() == graphSlamSaveStructure::POINT_CLOUD_USAGE) {
+                graphSaved.getVertexList()->at(i).getTypeOfVertex() == graphSlamSaveStructure::POINT_CLOUD_USAGE) {
                 has2beChecked.push_back(i);
             }
         }
@@ -749,11 +749,11 @@ bool slamToolsRos::detectLoopClosureIPC(graphSlamSaveStructure &graphSaved,
         for (const auto &has2beCheckedElemenet: has2beChecked) {
             double fitnessScore;
             Eigen::Matrix4d currentTransformation, guess;
-            guess = graphSaved.getVertexList().back().getTransformation().inverse() *
-                    graphSaved.getVertexList()[has2beCheckedElemenet].getTransformation();
+            guess = graphSaved.getVertexList()->back().getTransformation().inverse() *
+                    graphSaved.getVertexList()->at(has2beCheckedElemenet).getTransformation();
             currentTransformation = scanRegistrationObject.generalizedIcpRegistrationSimple(
-                    graphSaved.getVertexList()[has2beCheckedElemenet].getPointCloudCorrected(),
-                    graphSaved.getVertexList().back().getPointCloudCorrected(),
+                    graphSaved.getVertexList()->at(has2beCheckedElemenet).getPointCloudCorrected(),
+                    graphSaved.getVertexList()->back().getPointCloudCorrected(),
                     fitnessScore, guess);
 
             fitnessScore = sqrt(fitnessScore);
@@ -768,10 +768,10 @@ bool slamToolsRos::detectLoopClosureIPC(graphSlamSaveStructure &graphSaved,
 
 //                pcl::io::savePCDFileASCII(
 //                        "/home/tim/DataForTests/justShit/after_voxel_first.pcd",
-//                        *graphSaved.getVertexList()[has2beCheckedElemenet].getPointCloudCorrected());
+//                        *graphSaved.getVertexList()->at(has2beCheckedElemenet].getPointCloudCorrected());
 //                pcl::io::savePCDFileASCII(
 //                        "/home/tim/DataForTests/justShit/after_voxel_second.pcd",
-//                        *graphSaved.getVertexList().back().getPointCloudCorrected());
+//                        *graphSaved.getVertexList()->back().getPointCloudCorrected());
 //                Eigen::Matrix3d rotationCurrent(currentTransformation.block<3, 3>(0, 0));
 //                std::cout << "Euler Angles: " << rotationCurrent.eulerAngles(0, 1, 2) << std::endl;
 
@@ -781,7 +781,7 @@ bool slamToolsRos::detectLoopClosureIPC(graphSlamSaveStructure &graphSaved,
                 currentPosDiff.y() = currentTransformation(1, 3);
                 currentPosDiff.z() = 0;
                 Eigen::Vector3d positionCovariance(sqrt(fitnessScore), sqrt(fitnessScore), 0);
-                graphSaved.addEdge((int) graphSaved.getVertexList().size() - 1, has2beCheckedElemenet, currentPosDiff,
+                graphSaved.addEdge((int) graphSaved.getVertexList()->size() - 1, has2beCheckedElemenet, currentPosDiff,
                                    currentRotDiff, positionCovariance, 0.25 * sqrt(fitnessScore),
                                    graphSlamSaveStructure::POINT_CLOUD_USAGE, maxTimeOptimization);
 
@@ -806,7 +806,7 @@ void slamToolsRos::appendEdgesToGraph(graphSlamSaveStructure &currentGraph,
     std::deque<edge> listOfEdgesForForLoop;
     //add only a max number of edges
     if (listOfEdges.size() > maximumNumberOfAddedEdges) {
-        double startTime = currentGraph.getVertexList().back().getTimeStamp();
+        double startTime = currentGraph.getVertexList()->back().getTimeStamp();
         double endTime = listOfEdges.back().getTimeStamp();
         //ignore the first element(since its already a timestep) can be changed for not to be the case
         std::vector<double> timestampsForEdge = slamToolsRos::linspace(startTime, endTime,
@@ -844,7 +844,7 @@ void slamToolsRos::appendEdgesToGraph(graphSlamSaveStructure &currentGraph,
 
     int i = 1;
     for (auto &currentEdge: listOfEdgesForForLoop) {
-        vertex lastVertex = currentGraph.getVertexList().back();
+        vertex lastVertex = currentGraph.getVertexList()->back();
         Eigen::Matrix4d tmpTransformation = lastVertex.getTransformation();
         tmpTransformation = tmpTransformation * currentEdge.getTransformation();
         Eigen::Vector3d pos = tmpTransformation.block<3, 1>(0, 3);
@@ -859,7 +859,7 @@ void slamToolsRos::appendEdgesToGraph(graphSlamSaveStructure &currentGraph,
                              Eigen::Vector3d(noiseVelocityIntigration, noiseVelocityIntigration, 0),
                              scalingAngle * noiseVelocityIntigration, graphSlamSaveStructure::INTEGRATED_POS_USAGE,
                              maxTimeOptimization);
-//        graphSaved.getVertexList().back().setTypeOfVertex(
+//        graphSaved.getVertexList()->back().setTypeOfVertex(
 //                graphSlamSaveStructure::INTEGRATED_POS_USAGE);//1 for vertex defined by dead reckoning
         i++;
     }

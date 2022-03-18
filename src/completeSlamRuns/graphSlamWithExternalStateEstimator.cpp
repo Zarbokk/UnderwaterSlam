@@ -153,20 +153,20 @@ private:
             *this->currentScan = createPointCloudFromIntensities();
 
 
-            this->graphSaved.getVertexList().back().setPointCloudRaw(this->currentScan);
+            this->graphSaved.getVertexList()->back().setPointCloudRaw(this->currentScan);
 
             //correct the scan depending on the EKF callback
-            slamToolsRos::correctPointCloudAtPos(this->graphSaved.getVertexList().back().getVertexNumber(),
+            slamToolsRos::correctPointCloudAtPos(this->graphSaved.getVertexList()->back().getVertexNumber(),
                                                  this->graphSaved, this->beginningAngleOfRotation, 2 * M_PI, false,
                                                  Eigen::Matrix4d::Identity());
 
             //find position of last pcl entry
             int positionLastPcl = 1;
-            int sizeOfVertexList = this->graphSaved.getVertexList().size();
+            int sizeOfVertexList = this->graphSaved.getVertexList()->size();
             while (true) {
-                if (this->graphSaved.getVertexList()[sizeOfVertexList - positionLastPcl - 1].getTypeOfVertex() ==
+                if (this->graphSaved.getVertexList()->at(sizeOfVertexList - positionLastPcl - 1).getTypeOfVertex() ==
                     graphSlamSaveStructure::POINT_CLOUD_USAGE ||
-                    this->graphSaved.getVertexList()[sizeOfVertexList - positionLastPcl - 1].getTypeOfVertex() ==
+                    this->graphSaved.getVertexList()->at(sizeOfVertexList - positionLastPcl - 1).getTypeOfVertex() ==
                     graphSlamSaveStructure::FIRST_ENTRY) {
                     break;
                 }
@@ -174,7 +174,7 @@ private:
             }
             positionLastPcl++;
             if (this->firstScan) {
-//                *this->previousScan = *this->graphSaved.getVertexList().back().getPointCloudCorrected();
+//                *this->previousScan = *this->graphSaved.getVertexList()->back().getPointCloudCorrected();
                 if (numberOfScan > 0) {
                     this->firstScan = false;
                 }
@@ -184,9 +184,9 @@ private:
 
                 //make scan matching with last scan, only if not the first scan available
                 this->initialGuessTransformation =
-                        this->graphSaved.getVertexList()[this->graphSaved.getVertexList().size() -
-                                                         positionLastPcl].getTransformation().inverse() *
-                        this->graphSaved.getVertexList().back().getTransformation();
+                        this->graphSaved.getVertexList()->at(this->graphSaved.getVertexList()->size() -
+                                                         positionLastPcl).getTransformation().inverse() *
+                        this->graphSaved.getVertexList()->back().getTransformation();
 
 
 //                std::cout << std::atan2(this->initialGuessTransformation(1,0),this->initialGuessTransformation(0,0))*180/M_PI << std::endl;
@@ -198,7 +198,7 @@ private:
 //                std::cout << this->initialGuessTransformation << std::endl;
                 //we need inverse transformation
                 this->currentTransformation = scanRegistrationObject.sofftRegistration(
-                        *this->previousScan, *this->graphSaved.getVertexList().back().getPointCloudCorrected(),
+                        *this->previousScan, *this->graphSaved.getVertexList()->back().getPointCloudCorrected(),
                         fitnessScoreX, fitnessScoreY,
                         std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)),
                         false).inverse();
@@ -219,7 +219,7 @@ private:
 
 //                std::cout << this->currentTransformation.inverse() << std::endl;
 ////                this->currentTransformation = scanRegistrationClass::generalizedIcpRegistration(
-////                        this->graphSaved.getVertexList().back().getPointCloudCorrected(), this->previousScan, this->Final,
+////                        this->graphSaved.getVertexList()->back().getPointCloudCorrected(), this->previousScan, this->Final,
 ////                        this->fitnessScore,
 ////                        this->initialGuessTransformation);
 //                //std::cout << "current Fitness Score: " << sqrt(this->fitnessScore) << std::endl;
@@ -231,8 +231,8 @@ private:
 
                 if (abs(differenceAngleBeforeAfter) < 10.0 / 180.0 * M_PI) {
                     Eigen::Quaterniond qTMP(this->currentTransformation.block<3, 3>(0, 0));
-                    graphSaved.addEdge(this->graphSaved.getVertexList().size() - positionLastPcl,
-                                       graphSaved.getVertexList().size() - 1,
+                    graphSaved.addEdge(this->graphSaved.getVertexList()->size() - positionLastPcl,
+                                       graphSaved.getVertexList()->size() - 1,
                                        this->currentTransformation.block<3, 1>(0, 3), qTMP,
                                        Eigen::Vector3d(fitnessScoreX, fitnessScoreY, 0),
                                        0.1,
@@ -242,7 +242,7 @@ private:
                     std::cout << "we just skipped that registration" << std::endl;
                 }
 //                pcl::io::savePCDFileASCII("/home/tim-linux/dataFolder/gazeboDataScansPCL/scanNumber_" + std::to_string(this->numberOfScan) + ".pcd",
-//                                          *this->graphSaved.getVertexList().back().getPointCloudCorrected());
+//                                          *this->graphSaved.getVertexList()->back().getPointCloudCorrected());
 
 //                pcl::io::savePCDFileASCII("/home/tim-linux/dataFolder/savingRandomPCL/secondPCL.pcd", *this->previousScan);
                 pcl::PointCloud<pcl::PointXYZ>::Ptr tmpCloudPlotOnly(
@@ -251,7 +251,7 @@ private:
                 this->beginningAngleOfRotation = 0;
                 //pcl::transformPointCloud(*tmpCloudPlotOnly, *tmpCloudPlotOnly, transformationImu2PCL);
                 slamToolsRos::debugPlotting(this->previousScan, this->Final, tmpCloudPlotOnly,
-                                            this->graphSaved.getVertexList().back().getPointCloudCorrected(),
+                                            this->graphSaved.getVertexList()->back().getPointCloudCorrected(),
                                             this->publisherLastPCL, this->publisherRegistrationPCL,
                                             this->publisherBeforeCorrection, this->publisherAfterCorrection);
 
@@ -280,7 +280,7 @@ private:
 //            std::cout << this->timeCurrentFullScan << std::endl;
 //            this->timeLastFullScan = this->timeCurrentFullScan;
             this->numberOfScan++;
-            *this->previousScan = *this->graphSaved.getVertexList().back().getPointCloudCorrected();
+            *this->previousScan = *this->graphSaved.getVertexList()->back().getPointCloudCorrected();
 
             sonarIntensityList.clear();
             clearSavingsOfPoses(msg->header.stamp.toSec());
@@ -313,14 +313,14 @@ private:
 
         geometry_msgs::PoseStamped newMsg;
         newMsg.header.stamp = msg->header.stamp;
-        newMsg.pose.position.x = this->graphSaved.getVertexList().back().getPositionVertex().x();
-        newMsg.pose.position.y = this->graphSaved.getVertexList().back().getPositionVertex().y();
+        newMsg.pose.position.x = this->graphSaved.getVertexList()->back().getPositionVertex().x();
+        newMsg.pose.position.y = this->graphSaved.getVertexList()->back().getPositionVertex().y();
         newMsg.pose.position.z = 0;
 
-        newMsg.pose.orientation.x = this->graphSaved.getVertexList().back().getRotationVertex().x();
-        newMsg.pose.orientation.y = this->graphSaved.getVertexList().back().getRotationVertex().y();
-        newMsg.pose.orientation.z = this->graphSaved.getVertexList().back().getRotationVertex().z();
-        newMsg.pose.orientation.w = this->graphSaved.getVertexList().back().getRotationVertex().w();
+        newMsg.pose.orientation.x = this->graphSaved.getVertexList()->back().getRotationVertex().x();
+        newMsg.pose.orientation.y = this->graphSaved.getVertexList()->back().getRotationVertex().y();
+        newMsg.pose.orientation.z = this->graphSaved.getVertexList()->back().getRotationVertex().z();
+        newMsg.pose.orientation.w = this->graphSaved.getVertexList()->back().getRotationVertex().w();
 
         this->slamCallback(newMsg);
 
@@ -467,9 +467,13 @@ private:
         return true;
     }
 
-    std::vector<dataPointStruct> getDatasetFromGraph(int numberOfPointsInDataset) {
+    bool getDatasetFromGraph(int numberOfPointsInDataset,std::vector<dataPointStruct> &dataSet) {
         std::lock_guard<std::mutex> lock(this->graphSlamMutex);
-        std::vector<dataPointStruct> dataSet;
+//        std::vector<dataPointStruct> dataSet;
+
+        if(this->graphSaved.getVertexList()->size()<this->numberOfEdgesBetweenScans){
+            return false;
+        }
         std::random_device rd;  // Will be used to obtain a seed for the random number engine
         std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
         std::uniform_real_distribution<> dis(0.0, 1.0);
@@ -478,11 +482,11 @@ private:
 
             //get some random number indexPointCloud and Random Number of Point
             int indexPointCloud = (int) (dis(gen) *
-                                         (double) (this->graphSaved.getVertexList().size() - 1));
+                                         (double) (this->graphSaved.getVertexList()->size() - 1));
 
             int addingValueIndex = 1;
-            if (this->graphSaved.getVertexList().size() - indexPointCloud < 10 &&
-                this->graphSaved.getVertexList().size() > 50) {
+            if (this->graphSaved.getVertexList()->size() - indexPointCloud < 10 &&
+                this->graphSaved.getVertexList()->size() > 50) {
                 addingValueIndex = -1;
             }
 
@@ -491,7 +495,7 @@ private:
                 indexPointCloud += addingValueIndex;
 
 
-                if (this->graphSaved.getVertexList()[indexPointCloud].getTypeOfVertex() ==
+                if (this->graphSaved.getVertexList()->at(indexPointCloud).getTypeOfVertex() ==
                     graphSaved.POINT_CLOUD_USAGE) {
                     break;
                 }
@@ -500,12 +504,12 @@ private:
                                                   (double) this->graphSaved.getVertexList()->at(indexPointCloud).getPointCloudCorrected()->points.size());
 
 
-            Eigen::Matrix4d transformationOfPointcloud = this->graphSaved.getVertexList()[indexPointCloud].getTransformation();
+            Eigen::Matrix4d transformationOfPointcloud = this->graphSaved.getVertexList()->at(indexPointCloud).getTransformation();
 
 
             Eigen::Vector4d pointPos(
-                    this->graphSaved.getVertexList()[indexPointCloud].getPointCloudCorrected()->points[indexOfPointInPointcloud].x,
-                    this->graphSaved.getVertexList()[indexPointCloud].getPointCloudCorrected()->points[indexOfPointInPointcloud].y,
+                    this->graphSaved.getVertexList()->at(indexPointCloud).getPointCloudCorrected()->points[indexOfPointInPointcloud].x,
+                    this->graphSaved.getVertexList()->at(indexPointCloud).getPointCloudCorrected()->points[indexOfPointInPointcloud].y,
                     0,
                     1);
             pointPos = transformationOfPointcloud * pointPos;
@@ -517,10 +521,10 @@ private:
             dataSet.push_back(tmpDP);
 
             //create 3 additional point where occupancy = -1
-            for (int j = 0; j < 2; j++) {
+            for (int j = 0; j < 1; j++) {
                 Eigen::Vector4d pointPosTwo(
-                        this->graphSaved.getVertexList()[indexPointCloud].getPointCloudCorrected()->points[indexOfPointInPointcloud].x,
-                        this->graphSaved.getVertexList()[indexPointCloud].getPointCloudCorrected()->points[indexOfPointInPointcloud].y,
+                        this->graphSaved.getVertexList()->at(indexPointCloud).getPointCloudCorrected()->points[indexOfPointInPointcloud].x,
+                        this->graphSaved.getVertexList()->at(indexPointCloud).getPointCloudCorrected()->points[indexOfPointInPointcloud].y,
                         0,
                         1);
 
@@ -534,21 +538,27 @@ private:
                 dataSet.push_back(tmpDP);
             }
         }
-        return dataSet;
+        return true;
     }
 
 public:
     void updateHilbertMap(){
+        int numberOfPointsDataset = 5000;
         std::cout << "started Hilbert Shift:" << std::endl;
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-        std::vector<dataPointStruct> dataSet = this->getDatasetFromGraph(10000);
+        std::vector<dataPointStruct> dataSet;
+        bool foundDataset =  this->getDatasetFromGraph(numberOfPointsDataset,dataSet);
+        //return if dataset cannot be found
+        if(!foundDataset){
+            return;
+        }
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         std::cout << "Time it takes to get the dataset = "
                   << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
                   << "[ms]" << std::endl;
 
         std::chrono::steady_clock::time_point begin2 = std::chrono::steady_clock::now();
-        this->occupancyMap.trainClassifier(dataSet, 25000);
+        this->occupancyMap.trainClassifier(dataSet, (int)(numberOfPointsDataset*1.8));
         nav_msgs::OccupancyGrid map = this->occupancyMap.createOccupancyMapOfHilbert(0, 0, 70, true);
         std::chrono::steady_clock::time_point end2 = std::chrono::steady_clock::now();
         std::cout << "Time it takes to train the dataset = "

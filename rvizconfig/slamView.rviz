@@ -8,9 +8,8 @@ Panels:
         - /Status1
         - /Grid1
         - /Grid1/Offset1
-        - /Axes1
         - /PoseWithCovariance1/Status1
-        - /Map1
+        - /Map1/Status1
       Splitter Ratio: 0.550000011920929
     Tree Height: 746
   - Class: rviz/Selection
@@ -158,13 +157,13 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /loopClosures
       Name: MarkerArray
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.10000000149011612
@@ -207,13 +206,13 @@ Visualization Manager:
       Use Timestamp: false
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /covariance
       Name: MarkerArray
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -270,7 +269,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 67.03230285644531
+      Distance: 42.9635124206543
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -278,17 +277,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -7.359584331512451
-        Y: 7.421274662017822
-        Z: 3.7803773880004883
+        X: 12.318017959594727
+        Y: -1.275498390197754
+        Z: 3.3257386684417725
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: true
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.4697961807250977
+      Pitch: 1.5697963237762451
       Target Frame: map_ned
-      Yaw: 3.235381603240967
+      Yaw: 3.135380268096924
     Saved: ~
 Window Geometry:
   Displays:
