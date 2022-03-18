@@ -115,6 +115,7 @@ private:
     pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloud;//measurement
     int typeOfEdge;// 0=pointCloud    %%%%%%%%%   1 = integratedPosDiff
     double timeStamp;
+    double intensities;
 
 };
 
