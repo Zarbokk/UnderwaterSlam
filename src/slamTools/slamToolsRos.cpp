@@ -112,7 +112,7 @@ void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros
     visualization_msgs::MarkerArray markerArrowsArray;
     int j = 0;
     for (int i = 0; i < graphSaved.getEdgeList()->size(); i++) {
-        edge currentEdgeOfInterest = graphSaved.getEdgeList()->data()[i];
+        edge currentEdgeOfInterest = graphSaved.getEdgeList()->at(i);
         if (abs(currentEdgeOfInterest.getFromVertex() - currentEdgeOfInterest.getToVertex()) >
             numberOfEdgesBetweenScans) {//if its a loop closure then create arrow from vertex a to vertex b
             visualization_msgs::Marker currentMarker;

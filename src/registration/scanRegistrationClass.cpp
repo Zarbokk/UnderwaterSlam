@@ -75,6 +75,12 @@ Eigen::Matrix4d scanRegistrationClass::sofftRegistration(const pcl::PointCloud<p
     const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1New(pointCloudInputData1.makeShared());
     const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2New(pointCloudInputData2.makeShared());
 
-    return myRegistrationClass.registrationOfTwoPCL(pointCloudInputData1New, pointCloudInputData2New, fitnessX,
-                                                    fitnessY, goodGuessAlpha,debug);
+    return myRegistrationClass.registrationOfTwoPCL2D(pointCloudInputData1New, pointCloudInputData2New, fitnessX,
+                                                      fitnessY, goodGuessAlpha, debug);
+}
+
+Eigen::Matrix4d sofftRegistrationVoxel(double voxelData1[],
+                                       double voxelData2[],
+                                       double &fitnessX, double &fitnessY, double goodGuessAlpha = -100,bool debug = false){
+
 }

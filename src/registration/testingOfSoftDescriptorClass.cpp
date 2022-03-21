@@ -55,9 +55,10 @@ int main(int argc,
 
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         double fitnessX, fitnessY;
-        Eigen::Matrix4d resultingTransformation = myRegistrationClass.registrationOfTwoPCL(pointCloudInputData1,
-                                                                                           pointCloudInputData2, fitnessX, fitnessY,
-                                                                                           0, true);
+        Eigen::Matrix4d resultingTransformation = myRegistrationClass.registrationOfTwoPCL2D(pointCloudInputData1,
+                                                                                             pointCloudInputData2,
+                                                                                             fitnessX, fitnessY,
+                                                                                             0, true);
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
         std::cout << "Time difference complete Registration = "
                   << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()

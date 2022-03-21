@@ -76,7 +76,7 @@ int vertex::getTypeOfVertex() const {
     return typeOfVertex;
 }
 
-void vertex::setTypeOfVertex(int &typeOfVertexInput) {// 0=pointCloud    %%%%%%%%%   1 = integratedPosDiff
+void vertex::setTypeOfVertex(int typeOfVertexInput) {// 0=pointCloud    %%%%%%%%%   1 = integratedPosDiff
     vertex::typeOfVertex = typeOfVertexInput;
 }
 

@@ -44,6 +44,10 @@ public:
                                            const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
                                            pcl::PointCloud<pcl::PointXYZ> &Final);
 
+    Eigen::Matrix4d sofftRegistrationVoxel(double voxelData1[],
+                                           double voxelData2[],
+                                           double &fitnessX, double &fitnessY, double goodGuessAlpha = -100,bool debug = false);
+
 private:
     softDescriptorRegistration myRegistrationClass;
 

@@ -68,10 +68,10 @@ public:
                                                 spectrumOut, FFTW_FORWARD, FFTW_ESTIMATE);
     }
 
-    Eigen::Matrix4d registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1,
-                                         pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2, double &fitnessX,
-                                         double &fitnessY, double goodGuessAlpha = -100,
-                                         bool debug = false);//gives TFMatrix from 1 to 2
+    Eigen::Matrix4d registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1,
+                                           pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2, double &fitnessX,
+                                           double &fitnessY, double goodGuessAlpha = -100,
+                                           bool debug = false);//gives TFMatrix from 1 to 2
     //-100 only for "no good guess given"
     //initial guess has to be very good, else dont use it.
     double getSpectrumFromPCL3D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, double voxelData[],
@@ -86,6 +86,10 @@ public:
     void PCL2Voxel(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, double voxelData[], double fromTo);
 
     double movePCLtoMiddle(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, Eigen::Matrix4d &transformationPCL);
+
+    Eigen::Matrix4d
+    registrationOfTwoVoxel2D(double voxelData1[], double voxelData2[], double &fitnessX, double &fitnessY,
+                             double goodGuessAlpha, bool debug);
 
 
 private://here everything is created. malloc is done in the constructor

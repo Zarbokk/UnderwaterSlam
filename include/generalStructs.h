@@ -12,8 +12,9 @@
 #define INTENSITY_SAVED 3
 #define INTENSITY_BASED_GRAPH 4
 #define POINT_CLOUD_BASED_GRAPH 5
-#define ONLY_SIMPLE_GRAPH 5
-
+#define ONLY_SIMPLE_GRAPH 6
+#define INTENSITY_SAVED_AND_KEYFRAME 7
+#define LOOP_CLOSURE 8
 
 struct intensityMeasurement {
     double time;

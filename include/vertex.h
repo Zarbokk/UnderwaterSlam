@@ -112,7 +112,7 @@ public:
 
     [[nodiscard]] int getTypeOfVertex() const;
 
-    void setTypeOfVertex(int &typeOfVertexInput);
+    void setTypeOfVertex(int typeOfVertexInput);
 
     [[nodiscard]] double getTimeStamp() const;
 

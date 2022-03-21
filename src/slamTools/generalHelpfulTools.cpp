@@ -35,3 +35,30 @@ double generalHelpfulTools::angleDiff(double first, double second) {//first-seco
     return atan2(sin(first - second), cos(first - second));
 }
 
+
+Eigen::Matrix4d generalHelpfulTools::interpolationTwo4DTransformations(Eigen::Matrix4d &transformation1,Eigen::Matrix4d &transformation2,double &t){
+    if(t<0||t>1){
+        std::cout << "t value not between 0 and 1: "<< t << std::endl;
+        exit(-1);
+    }
+    Eigen::Vector3d translation1 = transformation1.block<3, 1>(0, 3);
+    Eigen::Vector3d translation2 = transformation2.block<3, 1>(0, 3);
+    Eigen::Quaterniond rot1(transformation1.block<3, 3>(0, 0));
+    Eigen::Quaterniond rot2(transformation2.block<3, 3>(0, 0));
+
+
+    Eigen::Quaterniond resultingRot = rot1.slerp(t, rot2);
+    Eigen::Vector3d resultingTrans = translation1*t + translation2*(1.0-t);
+
+
+
+
+}
+
+
+Eigen::Matrix4d generalHelpfulTools::getTransformationMatrix(Eigen::Vector3d &translation, Eigen::Quaterniond &rotation){
+    Eigen::Matrix4d transformation = Eigen::Matrix4d::Identity();
+    transformation.block<3, 1>(0, 3) = translation;
+    transformation.block<3, 3>(0, 0) = rotation.toRotationMatrix();
+    return transformation;
+}

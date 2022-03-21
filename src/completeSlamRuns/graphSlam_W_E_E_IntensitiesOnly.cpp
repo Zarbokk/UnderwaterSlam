@@ -12,11 +12,13 @@
 #include "commonbluerovmsg/saveGraph.h"
 #include <hilbertMap.h>
 
+
+#define NUMBER_OF_POINTS_DIMENSION 128
 class rosClassEKF {
 public:
     rosClassEKF(ros::NodeHandle n_) : graphSaved(3, INTENSITY_BASED_GRAPH),
                                       scanRegistrationObject(),
-                                      occupancyMap(256, 128, 70, hilbertMap::HINGED_FEATURES) {
+                                      occupancyMap(256, NUMBER_OF_POINTS_DIMENSION, 70, hilbertMap::HINGED_FEATURES) {
 
         subscriberEKF = n_.subscribe("publisherPoseEkf", 1000, &rosClassEKF::stateEstimationCallback, this);
         subscriberIntensitySonar = n_.subscribe("sonar/intensity", 1000, &rosClassEKF::scanCallback, this);
@@ -52,7 +54,7 @@ public:
         this->saveGraphStructure = false;
 
         this->occupancyMap.createRandomMap();
-
+        this->maxTimeOptimization = 1.0;
 
     }
 
@@ -84,15 +86,15 @@ private:
     //double timeCurrentFullScan;
     double fitnessScore;
     double sigmaScaling;
-    //double maxTimeOptimization;
+
     //double beginningAngleOfRotation;
-    double lastAngle;
+    //double lastAngle;
     //double startTimeOfCorrection;
     graphSlamSaveStructure graphSaved;
     scanRegistrationClass scanRegistrationObject;
     bool firstSonarInput, saveGraphStructure;
     std::string saveStringGraph;
-
+    double maxTimeOptimization;
     hilbertMap occupancyMap;
 
 
@@ -106,7 +108,7 @@ private:
             intensityTMP.size = msg->intensities.size();
             intensityTMP.increment = msg->step_size;
             std::vector<double> intensitiesVector;
-            for(int i = 0;i<msg->intensities.size();i++){
+            for (int i = 0; i < msg->intensities.size(); i++) {
                 intensitiesVector.push_back(msg->intensities[i]);
             }
             intensityTMP.intensities = intensitiesVector;
@@ -123,12 +125,13 @@ private:
         intensityTMP.size = msg->intensities.size();
         intensityTMP.increment = msg->step_size;
         std::vector<double> intensitiesVector;
-        for(int i = 0;i<msg->intensities.size();i++){
+        for (int i = 0; i < msg->intensities.size(); i++) {
             intensitiesVector.push_back(msg->intensities[i]);
         }
         intensityTMP.intensities = intensitiesVector;
 
-        edge differenceOfEdge = this->calculatePoseDiffByTimeDepOnEKF(this->graphSaved.getVertexList()->back().getTimeStamp(),msg->header.stamp.toSec());
+        edge differenceOfEdge = this->calculatePoseDiffByTimeDepOnEKF(
+                this->graphSaved.getVertexList()->back().getTimeStamp(), msg->header.stamp.toSec());
 
 
         Eigen::Matrix4d tmpTransformation = this->graphSaved.getVertexList()->back().getTransformation();
@@ -137,26 +140,38 @@ private:
         Eigen::Matrix3d rotM = tmpTransformation.block<3, 3>(0, 0);
         Eigen::Quaterniond rot(rotM);
 
-        this->graphSaved.addVertex(this->graphSaved.getVertexList()->back().getVertexNumber() + 1, pos, rot, this->graphSaved.getVertexList()->back().getCovariancePosition(),
-                                   this->graphSaved.getVertexList()->back().getCovarianceQuaternion(), msg->header.stamp.toSec(),
-                               INTENSITY_SAVED);
+        this->graphSaved.addVertex(this->graphSaved.getVertexList()->back().getVertexNumber() + 1, pos, rot,
+                                   this->graphSaved.getVertexList()->back().getCovariancePosition(),
+                                   this->graphSaved.getVertexList()->back().getCovarianceQuaternion(),
+                                   msg->header.stamp.toSec(),
+                                   INTENSITY_SAVED);
 
-        this->graphSaved.addEdge(this->graphSaved.getVertexList()->back().getVertexNumber()-1, this->graphSaved.getVertexList()->back().getVertexNumber(),
+        this->graphSaved.addEdge(this->graphSaved.getVertexList()->back().getVertexNumber() - 1,
+                                 this->graphSaved.getVertexList()->back().getVertexNumber(),
                                  differenceOfEdge.getPositionDifference(), differenceOfEdge.getRotationDifference(),
-                             Eigen::Vector3d(0.06, 0.06, 0),
-                             0.25 * 0.06, INTEGRATED_POSE,
-                                 1);
+                                 Eigen::Vector3d(0.06, 0.06, 0),
+                                 0.25 * 0.06, INTEGRATED_POSE,
+                                 maxTimeOptimization);
         //test if a scan matching should be done
+
+        int indexOfLastKeyframe;
+        double angleDiff = angleBetweenLastKeyframeAndNow();
         // best would be scan matching between this angle and transformation based last angle
-        if (this->lastAngle > msg->angle) {
+        if (angleDiff > 2*M_PI) {
+            this->graphSaved.getVertexList()->back().setTypeOfVertex(INTENSITY_SAVED_AND_KEYFRAME);
             //create a voxel of current scan (last rotation) and voxel of the rotation before that
+            double* voxelData1;
+            double* voxelData2;
+            voxelData1 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION*NUMBER_OF_POINTS_DIMENSION);
+            voxelData2 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION*NUMBER_OF_POINTS_DIMENSION);
+            createVoxelOfGraph(voxelData1,this->graphSaved.getVertexList()->size()-1);//get voxel
+            createVoxelOfGraph(voxelData2,indexOfLastKeyframe);//get voxel
+
 
             //match these voxels together
             this->initialGuessTransformation =
-                    this->graphSaved.getVertexList()->at(this->graphSaved.getVertexList()->size() -
-                                                         positionLastPcl).getTransformation().inverse() *
+                    this->graphSaved.getVertexList()->at(getLastIntensityKeyframe()).getTransformation().inverse() *
                     this->graphSaved.getVertexList()->back().getTransformation();
-
 
 
             double fitnessScoreX, fitnessScoreY;
@@ -173,19 +188,17 @@ private:
                     std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)));
 
 
-
-
             std::cout << "difference of angle after Registration: " << differenceAngleBeforeAfter << std::endl;
-
+            //only if angle diff is smaller thatn 10 degreece its ok
             if (abs(differenceAngleBeforeAfter) < 10.0 / 180.0 * M_PI) {
                 Eigen::Quaterniond qTMP(this->currentTransformation.block<3, 3>(0, 0));
-                graphSaved.addEdge(this->graphSaved.getVertexList()->size() - positionLastPcl,
+                graphSaved.addEdge(getLastIntensityKeyframe(),
                                    graphSaved.getVertexList()->size() - 1,
                                    this->currentTransformation.block<3, 1>(0, 3), qTMP,
                                    Eigen::Vector3d(fitnessScoreX, fitnessScoreY, 0),
                                    0.1,
-                                   POINT_CLOUD_SAVED,
-                                   1.0);//@TODO still not sure about size
+                                   LOOP_CLOSURE,
+                                   maxTimeOptimization);//@TODO still not sure about size
             } else {
                 std::cout << "we just skipped that registration" << std::endl;
             }
@@ -193,20 +206,20 @@ private:
 
             //add position and optimize/publish everything
 
-            graphSaved.optimizeGraphWithSlamTopDown(false, 0.05, timeDiffScans * 0.1);
-            graphSaved.calculateCovarianceInCloseProximity(timeDiffScans * 0.1);
-
-            slamToolsRos::visualizeCurrentGraph(this->graphSaved, this->publisherPathOverTime,
-                                                this->publisherKeyFrameClouds,
-                                                this->publisherMarkerArray, this->sigmaScaling,
-                                                this->publisherPathOverTimeGT,
-                                                NULL, this->publisherMarkerArrayLoopClosures,
-                                                NULL, this->numberOfEdgesBetweenScans);
+            graphSaved.optimizeGraphWithSlamTopDown(false, 0.05, 1.0);
+            graphSaved.calculateCovarianceInCloseProximity(1.0);
+            //@TODO visualization has to be created anew
+//            slamToolsRos::visualizeCurrentGraph(this->graphSaved, this->publisherPathOverTime,
+//                                                this->publisherKeyFrameClouds,
+//                                                this->publisherMarkerArray, this->sigmaScaling,
+//                                                this->publisherPathOverTimeGT,
+//                                                NULL, this->publisherMarkerArrayLoopClosures,
+//                                                NULL, this->numberOfEdgesBetweenScans);
             std::cout << "next: " << std::endl;
         }
 
 
-        this->lastAngle = msg->angle;
+//        this->lastAngle = msg->angle;
 
 //        if (this->saveGraphStructure) {
 //            std::cout << "saving graph " << std::endl;
@@ -254,9 +267,8 @@ private:
     }
 
     edge calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endTimeToAdd) {
-        // @TODO interpolation is still missing
+        //@TEST
         std::lock_guard<std::mutex> lock(this->stateEstimationMutex);
-
         //find index of start and end
         int indexOfStart = 0;
         while (this->timeVector[indexOfStart] < startTimetoAdd && this->timeVector.size() > indexOfStart) {
@@ -265,6 +277,7 @@ private:
         if (indexOfStart > 0) {
             indexOfStart--;
         }
+
         int indexOfEnd = 0;
         while (this->timeVector[indexOfEnd] < endTimeToAdd && this->timeVector.size() > indexOfEnd) {
             indexOfEnd++;
@@ -273,7 +286,27 @@ private:
 
         Eigen::Matrix4d transformationTMP = Eigen::Matrix4d::Identity();
 
+        if (indexOfStart > 0) {
+            double interpolationFactor = (this->timeVector[indexOfStart - 1] - startTimetoAdd) /
+                                         (this->timeVector[indexOfStart] - this->timeVector[indexOfStart - 1]);
 
+            Eigen::Matrix4d transformationOfEKFStart = Eigen::Matrix4d::Identity();
+            transformationOfEKFStart.block<3, 3>(0, 0) = this->rotationVector[indexOfStart - 1].toRotationMatrix();
+            transformationOfEKFStart(0, 3) = this->xPositionVector[indexOfStart - 1];
+            transformationOfEKFStart(1, 3) = this->yPositionVector[indexOfStart - 1];
+            transformationOfEKFStart(2, 3) = this->zPositionVector[indexOfStart - 1];
+
+            Eigen::Matrix4d transformationOfEKFEnd = Eigen::Matrix4d::Identity();
+            transformationOfEKFEnd.block<3, 3>(0, 0) = this->rotationVector[indexOfStart].toRotationMatrix();
+            transformationOfEKFEnd(0, 3) = this->xPositionVector[indexOfStart];
+            transformationOfEKFEnd(1, 3) = this->yPositionVector[indexOfStart];
+            transformationOfEKFEnd(2, 3) = this->zPositionVector[indexOfStart];
+
+            transformationTMP = transformationTMP *
+                                generalHelpfulTools::interpolationTwo4DTransformations(transformationOfEKFStart,
+                                                                                       transformationOfEKFEnd,
+                                                                                       interpolationFactor);
+        }
 
 
         int i = indexOfStart;
@@ -285,19 +318,36 @@ private:
             transformationOfEKFEnd(2, 3) = this->zPositionVector[i];
 
             Eigen::Matrix4d transformationOfEKFStart = Eigen::Matrix4d::Identity();
-            transformationOfEKFStart.block<3, 3>(0, 0) = this->rotationVector[i-1].toRotationMatrix();
-            transformationOfEKFStart(0, 3) = this->xPositionVector[i-1];
-            transformationOfEKFStart(1, 3) = this->yPositionVector[i-1];
-            transformationOfEKFStart(2, 3) = this->zPositionVector[i-1];
+            transformationOfEKFStart.block<3, 3>(0, 0) = this->rotationVector[i - 1].toRotationMatrix();
+            transformationOfEKFStart(0, 3) = this->xPositionVector[i - 1];
+            transformationOfEKFStart(1, 3) = this->yPositionVector[i - 1];
+            transformationOfEKFStart(2, 3) = this->zPositionVector[i - 1];
 
-
-            transformationTMP=transformationTMP*(transformationOfEKFStart.inverse()*transformationOfEKFEnd);
-
-
-
+            transformationTMP = transformationTMP * (transformationOfEKFStart.inverse() * transformationOfEKFEnd);
             i++;
         }
 
+        if (indexOfEnd > 0) {
+            double interpolationFactor = (endTimeToAdd - this->timeVector[indexOfEnd - 1]) /
+                                         (this->timeVector[indexOfEnd] - this->timeVector[indexOfEnd - 1]);
+
+            Eigen::Matrix4d transformationOfEKFStart = Eigen::Matrix4d::Identity();
+            transformationOfEKFStart.block<3, 3>(0, 0) = this->rotationVector[indexOfStart - 1].toRotationMatrix();
+            transformationOfEKFStart(0, 3) = this->xPositionVector[indexOfStart - 1];
+            transformationOfEKFStart(1, 3) = this->yPositionVector[indexOfStart - 1];
+            transformationOfEKFStart(2, 3) = this->zPositionVector[indexOfStart - 1];
+
+            Eigen::Matrix4d transformationOfEKFEnd = Eigen::Matrix4d::Identity();
+            transformationOfEKFEnd.block<3, 3>(0, 0) = this->rotationVector[indexOfStart].toRotationMatrix();
+            transformationOfEKFEnd(0, 3) = this->xPositionVector[indexOfStart];
+            transformationOfEKFEnd(1, 3) = this->yPositionVector[indexOfStart];
+            transformationOfEKFEnd(2, 3) = this->zPositionVector[indexOfStart];
+
+            transformationTMP = transformationTMP *
+                                generalHelpfulTools::interpolationTwo4DTransformations(transformationOfEKFStart,
+                                                                                       transformationOfEKFEnd,
+                                                                                       interpolationFactor);
+        }
         //std::cout << diffMatrix << std::endl;
         Eigen::Vector3d tmpPosition = transformationTMP.block<3, 1>(0, 3);
         //set z pos diff to zero
@@ -431,6 +481,37 @@ private:
             }
         }
         return true;
+    }
+    int getLastIntensityKeyframe(){//the absolut last entry is ignored
+        int lastKeyframeIndex = this->graphSaved.getVertexList()->size() - 2;//ignore the last index
+        //find last keyframe
+        while (this->graphSaved.getVertexList()->at(lastKeyframeIndex).getTypeOfVertex() !=
+               INTENSITY_SAVED_AND_KEYFRAME &&
+               this->graphSaved.getVertexList()->at(lastKeyframeIndex).getTypeOfVertex() != FIRST_ENTRY) {
+            lastKeyframeIndex--;
+        }
+        return lastKeyframeIndex;
+    }
+
+    double angleBetweenLastKeyframeAndNow() {
+        double resultingAngle = 0;
+
+        int lastKeyframeIndex = getLastIntensityKeyframe();
+
+        for (int i = lastKeyframeIndex; i < this->graphSaved.getVertexList()->size() - 1; i++) {
+            Eigen::Quaterniond currentRot =
+                    this->graphSaved.getVertexList()->at(lastKeyframeIndex).getRotationVertex().inverse() *
+                    this->graphSaved.getVertexList()->at(lastKeyframeIndex + 1).getRotationVertex();
+            Eigen::Vector3d rpy = generalHelpfulTools::getRollPitchYaw(currentRot);
+            resultingAngle+=rpy(2)+this->graphSaved.getVertexList()->at(lastKeyframeIndex+1).getIntensities().increment;
+        }
+
+        return resultingAngle;
+    }
+
+
+    void createVoxelOfGraph(double voxelData[],int indexStart){
+
     }
 
 public:
