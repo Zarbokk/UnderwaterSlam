@@ -131,22 +131,22 @@ void loadCSVFiles(std::vector<measurement> &groundTruthSorted,
                   std::vector<double> &keyFramesTimeStampes, std::string &folderExperiment, std::string const HOME) {
 
 
-    std::ifstream fileGroundTruth(HOME + "/DataForTests/" + folderExperiment + "/GTData.csv");
+    std::ifstream fileGroundTruth(HOME + folderExperiment + "/GTData.csv");
     if (fileGroundTruth.fail()) {
         std::cout << "fileGroundTruth file not found" << std::endl;
         exit(-1);
     }
-    std::ifstream fileAngularVelocity(HOME + "/DataForTests/" + folderExperiment + "/IMUData.csv");
+    std::ifstream fileAngularVelocity(HOME + folderExperiment + "/IMUData.csv");
     if (fileAngularVelocity.fail()) {
         std::cout << "fileAngularVelocity file not found" << std::endl;
         exit(-1);
     }
-    std::ifstream fileBodyVelocity(HOME + "/DataForTests/" + folderExperiment + "/dvlData.csv");
+    std::ifstream fileBodyVelocity(HOME + folderExperiment + "/dvlData.csv");
     if (fileBodyVelocity.fail()) {
         std::cout << "fileBodyVelocity file not found" << std::endl;
         exit(-1);
     }
-    std::ifstream fileKeyframesDefined(HOME + "/DataForTests/" + folderExperiment + "/keyFrameTimeStamps.csv");
+    std::ifstream fileKeyframesDefined(HOME + folderExperiment + "/keyFrameTimeStamps.csv");
     if (fileKeyframesDefined.fail()) {
         std::cout << "fileKeyframesDefined file not found" << std::endl;
         exit(-1);
@@ -180,7 +180,7 @@ main(int argc, char **argv) {
     std::string const HOME = std::getenv("HOME") ? std::getenv("HOME") : ".";//home path
 
 
-    std::string folderExperiment = "StPereDataset";// folder of experiment
+    std::string folderExperiment = "/dataFolder/StPereDataset";// folder of experiment
     ros::init(argc, argv, "StPereDatasetPublishing01");
     ros::start();
     ros::NodeHandle n_;
@@ -226,7 +226,7 @@ main(int argc, char **argv) {
          currentKeyFrame<50; currentKeyFrame++) {//keyFramesTimeStampesSorted.size()-1  || 50
         if (ros::ok()) {
             pcl::io::loadPCDFile(
-                    HOME + "/DataForTests/" + folderExperiment + "/pclKeyFrame" + std::to_string(currentKeyFrame) +
+                    HOME + "/pclKeyFrame" + std::to_string(currentKeyFrame) +
                     ".pcd",
                     *currentScan);
             //pcl::transformPointCloud(*currentScan, *currentScan, transformation90Degree);

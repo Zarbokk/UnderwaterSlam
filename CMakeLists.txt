@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CATKIN_ENABLE_TESTING OFF)
 project(underwaterslam)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -105,3 +106,6 @@ target_link_libraries(compensationSonarData fftw3 ${catkin_LIBRARIES} ${OpenCV_L
 
 add_executable(softClassTest src/registration/testingOfSoftDescriptorClass.cpp ${SOURCE_FILES})
 target_link_libraries(softClassTest fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+add_executable(stPereDatasetPublishingIntensities src/testFiles/stPereDatasetPublication.cpp ${SOURCE_FILES})
+target_link_libraries(stPereDatasetPublishingIntensities fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
