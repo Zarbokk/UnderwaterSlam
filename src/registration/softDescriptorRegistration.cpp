@@ -486,12 +486,16 @@ softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>:
     } else {
         //guess known therefore take the angle which is closest to the initial guess
         int indexCorrectAngle = 0;
+        std::cout << "First Angle to Test: " << angleList[out[0]] << std::endl;
         for (int i = 1; i < out.size(); i++) {
+            std::cout << "Index: " << i << std::endl;
+            std::cout << "current Angle to Test: " << angleList[out[i]] << std::endl;
             if (std::abs(angleDifference(angleList[out[indexCorrectAngle]], goodGuessAlpha)) >
                 std::abs(angleDifference(angleList[out[i]], goodGuessAlpha))) {
                 indexCorrectAngle = i;
             }
         }
+        std::cout << "chosen angle" << indexCorrectAngle << std::endl;
         startIndex = indexCorrectAngle;
         endIndex = indexCorrectAngle + 1;
     }
@@ -630,6 +634,7 @@ softDescriptorRegistration::registrationOfTwoPCL(pcl::PointCloud<pcl::PointXYZ>:
 
         double currentAngle = -angleList[out[angleIndex]];//describes angle from A to B, therefore we have to reverse the angle
         double currentPeakAngle = correlationAveraged[out[angleIndex]];
+        std::cout << "we try to fit following angle: "<< currentAngle << std::endl;
         pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputDataTMP2(new pcl::PointCloud<pcl::PointXYZ>);
         Eigen::Matrix4d rotationMatrixTMP;
         //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));

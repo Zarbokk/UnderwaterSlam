@@ -16,9 +16,16 @@ struct intensityMeasurement {
     std::vector<int> intensities;
 };
 
+struct groundTruthData {
+    double x;
+    double y;
+    double z;
+    double course;
+    double timeStamp;
+};
 
-std::deque<measurement> parseCSVFileGT(std::istream &stream,double removeLinesUntil) {
-    std::deque<measurement> returnVector;
+std::deque<groundTruthData> parseCSVFileGT(std::istream &stream,double removeLinesUntil) {
+    std::deque<groundTruthData> returnVector;
 
     std::string firstLine;
     std::getline(stream, firstLine);
@@ -35,15 +42,13 @@ std::deque<measurement> parseCSVFileGT(std::istream &stream,double removeLinesUn
             //std::cout << cell << std::endl;
         }
         if(removeLinesUntil<std::stod(result[0])){
-
-
-        measurement tmpMeas{};
-        tmpMeas.keyframe = -1;
-        tmpMeas.x = std::stod(result[1]);
-        tmpMeas.y = std::stod(result[2]);
-        tmpMeas.z = 0;
-        tmpMeas.timeStamp = std::stod(result[0]);
-        returnVector.push_back(tmpMeas);
+            groundTruthData tmpMeas{};
+            tmpMeas.x = std::stod(result[1]);
+            tmpMeas.y = std::stod(result[2]);
+            tmpMeas.z =0;
+            tmpMeas.course = std::stod(result[7]);
+            tmpMeas.timeStamp = std::stod(result[0]);
+            returnVector.push_back(tmpMeas);
         }
     }
     return returnVector;
@@ -167,7 +172,11 @@ std::deque<intensityMeasurement> parseCSVFileIntensityTimeStamps(std::istream &s
             intensityMeasurement tmpIntensity{};
 
             tmpIntensity.timeStamp = std::stod(result[0]);
-            tmpIntensity.angle = std::stod(result[1]);
+            double angleTMP=std::stod(result[1])+M_PI;
+            if(angleTMP>2*M_PI){
+                angleTMP=angleTMP-2*M_PI;
+            }
+            tmpIntensity.angle = angleTMP;
             for (int i = 2; i < result.size(); i++) {
                 tmpIntensity.intensities.push_back(std::stod(result[i]));
             }
@@ -177,7 +186,7 @@ std::deque<intensityMeasurement> parseCSVFileIntensityTimeStamps(std::istream &s
     return returnVector;
 }
 
-void loadCSVFiles(std::deque<measurement> &groundTruthSorted,
+void loadCSVFiles(std::deque<groundTruthData> &groundTruthSorted,
                   std::deque<ImuData> &ImuSorted,
                   std::deque<DvlData> &bodyVelocitySorted,
                   std::deque<intensityMeasurement> &intensitySonarSorted,
@@ -189,12 +198,12 @@ void loadCSVFiles(std::deque<measurement> &groundTruthSorted,
         std::cout << "fileGroundTruth file not found" << std::endl;
         exit(-1);
     }
-    std::ifstream fileAngularVelocity(HOME + folderExperiment + "/IMUData.csv");
+    std::ifstream fileAngularVelocity(HOME + folderExperiment + "/IMUDataInterpolated.csv");
     if (fileAngularVelocity.fail()) {
         std::cout << "fileAngularVelocity file not found" << std::endl;
         exit(-1);
     }
-    std::ifstream fileBodyVelocity(HOME + folderExperiment + "/dvlData.csv");
+    std::ifstream fileBodyVelocity(HOME + folderExperiment + "/dvlDataInterpolated.csv");
     if (fileBodyVelocity.fail()) {
         std::cout << "fileBodyVelocity file not found" << std::endl;
         exit(-1);
@@ -216,14 +225,14 @@ void loadCSVFiles(std::deque<measurement> &groundTruthSorted,
     groundTruthSorted = parseCSVFileGT(fileGroundTruth, removeLinesUntil);
 
     Eigen::Matrix4d tranformationMatrixIMU;
-    Eigen::AngleAxisd rotation_vectorz(90 / 180.0 * M_PI, Eigen::Vector3d(0, 0, 1));
+    Eigen::AngleAxisd rotation_vectorz(-90 / 180.0 * M_PI, Eigen::Vector3d(0, 0, 1));
     Eigen::Matrix3d tmpMatrix3d = rotation_vectorz.toRotationMatrix();
     tranformationMatrixIMU.block<3, 3>(0, 0) = tmpMatrix3d;
     tranformationMatrixIMU(3, 3) = 1;
     ImuSorted = parseCSVFileIMU(fileAngularVelocity, tranformationMatrixIMU, removeLinesUntil);
 
     Eigen::Matrix4d tranformationMatrixDVL;
-    Eigen::AngleAxisd rotation_vectorzDVL(-60 / 180.0 * M_PI, Eigen::Vector3d(0, 0, 1));
+    Eigen::AngleAxisd rotation_vectorzDVL(60 / 180.0 * M_PI, Eigen::Vector3d(0, 0, 1));
     tmpMatrix3d = rotation_vectorzDVL.toRotationMatrix();
     Eigen::AngleAxisd rotation_vectorxDVL(180 / 180.0 * M_PI, Eigen::Vector3d(1, 0, 0));
     tmpMatrix3d = rotation_vectorxDVL.toRotationMatrix() * tmpMatrix3d;
@@ -245,13 +254,14 @@ main(int argc, char **argv) {
     ros::init(argc, argv, "StPereDatasetPublishing01");
     ros::start();
     ros::NodeHandle n_;
-    ros::Publisher publisherIntensities, publisherImuData, publisherVelocityBody;
+    ros::Publisher publisherIntensities, publisherImuData, publisherVelocityBody,publisherMagCourse;
     publisherIntensities = n_.advertise<ping360_sonar::SonarEcho>("sonar/intensity", 10);
     publisherImuData = n_.advertise<sensor_msgs::Imu>("mavros/imu/data_frd", 10);
     publisherVelocityBody = n_.advertise<geometry_msgs::TwistStamped>("mavros/local_position/velocity_body_frd", 10);
+    publisherMagCourse= n_.advertise<geometry_msgs::Vector3Stamped>("magnetic_heading", 10);
 
 
-    std::deque<measurement> groundTruthSorted;
+    std::deque<groundTruthData> groundTruthSorted;
     std::deque<ImuData> IMUSorted;
     std::deque<DvlData> bodyVelocitySorted;
     std::deque<intensityMeasurement> intensitySonarSorted;
@@ -259,7 +269,7 @@ main(int argc, char **argv) {
     double removeLinesUntil = 1093455407.03;
     loadCSVFiles(groundTruthSorted, IMUSorted, bodyVelocitySorted, intensitySonarSorted, keyFramesTimeStampesSorted,
                  folderExperiment, HOME,removeLinesUntil);
-
+    //std::cout << IMUSorted.size() << std::endl;
     pcl::PointCloud<pcl::PointXYZ>::Ptr currentScan(new pcl::PointCloud<pcl::PointXYZ>);
 
 
@@ -282,7 +292,7 @@ main(int argc, char **argv) {
             IMUSorted[0].timeStamp < intensitySonarSorted[0].timeStamp &&
             IMUSorted[0].timeStamp < groundTruthSorted[0].timeStamp) {
             //publish imu data
-            std::cout << "publish IMU" << std::endl;
+            //std::cout << "publish IMU" << std::endl;
             sensor_msgs::Imu msg;
             msg.header.stamp = ros::Time(IMUSorted[0].timeStamp);
             msg.angular_velocity.x = IMUSorted[0].wx;
@@ -306,7 +316,7 @@ main(int argc, char **argv) {
             if (bodyVelocitySorted[0].timeStamp < intensitySonarSorted[0].timeStamp &&
                 bodyVelocitySorted[0].timeStamp < groundTruthSorted[0].timeStamp) {
                 //publish body velocity
-                std::cout << "publish VEL" << std::endl;
+                //std::cout << "publish VEL" << std::endl;
                 geometry_msgs::TwistStamped msg;
                 msg.header.stamp = ros::Time(bodyVelocitySorted[0].timeStamp);
                 msg.twist.linear.x = bodyVelocitySorted[0].vx;
@@ -318,27 +328,34 @@ main(int argc, char **argv) {
             } else {
                 if (intensitySonarSorted[0].timeStamp < groundTruthSorted[0].timeStamp) {
                     //publish intensity
-                    std::cout << "publish Intensity" << std::endl;
+                    //std::cout << "publish Intensity" << std::endl;
 //                    std::cout << intensitySonarSorted.size() << std::endl;
                     ping360_sonar::SonarEcho msg;
                     msg.header.stamp = ros::Time(intensitySonarSorted[0].timeStamp);
-                    msg.angle = intensitySonarSorted[0].angle;
-                    msg.number_of_samples = intensitySonarSorted[0].size;
+                    msg.angle = intensitySonarSorted[0].angle*200/M_PI;
 
+                    msg.range = 50;
                     for (int k = 0; k < intensitySonarSorted[0].intensities.size(); k++) {
                         msg.intensities.push_back(intensitySonarSorted[0].intensities[k]);
                     }
+                    msg.number_of_samples = intensitySonarSorted[0].intensities.size();
                     publisherIntensities.publish(msg);
                     intensitySonarSorted.pop_front();
 
                 } else {
                     //publish ground truth
-                    std::cout << "publish GT" << std::endl;
+                    //std::cout << "publish GT" << std::endl;
+
+                    geometry_msgs::Vector3Stamped msg;
+                    msg.header.stamp = ros::Time(groundTruthSorted[0].timeStamp);
+                    //in z is the heading in rad
+                    msg.vector.z = groundTruthSorted[0].course/180*M_PI;
+                    publisherMagCourse.publish(msg);
                     groundTruthSorted.pop_front();
                 }
             }
         }
-        ros::Duration(0.03).sleep();
+        ros::Duration(0.01).sleep();
     }
 
     return (0);

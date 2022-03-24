@@ -17,13 +17,14 @@
 
 class rosClassEKF {
 public:
-    rosClassEKF(ros::NodeHandle n_) : currentEkf(ros::Time::now()) {
-        this->rotationOfDVL = Eigen::AngleAxisd(3.14159 / 4.0, Eigen::Vector3d::UnitZ());//yaw rotation for correct alignment of DVL data;
+    rosClassEKF(ros::NodeHandle n_, double rotationOfDVLZ) : currentEkf(ros::Time::now()) {
+        this->rotationOfDVL = Eigen::AngleAxisd(rotationOfDVLZ, Eigen::Vector3d::UnitZ());//yaw rotation for correct alignment of DVL data;
 
         this->subscriberIMU = n_.subscribe("mavros/imu/data_frd", 1000, &rosClassEKF::imuCallback, this);
         this->subscriberEKF = n_.subscribe("transducer_report", 1000, &rosClassEKF::DVLCallbackDVL, this);
         this->subscriberVelocityMavros = n_.subscribe("mavros/local_position/velocity_body_frd", 1000, &rosClassEKF::DVLCallbackMavros, this);
         this->subscriberDepth = n_.subscribe("mavros/altitude_frd", 1000, &rosClassEKF::depthSensorCallback, this);
+        this->subscriberHeading = n_.subscribe("magnetic_heading", 1000, &rosClassEKF::headingCallback, this);
 
         this->serviceResetEkf = n_.advertiseService("resetCurrentEKF",&rosClassEKF::resetEKF,this);
 
@@ -37,7 +38,7 @@ private:
 //    std::deque<mavros_msgs::Altitude::ConstPtr> depthDeque;
 //    std::deque<geometry_msgs::TwistStamped::ConstPtr> dvlDeque;
     ekfClassDVL currentEkf;
-    ros::Subscriber subscriberIMU, subscriberDepth, subscriberEKF, subscriberSlamResults,subscriberVelocityMavros;
+    ros::Subscriber subscriberIMU, subscriberDepth, subscriberHeading, subscriberEKF, subscriberSlamResults,subscriberVelocityMavros;
     ros::Publisher publisherPoseEkf, publisherTwistEkf;
     std::mutex updateSlamMutex;
     Eigen::Quaterniond rotationOfDVL;
@@ -133,6 +134,16 @@ private:
         this->currentEkf.updateHeight(msg->local,msg->header.stamp);
     };
 
+    void headingCallback(const geometry_msgs::Vector3Stamped::ConstPtr  &msg){
+        this->updateSlamMutex.lock();
+        this->headingHelper(msg);
+        this->updateSlamMutex.unlock();
+    }
+
+    void headingHelper(const geometry_msgs::Vector3Stamped::ConstPtr  &msg){
+        this->currentEkf.updateHeading(msg->vector.z,msg->header.stamp);
+    };
+
 };
 
 
@@ -143,7 +154,7 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "ekffordvlwithros");
     ros::start();
     ros::NodeHandle n_;
-    rosClassEKF rosClassForTests(n_);
+    rosClassEKF rosClassForTests(n_,3.14159 / 4.0);
 
     ros::spin();
 

@@ -14,7 +14,7 @@
 
 class rosClassEKF {
 public:
-    rosClassEKF(ros::NodeHandle n_) : graphSaved(3),
+    rosClassEKF(ros::NodeHandle n_,bool scanDirectionReversed = false) : graphSaved(3),
                                       scanRegistrationObject(),
                                       occupancyMap(256, 128, 70, hilbertMap::HINGED_FEATURES) {
 
@@ -39,10 +39,6 @@ public:
         publisherAfterCorrection = n_.advertise<sensor_msgs::PointCloud2>("afterCorrection", 10);
         publisherOccupancyMap = n_.advertise<nav_msgs::OccupancyGrid>("occupancyHilbertMap", 10);
 
-        Eigen::AngleAxisd rotation_vector2(180.0 / 180.0 * 3.14159, Eigen::Vector3d(1, 0, 0));
-        Eigen::Matrix3d tmpMatrix3d = rotation_vector2.toRotationMatrix();
-        transformationX180Degree.block<3, 3>(0, 0) = tmpMatrix3d;
-        transformationX180Degree(3, 3) = 1;
 //        std::cout << ros::Time::now().toSec() << std::endl;
         graphSaved.addVertex(0, Eigen::Vector3d(0, 0, 0), Eigen::Quaterniond(1, 0, 0, 0),
                              Eigen::Vector3d(0, 0, 0), 0, ros::Time::now().toSec(),
@@ -65,7 +61,7 @@ public:
         this->saveGraphStructure = false;
         this->numberOfScan = 0;
         this->occupancyMap.createRandomMap();
-
+        this->scanDirectionReversed = scanDirectionReversed;
 
 //        hilbertMap mapRepresentation(256,128,
 //                                     60,hilbertMap::HINGED_FEATURES);
@@ -92,7 +88,7 @@ private:
     //Matrices:
     Eigen::Matrix4d currentTransformation;
     Eigen::Matrix4d initialGuessTransformation;
-    Eigen::Matrix4d transformationX180Degree;
+
 
     //EKF savings
     std::deque<edge> posDiffOverTimeEdges;
@@ -113,7 +109,7 @@ private:
     std::string saveStringGraph;
     int numberOfScan;
     hilbertMap occupancyMap;
-
+    bool scanDirectionReversed;
 
     void slamCallback(const geometry_msgs::PoseStamped &msg) {
         Eigen::Quaterniond tmpRot;
@@ -126,8 +122,12 @@ private:
     }
 
     void scanCallback(const ping360_sonar::SonarEcho::ConstPtr &msg) {
+
+
+        //std::cout << "Scan comes in: "<< std::endl;
         std::lock_guard<std::mutex> lock(this->graphSlamMutex);
         if (this->startTimeOfCorrection == 0) {
+            this->lastAngle = msg->angle/400.0*M_PI*2.0;
             this->beginningAngleOfRotation = msg->angle/400.0*M_PI*2.0;
             this->startTimeOfCorrection = msg->header.stamp.toSec();
             this->graphSaved.getVertexByIndex(0)->setTimeStamp(msg->header.stamp.toSec());
@@ -136,8 +136,17 @@ private:
         if (this->timeVector.empty()) {
             return;
         }
-        //we always assume positive turning sonars for now
-        if (this->lastAngle > msg->angle) {
+
+
+        bool shouldTheScanBeAdded;
+        if(scanDirectionReversed){
+            //negative rotation
+            shouldTheScanBeAdded=this->lastAngle < msg->angle/400.0*M_PI*2.0;
+        }else{
+            //positive rotation
+            shouldTheScanBeAdded = this->lastAngle > msg->angle/400.0*M_PI*2.0;
+        }
+        if (shouldTheScanBeAdded) {
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
             double timeDiffScans = msg->header.stamp.toSec() - this->startTimeOfCorrection;
             double lastTimeofScan = this->startTimeOfCorrection;//msg->header.stamp.toSec()-this->startTimeOfCorrection;
@@ -150,14 +159,19 @@ private:
                                              this->numberOfEdgesBetweenScans);
 
             //create point cloud based on scan
-            *this->currentScan = createPointCloudFromIntensities();
+            *this->currentScan = createPointCloudFromIntensities(10);
 
 
             this->graphSaved.getVertexList()->back().setPointCloudRaw(this->currentScan);
-
+            double endAngle;
+            if(scanDirectionReversed){
+                endAngle = 0;
+            }else{
+                endAngle = 2*M_PI;
+            }
             //correct the scan depending on the EKF callback
             slamToolsRos::correctPointCloudAtPos(this->graphSaved.getVertexList()->back().getVertexNumber(),
-                                                 this->graphSaved, this->beginningAngleOfRotation, 2 * M_PI, false,
+                                                 this->graphSaved, this->beginningAngleOfRotation, endAngle, this->scanDirectionReversed,
                                                  Eigen::Matrix4d::Identity());
 
             //find position of last pcl entry
@@ -178,7 +192,11 @@ private:
                 if (numberOfScan > 0) {
                     this->firstScan = false;
                 }
-                this->beginningAngleOfRotation = 0;
+                if(scanDirectionReversed){
+                    this->beginningAngleOfRotation = 2*M_PI;
+                }else{
+                    this->beginningAngleOfRotation = 0;
+                }
             } else {
 
 
@@ -193,15 +211,15 @@ private:
 //                std::cout << this->initialGuessTransformation << std::endl;
 //                double cellSize = 0.5;
                 double fitnessScoreX, fitnessScoreY;
-//                std::cout << "Initial Guess Angle: " << std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)) << std::endl;
-//                std::cout << "Initial Guess:" << std::endl;
-//                std::cout << this->initialGuessTransformation << std::endl;
+                std::cout << "Initial Guess Angle: " << std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)) << std::endl;
+                std::cout << "Initial Guess:" << std::endl;
+                std::cout << this->initialGuessTransformation << std::endl;
                 //we need inverse transformation
                 this->currentTransformation = scanRegistrationObject.sofftRegistration(
                         *this->previousScan, *this->graphSaved.getVertexList()->back().getPointCloudCorrected(),
                         fitnessScoreX, fitnessScoreY,
-                        std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)),
-                        false).inverse();
+                        -100,
+                        true).inverse();
 
                 double differenceAngleBeforeAfter = generalHelpfulTools::angleDiff(
                         std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)),
@@ -248,7 +266,11 @@ private:
                 pcl::PointCloud<pcl::PointXYZ>::Ptr tmpCloudPlotOnly(
                         new pcl::PointCloud<pcl::PointXYZ>);
                 *tmpCloudPlotOnly = *currentScan;
-                this->beginningAngleOfRotation = 0;
+                if(scanDirectionReversed){
+                    this->beginningAngleOfRotation = 2*M_PI;
+                }else{
+                    this->beginningAngleOfRotation = 0;
+                }
                 //pcl::transformPointCloud(*tmpCloudPlotOnly, *tmpCloudPlotOnly, transformationImu2PCL);
                 slamToolsRos::debugPlotting(this->previousScan, this->Final, tmpCloudPlotOnly,
                                             this->graphSaved.getVertexList()->back().getPointCloudCorrected(),
@@ -333,6 +355,7 @@ private:
     }
 
     void stateEstimationCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg) {
+        //std::cout << "EKF ComesIn: "<< std::endl;
         std::lock_guard<std::mutex> lock(this->stateEstimationMutex);
         double currentTimeStamp = msg->header.stamp.toSec();
         // calculate where to put the current new message
@@ -426,7 +449,7 @@ private:
         return tmpEdgeList;
     }
 
-    pcl::PointCloud<pcl::PointXYZ> createPointCloudFromIntensities() {
+    pcl::PointCloud<pcl::PointXYZ> createPointCloudFromIntensities(int ignoreFirstStepsOfIntensity = 4) {
 
         //stupid way to find pointcloud:
 
@@ -445,10 +468,12 @@ private:
         pcl::PointCloud<pcl::PointXYZ> returnCloud;
         for (int i = 0; i < this->sonarIntensityList.size(); i++) {
             for (int j = 0; j < this->sonarIntensityList[i].intensities.size(); j++) {
-                if (this->sonarIntensityList[i].intensities[j] > threashHoldIntensity && j > 4) {
+                if (this->sonarIntensityList[i].intensities[j] > threashHoldIntensity && j > ignoreFirstStepsOfIntensity) {
                     //calculate position of the point in xy coordinates
-                    double distanceFromRobot = (double) j * this->sonarIntensityList[i].range /
-                                               this->sonarIntensityList[i].number_of_samples;
+                    double distanceFromRobot = (double) j * this->sonarIntensityList[i].range/this->sonarIntensityList[i].number_of_samples;
+                    if(!std::isfinite(distanceFromRobot)){
+                        std::cout << "we got a problem" << std::endl;
+                    }
                     pcl::PointXYZ tmpPoint(distanceFromRobot * cos(this->sonarIntensityList[i].angle / 400 * 2 * M_PI),
                                            distanceFromRobot * sin(this->sonarIntensityList[i].angle / 400 * 2 * M_PI),
                                            0);
@@ -576,7 +601,7 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "ekfwithros");
     ros::start();
     ros::NodeHandle n_;
-    rosClassEKF rosClassForTests(n_);
+    rosClassEKF rosClassForTests(n_,true);
 
 
 //    ros::spin();
@@ -590,7 +615,7 @@ int main(int argc, char **argv) {
     while (ros::ok()) {
 //        ros::spinOnce();
 
-        rosClassForTests.updateHilbertMap();
+//        rosClassForTests.updateHilbertMap();
         loop_rate.sleep();
 
         //std::cout << ros::Time::now() << std::endl;

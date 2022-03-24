@@ -10,7 +10,10 @@ void ekfClassDVL::predictionImu(double xAccel, double yAccel, double zAccel, Eig
 
     // A-Matrix is zeros, except for the entries of transition between velocity and position.(there time diff since last prediction
     // update state
-
+//    std::cout << "xPos: " << currentStateBeforeUpdate[0] << std::endl;
+//    std::cout << "X-Vel: " <<  currentStateBeforeUpdate[0] << std::endl;
+//    std::cout << "########## State: " << std::endl;
+//    std::cout << currentStateBeforeUpdate << std::endl;
     Eigen::Vector3d bodyAcceleration(xAccel, yAccel, zAccel);
     // bodyAcceleration has to be changed to correct rotation(body acceleration)
     Eigen::Vector3d localAcceleration = this->getRotationVector() *
@@ -21,11 +24,11 @@ void ekfClassDVL::predictionImu(double xAccel, double yAccel, double zAccel, Eig
 //   std::cout << this->stateOfEKF.rotation.x()<<" "<<this->stateOfEKF.rotation.y()<<" "<<this->stateOfEKF.rotation.z() << std::endl;
     double timeDiff = (timeStamp - this->stateOfEKF.timeLastPrediction).toSec();
 
-    if (timeDiff > 0.1 || timeDiff < 0) {
-        timeDiff = 0.1;
+    if (timeDiff > 0.4 || timeDiff < 0) {
+        timeDiff = 0.4;
     }
     Eigen::MatrixXd A = Eigen::MatrixXd::Identity(12, 12);
-
+    //state Transition Matrix
     A(0, 3) = timeDiff;
     A(1, 4) = timeDiff;
     A(2, 5) = timeDiff;
@@ -100,6 +103,7 @@ void ekfClassDVL::updateIMU(double roll, double pitch, double xAngularVel, doubl
 void
 ekfClassDVL::updateDVL(double xVel, double yVel, double zVel, Eigen::Quaterniond rotationOfDVL, ros::Time timeStamp) {
     //for saving the current EKF pose difference in
+
     Eigen::VectorXd currentStateBeforeUpdate = this->stateOfEKF.getStatexyzvxvyvzrpyrvelpvelyvel();
 
 
@@ -118,17 +122,24 @@ ekfClassDVL::updateDVL(double xVel, double yVel, double zVel, Eigen::Quaterniond
     H(4, 4) = 1;
     H(5, 5) = 1;
     innovation = z - H * this->stateOfEKF.getStatexyzvxvyvzrpyrvelpvelyvel();//also y
+//    std::cout << "Inno: " <<std::endl;
 //    std::cout << innovation << std::endl;
     Eigen::MatrixXd S = H * this->stateOfEKF.covariance * H.transpose() + this->measurementNoiseDVL;
+//    std::cout << "S: " <<std::endl;
 //    std::cout << S << std::endl;
+//    std::cout << "S Inverse: " <<std::endl;
 //    std::cout << S.inverse() << std::endl;
     Eigen::MatrixXd K = this->stateOfEKF.covariance * H.transpose() * S.inverse();
+//    std::cout << "Covariance: " <<std::endl;
+//    std::cout << this->stateOfEKF.covariance << std::endl;
+//    std::cout << "K: " <<std::endl;
 //    std::cout << K << std::endl;
     Eigen::VectorXd newState = this->stateOfEKF.getStatexyzvxvyvzrpyrvelpvelyvel() + K * innovation;
 //    std::cout << "\n"<< std::endl;
 //    std::cout << newState<< std::endl;
     this->stateOfEKF.applyState(newState);
     this->stateOfEKF.covariance = (Eigen::MatrixXd::Identity(12, 12) - K * H) * this->stateOfEKF.covariance;
+//    std::cout << "DVL UPDATE: \n" << velocityLocalLinear <<std::endl;
 }
 
 void
@@ -153,6 +164,34 @@ ekfClassDVL::updateHeight(double depth,ros::Time timeStamp) {
     this->stateOfEKF.applyState(newState);
     this->stateOfEKF.covariance = (Eigen::MatrixXd::Identity(12, 12) - K * H) * this->stateOfEKF.covariance;
 }
+
+void
+ekfClassDVL::updateHeading(double yawRotation,ros::Time timeStamp) {
+    if(isnan(yawRotation)){
+        return;
+    }
+    //for saving the current EKF pose difference in
+    Eigen::VectorXd currentStateBeforeUpdate = this->stateOfEKF.getStatexyzvxvyvzrpyrvelpvelyvel();
+
+    std::cout << "yaw update: " << yawRotation<< std::endl;
+    std::cout << "before Update: "<<this->stateOfEKF.getStatexyzvxvyvzrpyrvelpvelyvel()[8] << std::endl;
+
+    Eigen::VectorXd innovation;
+    Eigen::VectorXd z = Eigen::VectorXd::Zero(12);
+    z(8) = yawRotation;
+    Eigen::MatrixXd H = Eigen::MatrixXd::Zero(12, 12);
+    H(8, 8) = 1;
+    innovation = this->innovationStateDiff(z, H, currentStateBeforeUpdate);//also y
+    Eigen::MatrixXd S = H * this->stateOfEKF.covariance * H.transpose() + this->measurementNoiseDepth;
+    Eigen::MatrixXd K = this->stateOfEKF.covariance * H.transpose() * S.inverse();
+    Eigen::VectorXd newState = this->stateOfEKF.getStatexyzvxvyvzrpyrvelpvelyvel() + K * innovation;
+    this->stateOfEKF.applyState(newState);
+    this->stateOfEKF.covariance = (Eigen::MatrixXd::Identity(12, 12) - K * H) * this->stateOfEKF.covariance;
+
+    std::cout << "after Update: "<<this->stateOfEKF.getStatexyzvxvyvzrpyrvelpvelyvel()[8] << std::endl;
+}
+
+
 
 pose ekfClassDVL::getState() {
     return this->stateOfEKF;
