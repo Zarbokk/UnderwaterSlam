@@ -13,6 +13,8 @@ public:
     static Eigen::Vector3d getRollPitchYaw(Eigen::Quaterniond quat);
     static Eigen::Quaterniond getQuaternionFromRPY(double roll, double pitch, double yaw);
     static double angleDiff(double first, double second);//first-second
+    static double weighted_mean(const std::vector<double> & data);
+    static void smooth_curve(const std::vector<double> & input, std::vector<double> & smoothedOutput, int window_half_width);
 };
 
 

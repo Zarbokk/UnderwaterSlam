@@ -55,6 +55,37 @@ void ekfClassDVL::predictionImu(double xAccel, double yAccel, double zAccel, Eig
 
 }
 
+void ekfClassDVL::simplePrediction(ros::Time timeStamp){
+    //for saving the current EKF pose difference in
+    double timeDiff = (timeStamp - this->stateOfEKF.timeLastPrediction).toSec();
+
+    if (timeDiff > 0.4 || timeDiff < 0) {
+        timeDiff = 0.4;
+    }
+    Eigen::MatrixXd A = Eigen::MatrixXd::Identity(12, 12);
+    //state Transition Matrix
+    A(0, 3) = timeDiff;
+    A(1, 4) = timeDiff;
+    A(2, 5) = timeDiff;
+    A(6, 9) = timeDiff;
+    A(7, 10) = timeDiff;
+    A(8, 11) = timeDiff;
+    Eigen::VectorXd state = this->stateOfEKF.getStatexyzvxvyvzrpyrvelpvelyvel();
+
+    state = A * state;
+    if (state(8) > M_PI) {
+        state(8) = state(8) - 2 * M_PI;
+    }
+    if (state(8) < -M_PI) {
+        state(8) = state(8) + 2 * M_PI;
+    }
+
+    this->stateOfEKF.applyState(state);
+    //update covariance
+    this->stateOfEKF.covariance = A * this->stateOfEKF.covariance * A.transpose() + processNoise;
+    this->stateOfEKF.timeLastPrediction = timeStamp;
+}
+
 void ekfClassDVL::updateIMU(double roll, double pitch, double xAngularVel, double yAngularVel, double zAngularVel,
                             Eigen::Quaterniond currentRotation,
                             ros::Time timeStamp) {

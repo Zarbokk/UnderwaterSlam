@@ -313,7 +313,7 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
     //calculate angle of every point
     std::vector<pclAngle> vectorOfPointsAngle;
     for (int i = 0; i <
-                    cloudScan->size(); i++) {//@TODO has to be corrected Last Point is always a positive angle and not under 2 pi
+                    cloudScan->size(); i++) {
         double currentAngle = fmod(2 * (double) M_PI + atan2(cloudScan->points[i].y, cloudScan->points[i].x), 2 * M_PI);
         pclAngle tmpPCL;
         tmpPCL.pointXyz = cloudScan->points[i];
@@ -452,9 +452,9 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
         int positionInArray = (int) (relativeTimestampDesired / (endTime - startTime) * (timeStepsForCorrection.size()-1));
         //positionInArray=positionInArray;
         //if scan direction is reserved calculate correct position in array
-        if (reverseScanDirection) {
-            positionInArray = listOfTransformations.size() - positionInArray - 1;
-        }
+//        if (reverseScanDirection) {
+//            positionInArray = listOfTransformations.size() - positionInArray - 1;
+//        }
 
         //@TODO interpolate between the two transformations( should be double, and then interpolate between two 4x4 matrices)
         currentPoint = listOfTransformations[positionInArray].inverse() * currentPoint;

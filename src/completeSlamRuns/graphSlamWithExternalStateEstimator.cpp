@@ -159,7 +159,7 @@ private:
                                              this->numberOfEdgesBetweenScans);
 
             //create point cloud based on scan
-            *this->currentScan = createPointCloudFromIntensities(10);
+            *this->currentScan = createPointCloudFromIntensitiesMatlab(10);
 
 
             this->graphSaved.getVertexList()->back().setPointCloudRaw(this->currentScan);
@@ -174,6 +174,11 @@ private:
                                                  this->graphSaved, this->beginningAngleOfRotation, endAngle, this->scanDirectionReversed,
                                                  Eigen::Matrix4d::Identity());
 
+            pcl::io::savePCDFileASCII("/home/tim-linux/dataFolder/newStPereDatasetCorrectionOnly/pclKeyFrame" + std::to_string(this->numberOfScan) + ".pcd",
+                                      *this->graphSaved.getVertexList()->back().getPointCloudCorrected());
+
+
+
             //find position of last pcl entry
             int positionLastPcl = 1;
             int sizeOfVertexList = this->graphSaved.getVertexList()->size();
@@ -187,6 +192,8 @@ private:
                 positionLastPcl++;
             }
             positionLastPcl++;
+
+
             if (this->firstScan) {
 //                *this->previousScan = *this->graphSaved.getVertexList()->back().getPointCloudCorrected();
                 if (numberOfScan > 0) {
@@ -210,16 +217,23 @@ private:
 //                std::cout << std::atan2(this->initialGuessTransformation(1,0),this->initialGuessTransformation(0,0))*180/M_PI << std::endl;
 //                std::cout << this->initialGuessTransformation << std::endl;
 //                double cellSize = 0.5;
+                std::cout<< "Transofrmation: "<< std::endl;
+                std::cout<< this->graphSaved.getVertexList()->at(sizeOfVertexList - positionLastPcl).getTransformation() << std::endl;
+                std::cout << " Last" << std::endl;
+                std::cout << this->graphSaved.getVertexList()->back().getTransformation() << std::endl;
+                std::cout << "interesting rotation: "<< std::endl;
+                Eigen::Matrix4d printingResult4d = this->graphSaved.getVertexList()->at(sizeOfVertexList - positionLastPcl).getTransformation().inverse()*this->graphSaved.getVertexList()->back().getTransformation();
+                std::cout << printingResult4d<< std::endl;
                 double fitnessScoreX, fitnessScoreY;
                 std::cout << "Initial Guess Angle: " << std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)) << std::endl;
                 std::cout << "Initial Guess:" << std::endl;
                 std::cout << this->initialGuessTransformation << std::endl;
                 //we need inverse transformation
-                this->currentTransformation = scanRegistrationObject.sofftRegistration(
-                        *this->previousScan, *this->graphSaved.getVertexList()->back().getPointCloudCorrected(),
-                        fitnessScoreX, fitnessScoreY,
-                        -100,
-                        true).inverse();
+//                this->currentTransformation = scanRegistrationObject.sofftRegistration(
+//                        *this->previousScan, *this->graphSaved.getVertexList()->back().getPointCloudCorrected(),
+//                        fitnessScoreX, fitnessScoreY,
+//                        -100,
+//                        true).inverse();
 
                 double differenceAngleBeforeAfter = generalHelpfulTools::angleDiff(
                         std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)),
@@ -247,20 +261,20 @@ private:
 
                 std::cout << "difference of angle after Registration: " << differenceAngleBeforeAfter << std::endl;
 
-                if (abs(differenceAngleBeforeAfter) < 10.0 / 180.0 * M_PI) {
-                    Eigen::Quaterniond qTMP(this->currentTransformation.block<3, 3>(0, 0));
-                    graphSaved.addEdge(this->graphSaved.getVertexList()->size() - positionLastPcl,
-                                       graphSaved.getVertexList()->size() - 1,
-                                       this->currentTransformation.block<3, 1>(0, 3), qTMP,
-                                       Eigen::Vector3d(fitnessScoreX, fitnessScoreY, 0),
-                                       0.1,
-                                       graphSlamSaveStructure::POINT_CLOUD_USAGE,
-                                       timeDiffScans * 0.1);//@TODO still not sure about size
-                } else {
-                    std::cout << "we just skipped that registration" << std::endl;
-                }
-//                pcl::io::savePCDFileASCII("/home/tim-linux/dataFolder/gazeboDataScansPCL/scanNumber_" + std::to_string(this->numberOfScan) + ".pcd",
-//                                          *this->graphSaved.getVertexList()->back().getPointCloudCorrected());
+//                if (abs(differenceAngleBeforeAfter) < 10.0 / 180.0 * M_PI) {
+//                    Eigen::Quaterniond qTMP(this->currentTransformation.block<3, 3>(0, 0));
+//                    graphSaved.addEdge(this->graphSaved.getVertexList()->size() - positionLastPcl,
+//                                       graphSaved.getVertexList()->size() - 1,
+//                                       this->currentTransformation.block<3, 1>(0, 3), qTMP,
+//                                       Eigen::Vector3d(fitnessScoreX, fitnessScoreY, 0),
+//                                       0.1,
+//                                       graphSlamSaveStructure::POINT_CLOUD_USAGE,
+//                                       timeDiffScans * 0.1);//@TODO still not sure about size
+//                } else {
+//                    std::cout << "we just skipped that registration" << std::endl;
+//                }
+
+
 
 //                pcl::io::savePCDFileASCII("/home/tim-linux/dataFolder/savingRandomPCL/secondPCL.pcd", *this->previousScan);
                 pcl::PointCloud<pcl::PointXYZ>::Ptr tmpCloudPlotOnly(
@@ -271,17 +285,22 @@ private:
                 }else{
                     this->beginningAngleOfRotation = 0;
                 }
+
+
+
+
+
                 //pcl::transformPointCloud(*tmpCloudPlotOnly, *tmpCloudPlotOnly, transformationImu2PCL);
                 slamToolsRos::debugPlotting(this->previousScan, this->Final, tmpCloudPlotOnly,
                                             this->graphSaved.getVertexList()->back().getPointCloudCorrected(),
                                             this->publisherLastPCL, this->publisherRegistrationPCL,
                                             this->publisherBeforeCorrection, this->publisherAfterCorrection);
-
+                std::cout << "After debug" << std::endl;
 //                slamToolsRos::detectLoopClosureSOFFT(this->graphSaved, this->sigmaScaling, timeDiffScans * 0.1,
 //                                                     this->scanRegistrationObject);//was 1.0
 
-                slamToolsRos::detectLoopClosureIPC(this->graphSaved, this->sigmaScaling, 1.0, timeDiffScans * 0.1,
-                                                   this->scanRegistrationObject);//was 1.0
+//                slamToolsRos::detectLoopClosureIPC(this->graphSaved, this->sigmaScaling, 1.0, timeDiffScans * 0.1,
+//                                                   this->scanRegistrationObject);//was 1.0
             }
             //add position and optimize/publish everything
 
@@ -330,7 +349,7 @@ private:
         }
 
 
-        this->lastAngle = msg->angle;
+        this->lastAngle = msg->angle/400.0*M_PI*2.0;
         this->sonarIntensityList.push_back(*msg);
 
         geometry_msgs::PoseStamped newMsg;
@@ -447,6 +466,77 @@ private:
             i++;
         }
         return tmpEdgeList;
+    }
+
+    pcl::PointCloud<pcl::PointXYZ> createPointCloudFromIntensitiesMatlab(int ignoreFirstStepsOfIntensity = 10){
+        struct intensityMeasurement {
+            double timeStamp;
+            double angle;//in rad
+            double increment;
+            int size;
+            std::vector<double> intensities;
+        };
+
+        //stupid way to find pointcloud:
+        std::vector<intensityMeasurement> intensityMeasurementsList;
+        //convert to intensityMeasurement
+        for (int i = 0; i < this->sonarIntensityList.size(); i++) {
+            intensityMeasurement tmpMeasurement;
+            tmpMeasurement.angle = this->sonarIntensityList[i].angle;
+            tmpMeasurement.timeStamp = this->sonarIntensityList[i].header.stamp.toSec();
+            tmpMeasurement.size = this->sonarIntensityList[i].intensities.size();
+            tmpMeasurement.increment = (double)this->sonarIntensityList[i].range/(double)this->sonarIntensityList[i].intensities.size();
+
+            std::vector<double> linearSubstract = slamToolsRos::linspace(0,30,this->sonarIntensityList[i].intensities.size());
+            for (int j = 0 ; j<this->sonarIntensityList[i].intensities.size();j++){
+                if(j<10){
+                    tmpMeasurement.intensities.push_back(0);
+                }else{
+                    double tmpIntensity = this->sonarIntensityList[i].intensities[j]-linearSubstract[j];
+                    if(tmpIntensity<0){
+                        tmpIntensity = 0;
+                    }
+                    tmpMeasurement.intensities.push_back(tmpIntensity);
+                }
+            }
+            intensityMeasurementsList.push_back(tmpMeasurement);
+        }
+
+        for(int i = 0 ; i< intensityMeasurementsList.size();i++){
+            std::vector<double> emptyVector;
+            generalHelpfulTools::smooth_curve(intensityMeasurementsList[i].intensities,emptyVector,3);
+            intensityMeasurementsList[i].intensities = emptyVector;
+            emptyVector.clear();
+
+            for(int j = 0 ; j<intensityMeasurementsList[i].intensities.size();j++){
+                if(intensityMeasurementsList[i].intensities[j]<25){
+                    intensityMeasurementsList[i].intensities[j] = 0;
+                }
+            }
+        }
+
+
+
+
+        double threashHoldIntensity = 45;
+        pcl::PointCloud<pcl::PointXYZ> returnCloud;
+        for (int i = 0; i < intensityMeasurementsList.size(); i++) {
+            for (int j = 0; j < intensityMeasurementsList[i].intensities.size(); j++) {
+                if (intensityMeasurementsList[i].intensities[j] > threashHoldIntensity && j > ignoreFirstStepsOfIntensity) {
+                    //calculate position of the point in xy coordinates
+                    double distanceFromRobot = (double) (j+1) * intensityMeasurementsList[i].increment;
+                    //std::cout << "angle: "<< intensityMeasurementsList[i].angle << std::endl;
+                    if(!std::isfinite(distanceFromRobot)){
+                        std::cout << "we got a problem" << std::endl;
+                    }
+                    pcl::PointXYZ tmpPoint(distanceFromRobot * cos(intensityMeasurementsList[i].angle / 400 * 2 * M_PI),
+                                           distanceFromRobot * sin(intensityMeasurementsList[i].angle / 400 * 2 * M_PI),
+                                           0);
+                    returnCloud.push_back(tmpPoint);
+                }
+            }
+        }
+        return (returnCloud);
     }
 
     pcl::PointCloud<pcl::PointXYZ> createPointCloudFromIntensities(int ignoreFirstStepsOfIntensity = 4) {

@@ -374,6 +374,10 @@ void graphSlamSaveStructure::addVertex(int vertexNumber, const Eigen::Vector3d &
                                        double timeStamp,
                                        int typeOfVertex) {
 
+//    if(rotationVertex.norm()>1){
+//        std::cout << "some norm bigger than 1" << std::endl;
+//    }
+
     vertex vertexToAdd(vertexNumber, positionVertex, rotationVertex, this->degreeOfFreedom,
                        covariancePosition, covarianceQuaternion, timeStamp, typeOfVertex);
     this->numberOfVertex += 1;
@@ -408,7 +412,9 @@ void graphSlamSaveStructure::addVertex(int vertexNumber, const Eigen::Vector3d &
                                        const Eigen::Vector3d &covariancePosition, const double covarianceQuaternion,
                                        pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloud, double timeStamp,
                                        int typeOfVertex) {
-
+//    if(rotationVertex.norm()>1){
+//        std::cout << "some norm bigger than 1" << std::endl;
+//    }
     vertex vertexToAdd(vertexNumber, positionVertex, rotationVertex, this->degreeOfFreedom,
                        pointCloud, covariancePosition, covarianceQuaternion, timeStamp, typeOfVertex);
     this->numberOfVertex += 1;

@@ -268,7 +268,7 @@ main(int argc, char **argv) {
                     publisherVelocityBody.publish(msg);
                     bodyVelocitySorted.pop_front();
                 }
-                ros::Duration(0.03).sleep();
+                ros::Duration(0.001).sleep();
             }
             //some kind of sleep necessary.
             std::cout << "next: " << currentKeyFrame << std::endl;

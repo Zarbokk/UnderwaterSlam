@@ -193,7 +193,7 @@ void loadCSVFiles(std::deque<groundTruthData> &groundTruthSorted,
                   std::deque<double> &keyFramesTimeStampes, std::string &folderExperiment, std::string const HOME, double removeLinesUntil) {
 
 
-    std::ifstream fileGroundTruth(HOME + folderExperiment + "/GTData.csv");
+    std::ifstream fileGroundTruth(HOME + folderExperiment + "/GTDataInterpolated.csv");
     if (fileGroundTruth.fail()) {
         std::cout << "fileGroundTruth file not found" << std::endl;
         exit(-1);
@@ -222,14 +222,14 @@ void loadCSVFiles(std::deque<groundTruthData> &groundTruthSorted,
 
 
     //keyframes are always -1
-    groundTruthSorted = parseCSVFileGT(fileGroundTruth, removeLinesUntil);
+    groundTruthSorted = parseCSVFileGT(fileGroundTruth, removeLinesUntil-5);
 
     Eigen::Matrix4d tranformationMatrixIMU;
     Eigen::AngleAxisd rotation_vectorz(-90 / 180.0 * M_PI, Eigen::Vector3d(0, 0, 1));
     Eigen::Matrix3d tmpMatrix3d = rotation_vectorz.toRotationMatrix();
     tranformationMatrixIMU.block<3, 3>(0, 0) = tmpMatrix3d;
     tranformationMatrixIMU(3, 3) = 1;
-    ImuSorted = parseCSVFileIMU(fileAngularVelocity, tranformationMatrixIMU, removeLinesUntil);
+    ImuSorted = parseCSVFileIMU(fileAngularVelocity, tranformationMatrixIMU, removeLinesUntil-5);
 
     Eigen::Matrix4d tranformationMatrixDVL;
     Eigen::AngleAxisd rotation_vectorzDVL(60 / 180.0 * M_PI, Eigen::Vector3d(0, 0, 1));
@@ -238,14 +238,16 @@ void loadCSVFiles(std::deque<groundTruthData> &groundTruthSorted,
     tmpMatrix3d = rotation_vectorxDVL.toRotationMatrix() * tmpMatrix3d;
     tranformationMatrixDVL.block<3, 3>(0, 0) = tmpMatrix3d;
     tranformationMatrixDVL(3, 3) = 1;
-    bodyVelocitySorted = parseCSVFileDVL(fileBodyVelocity, tranformationMatrixDVL, removeLinesUntil);
-    keyFramesTimeStampes = parseCSVFileKeyFramesTimeStamps(fileKeyframesDefined, removeLinesUntil);
+    bodyVelocitySorted = parseCSVFileDVL(fileBodyVelocity, tranformationMatrixDVL, removeLinesUntil-5);
+    keyFramesTimeStampes = parseCSVFileKeyFramesTimeStamps(fileKeyframesDefined, removeLinesUntil-5);
     intensitySonarSorted = parseCSVFileIntensityTimeStamps(fileKeyIntensityDefined, removeLinesUntil);
 }
 
 
 int
 main(int argc, char **argv) {
+
+
 
     std::string const HOME = std::getenv("HOME") ? std::getenv("HOME") : ".";//home path
 
@@ -266,7 +268,7 @@ main(int argc, char **argv) {
     std::deque<DvlData> bodyVelocitySorted;
     std::deque<intensityMeasurement> intensitySonarSorted;
     std::deque<double> keyFramesTimeStampesSorted;
-    double removeLinesUntil = 1093455407.03;
+    double removeLinesUntil = 1093455407.17;
     loadCSVFiles(groundTruthSorted, IMUSorted, bodyVelocitySorted, intensitySonarSorted, keyFramesTimeStampesSorted,
                  folderExperiment, HOME,removeLinesUntil);
     //std::cout << IMUSorted.size() << std::endl;
@@ -333,7 +335,7 @@ main(int argc, char **argv) {
                     ping360_sonar::SonarEcho msg;
                     msg.header.stamp = ros::Time(intensitySonarSorted[0].timeStamp);
                     msg.angle = intensitySonarSorted[0].angle*200/M_PI;
-
+                    msg.step_size = 0.1;
                     msg.range = 50;
                     for (int k = 0; k < intensitySonarSorted[0].intensities.size(); k++) {
                         msg.intensities.push_back(intensitySonarSorted[0].intensities[k]);
@@ -355,7 +357,7 @@ main(int argc, char **argv) {
                 }
             }
         }
-        ros::Duration(0.01).sleep();
+        ros::Duration(0.002).sleep();
     }
 
     return (0);

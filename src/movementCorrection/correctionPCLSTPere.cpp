@@ -129,7 +129,7 @@ main(int argc, char **argv) {
 
     //initialize hierachical slam
     std::deque<double> subgraphs{1, 3};
-    graphSaved.initiallizeSubGraphs(subgraphs);
+    graphSaved.initiallizeSubGraphs(subgraphs,1);
 
     for (int currentKeyFrame = 2; currentKeyFrame < groundTruthSorted.size(); currentKeyFrame++) {
     //for (int currentKeyFrame = 2; currentKeyFrame < 55; currentKeyFrame++) {
