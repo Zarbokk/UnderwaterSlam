@@ -20,16 +20,19 @@ int main(int argc, char **argv) {
         //std::cout << "temp1" << std::endl;
         all_args.assign(argv + 1, argv + argc);
         //std::cout << "12"<< all_args[1]<<std::endl;
+    }else{
+        std::cout << "no arguments given" << std::endl;
+        exit(-1);
     }
 
 //    for(int i=0;i<all_args.size();i++){
 //        std::cout << "here: "<< i << " string: " << all_args[i]<< std::endl;
 //    }
-    std::cout<< "test" << std::endl;
-    std::cout << "Keyframe: " << all_args[0]<< std::endl;
-    std::cout<< "test1" << std::endl;
-    std::cout << "Keyframe: " << all_args[1]<< std::endl;
-    std::cout<< "test2" << std::endl;
+//    std::cout<< "test" << std::endl;
+//    std::cout << "Keyframe: " << all_args[0]<< std::endl;
+//    std::cout<< "test1" << std::endl;
+//    std::cout << "Keyframe: " << all_args[1]<< std::endl;
+//    std::cout<< "test2" << std::endl;
 
 
 

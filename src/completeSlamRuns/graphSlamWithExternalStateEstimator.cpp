@@ -11,6 +11,7 @@
 #include <slamToolsRos.h>
 #include "commonbluerovmsg/saveGraph.h"
 #include <hilbertMap.h>
+#include "gazebo_msgs/ModelStates.h"
 
 class rosClassEKF {
 public:
@@ -24,7 +25,7 @@ public:
 //        subscriberDepth = n_.subscribe("mavros/altitude_frd", 1000, &rosClassEKF::depthCallback, this);
         subscriberIntensitySonar = n_.subscribe("sonar/intensity", 1000, &rosClassEKF::scanCallback, this);
         this->serviceSaveGraph = n_.advertiseService("saveGraphOfSLAM", &rosClassEKF::saveGraph, this);
-
+        this->subscriberGroundTruth = n_.subscribe("gazebo/model_states", 1000, &rosClassEKF::callbackGT, this);
 
 //        publisherPoseEkf = n_.advertise<geometry_msgs::PoseStamped>("publisherPoseEkf", 10);
 //        publisherTwistEkf = n_.advertise<geometry_msgs::TwistStamped>("publisherTwistEkf", 10);
@@ -72,11 +73,12 @@ public:
 
 private:
 
-    ros::Subscriber subscriberEKF, subscriberIntensitySonar;
+    ros::Subscriber subscriberEKF, subscriberIntensitySonar, subscriberGroundTruth;
     ros::Publisher publisherPoseSLAM, publisherOccupancyMap;
     ros::ServiceServer serviceSaveGraph;
     std::mutex stateEstimationMutex;
     std::mutex graphSlamMutex;
+    std::mutex groundTruthMutex;
     //GraphSlam things
     ros::Publisher publisherKeyFrameClouds, publisherPathOverTime, publisherMarkerArray, publisherPathOverTimeGT, publisherMarkerArrayLoopClosures, publisherLastPCL, publisherRegistrationPCL, publisherBeforeCorrection, publisherAfterCorrection;
 
@@ -88,7 +90,8 @@ private:
     //Matrices:
     Eigen::Matrix4d currentTransformation;
     Eigen::Matrix4d initialGuessTransformation;
-
+    Eigen::Vector3d currentGTPos;
+    Eigen::Quaterniond currentGTRot;
 
     //EKF savings
     std::deque<edge> posDiffOverTimeEdges;
@@ -174,8 +177,10 @@ private:
                                                  this->graphSaved, this->beginningAngleOfRotation, endAngle, this->scanDirectionReversed,
                                                  Eigen::Matrix4d::Identity());
 
-            pcl::io::savePCDFileASCII("/home/tim-linux/dataFolder/newStPereDatasetCorrectionOnly/pclKeyFrame" + std::to_string(this->numberOfScan) + ".pcd",
+            pcl::io::savePCDFileASCII("/home/tim-linux/dataFolder/gazeboCorrectedPCLs/pclKeyFrame" + std::to_string(this->numberOfScan) + ".pcd",
                                       *this->graphSaved.getVertexList()->back().getPointCloudCorrected());
+
+            saveCurrentPose(this->numberOfScan);
 
 
 
@@ -656,6 +661,50 @@ private:
         return true;
     }
 
+    void callbackGT(const gazebo_msgs::ModelStates::ConstPtr &msg){
+
+        int indexOfBlueROV=0;
+        for(int i = 0 ; i<msg->name.size();i++){
+            if(msg->name.at(i)=="uuv_bluerov2_heavy"){
+                indexOfBlueROV = i;
+                break;
+            }
+        }
+        std::lock_guard<std::mutex> lock(this->groundTruthMutex);
+//        Eigen::Vector3d currentGTPos;
+//        Eigen::Quaterniond currentGTRot;
+        this->currentGTPos.x()= msg->pose.at(indexOfBlueROV).position.x;
+        this->currentGTPos.y()= msg->pose.at(indexOfBlueROV).position.y;
+        this->currentGTPos.z()= msg->pose.at(indexOfBlueROV).position.z;
+
+        this->currentGTRot.x()= msg->pose.at(indexOfBlueROV).orientation.x;
+        this->currentGTRot.y()= msg->pose.at(indexOfBlueROV).orientation.y;
+        this->currentGTRot.z()= msg->pose.at(indexOfBlueROV).orientation.z;
+        this->currentGTRot.w()= msg->pose.at(indexOfBlueROV).orientation.w;
+
+
+    }
+
+    void saveCurrentPose(int currentNumberOfScan){
+        std::lock_guard<std::mutex> lock(this->groundTruthMutex);
+        std::ofstream myFile1;
+        myFile1.open("/home/tim-linux/dataFolder/gazeboCorrectedPCLs/position" + std::to_string(this->numberOfScan) + ".csv");
+        myFile1 << this->currentGTPos.x(); //
+        myFile1 << "\n";
+        myFile1 << this->currentGTPos.y(); //
+        myFile1 << "\n";
+        myFile1 << this->currentGTPos.z(); //
+        myFile1 << "\n";
+        Eigen::Vector3d rpyTMP = generalHelpfulTools::getRollPitchYaw(currentGTRot);
+        myFile1 << rpyTMP(0); //
+        myFile1 << "\n";
+        myFile1 << rpyTMP(1); //
+        myFile1 << "\n";
+        myFile1 << rpyTMP(2); //
+        myFile1 << "\n";
+        myFile1.close();
+    }
+
 public:
     void updateHilbertMap(){
         int numberOfPointsDataset = 5000;
@@ -691,7 +740,7 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "ekfwithros");
     ros::start();
     ros::NodeHandle n_;
-    rosClassEKF rosClassForTests(n_,true);
+    rosClassEKF rosClassForTests(n_,false);
 
 
 //    ros::spin();
