@@ -112,5 +112,5 @@ target_link_libraries(stPereDatasetPublishingIntensities fftw3 ${PCL_LIBRARIES} 
 #add_executable(correctionPCL src/movementCorrection/correctionPCLSTPere.cpp ${SOURCE_FILES})
 #target_link_libraries(correctionPCL fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-add_executable(registrationStPereDataset src/registration/registrationOfStPereOnlyMatching.cpp ${SOURCE_FILES})
-target_link_libraries(registrationStPereDataset fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+add_executable(registrationOfTwoPCLs src/registration/registrationOfTwoScans.cpp ${SOURCE_FILES})
+target_link_libraries(registrationOfTwoPCLs fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})

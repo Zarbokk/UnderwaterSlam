@@ -13,6 +13,7 @@
 #include <hilbertMap.h>
 #include "gazebo_msgs/ModelStates.h"
 
+std::string DataFolder = "/home/tim-linux/dataFolder/gazeboCorrectedEvenAnglesPCLs_2_75/";
 class rosClassEKF {
 public:
     rosClassEKF(ros::NodeHandle n_,bool scanDirectionReversed = false) : graphSaved(3),
@@ -177,7 +178,7 @@ private:
                                                  this->graphSaved, this->beginningAngleOfRotation, endAngle, this->scanDirectionReversed,
                                                  Eigen::Matrix4d::Identity());
 
-            pcl::io::savePCDFileASCII("/home/tim-linux/dataFolder/gazeboCorrectedPCLs/pclKeyFrame" + std::to_string(this->numberOfScan) + ".pcd",
+            pcl::io::savePCDFileASCII( DataFolder + "pclKeyFrame" + std::to_string(this->numberOfScan) + ".pcd",
                                       *this->graphSaved.getVertexList()->back().getPointCloudCorrected());
 
             saveCurrentPose(this->numberOfScan);
@@ -688,20 +689,21 @@ private:
     void saveCurrentPose(int currentNumberOfScan){
         std::lock_guard<std::mutex> lock(this->groundTruthMutex);
         std::ofstream myFile1;
-        myFile1.open("/home/tim-linux/dataFolder/gazeboCorrectedPCLs/position" + std::to_string(this->numberOfScan) + ".csv");
+        myFile1.open(DataFolder + "position" + std::to_string(this->numberOfScan) + ".csv");
         myFile1 << this->currentGTPos.x(); //
         myFile1 << "\n";
         myFile1 << this->currentGTPos.y(); //
         myFile1 << "\n";
         myFile1 << this->currentGTPos.z(); //
         myFile1 << "\n";
-        Eigen::Vector3d rpyTMP = generalHelpfulTools::getRollPitchYaw(currentGTRot);
-        myFile1 << rpyTMP(0); //
-        myFile1 << "\n";
-        myFile1 << rpyTMP(1); //
-        myFile1 << "\n";
-        myFile1 << rpyTMP(2); //
-        myFile1 << "\n";
+
+        Eigen::Matrix3d rotationTMP(currentGTRot);
+        //std::cout << "our first rotation" << std::endl;
+        //std::cout << rotationTMP << std::endl;
+        for(int i = 0 ; i<9;i++){
+            myFile1 << rotationTMP.data()[i]; //
+            myFile1 << "\n";
+        }
         myFile1.close();
     }
 

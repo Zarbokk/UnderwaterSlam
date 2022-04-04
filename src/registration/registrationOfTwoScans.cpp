@@ -55,9 +55,9 @@ int main(int argc, char **argv) {
             all_args[1],
             *scan2);
     double fitnessX,fitnessY;
-    Eigen::Matrix4d estimatedTransformation = scanRegistrationObject.sofftRegistration(*scan1,*scan2,fitnessX,fitnessY,-100,false);
+    Eigen::Matrix4d estimatedTransformation = scanRegistrationObject.sofftRegistration(*scan1,*scan2,fitnessX,fitnessY,-100,true);
 
-    scanRegistrationObject.sofftRegistration(*scan1,*scan2,fitnessX,fitnessY,std::atan2(estimatedTransformation(1, 0), estimatedTransformation(0, 0)),true);
+    //scanRegistrationObject.sofftRegistration(*scan1,*scan2,fitnessX,fitnessY,std::atan2(estimatedTransformation(1, 0), estimatedTransformation(0, 0)),true);
 
 //        printf("Press [Enter] key to continue.\n");
 
