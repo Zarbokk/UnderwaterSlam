@@ -14,6 +14,7 @@
 #include "gazebo_msgs/ModelStates.h"
 
 std::string DataFolder = "/home/tim-linux/dataFolder/gazeboCorrectedEvenAnglesPCLs_2_75/";
+
 class rosClassEKF {
 public:
     rosClassEKF(ros::NodeHandle n_,bool scanDirectionReversed = false) : graphSaved(3),

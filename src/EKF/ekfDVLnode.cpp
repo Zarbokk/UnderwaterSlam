@@ -25,7 +25,7 @@ public:
             this->subscriberIMU = n_.subscribe("mavros/imu/data_frd", 1000, &rosClassEKF::imuCallback, this);
         }
 
-        this->subscriberEKF = n_.subscribe("transducer_report", 1000, &rosClassEKF::DVLCallbackDVL, this);
+        this->subscriberEKF = n_.subscribe("dvl/transducer_report", 1000, &rosClassEKF::DVLCallbackDVL, this);
         this->subscriberVelocityMavros = n_.subscribe("mavros/local_position/velocity_body_frd", 1000, &rosClassEKF::DVLCallbackMavros, this);
         this->subscriberDepth = n_.subscribe("mavros/altitude_frd", 1000, &rosClassEKF::depthSensorCallback, this);
         this->subscriberHeading = n_.subscribe("magnetic_heading", 1000, &rosClassEKF::headingCallback, this);
@@ -160,28 +160,28 @@ int main(int argc, char **argv) {
     ros::NodeHandle n_;
 
     std::string s;
-    if (n_.getParam("/EKFDVL/imu_used", s))
-    {
-        ROS_INFO("IMU used is: %s", s.c_str());
-    }
-    else
-    {
-        std::vector<std::string> keys;
-        n_.getParamNames(keys);
+//    if (n_.getParam("/EKFDVL/imu_used", s))
+//    {
+//        ROS_INFO("IMU used is: %s", s.c_str());
+//    }
+//    else
+//    {
+//        std::vector<std::string> keys;
+//        n_.getParamNames(keys);
+//
+//        for(int i = 0;i<keys.size();i++){
+//            std::cout << keys[i]<< std::endl;
+//        }
+//
+//        ROS_ERROR("Failed to get IMU parameter, which to use");
+//    }
+//
+//    if(s!="external" && s!="px4"){
+//        ROS_ERROR("You have to use px4 or external as parameter for imu_used");
+//        exit(-1);
+//    }
 
-        for(int i = 0;i<keys.size();i++){
-            std::cout << keys[i]<< std::endl;
-        }
-
-        ROS_ERROR("Failed to get IMU parameter, which to use");
-    }
-
-    if(s!="external" && s!="px4"){
-        ROS_ERROR("You have to use px4 or external as parameter for imu_used");
-        exit(-1);
-    }
-
-    rosClassEKF rosClassForTests(n_,3.14159 / 4.0,s);
+    rosClassEKF rosClassForTests(n_,3.14159 / 4.0,"external");
 
     ros::spin();
 
