@@ -23,7 +23,7 @@ public:
 
 //        lastUpdateEkf = currentEkf.copyEKF();
 //        subscriberIMU = n_.subscribe("mavros/imu/data_frd", 1000, &rosClassEKF::imuCallback, this);
-        subscriberEKF = n_.subscribe("publisherPoseEkf", 1000, &rosClassEKF::stateEstimationCallback, this);
+        subscriberDVL = n_.subscribe("publisherPoseEkf", 1000, &rosClassEKF::stateEstimationCallback, this);
 //        subscriberDepth = n_.subscribe("mavros/altitude_frd", 1000, &rosClassEKF::depthCallback, this);
         subscriberIntensitySonar = n_.subscribe("sonar/intensity", 1000, &rosClassEKF::scanCallback, this);
         this->serviceSaveGraph = n_.advertiseService("saveGraphOfSLAM", &rosClassEKF::saveGraph, this);
@@ -75,7 +75,7 @@ public:
 
 private:
 
-    ros::Subscriber subscriberEKF, subscriberIntensitySonar, subscriberGroundTruth;
+    ros::Subscriber subscriberDVL, subscriberIntensitySonar, subscriberGroundTruth;
     ros::Publisher publisherPoseSLAM, publisherOccupancyMap;
     ros::ServiceServer serviceSaveGraph;
     std::mutex stateEstimationMutex;

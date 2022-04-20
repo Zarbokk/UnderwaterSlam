@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="underwaterslam" type="EKFDVL" name="EKFDVL" output="screen" required="false">
+            <param name="/imu_used"  type="str" value="px4" />
+            <param name="/dvl_used"  type="str" value="gazebo" />
+    </node>
+</launch>

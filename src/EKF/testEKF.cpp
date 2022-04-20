@@ -13,7 +13,7 @@ public:
     rosClassEKF(ros::NodeHandle n_) : currentEkf(ros::Time::now()), lastUpdateEkf(ros::Time::now()) {
         lastUpdateEkf = currentEkf.copyEKF();
         subscriberIMU = n_.subscribe("mavros/imu/data_frd", 1000, &rosClassEKF::imuCallback, this);
-        subscriberEKF = n_.subscribe("mavros/local_position/velocity_body_frd", 1000, &rosClassEKF::DVLCallback, this);
+        subscriberDVL = n_.subscribe("mavros/local_position/velocity_body_frd", 1000, &rosClassEKF::DVLCallback, this);
         subscriberDepth = n_.subscribe("mavros/altitude_frd", 1000, &rosClassEKF::depthCallback, this);
         subscriberSlamResults = n_.subscribe("slam_results", 1000, &rosClassEKF::slamCallback, this);
 
@@ -27,7 +27,7 @@ private:
     std::deque<mavros_msgs::Altitude::ConstPtr> depthDeque;
     std::deque<geometry_msgs::TwistStamped::ConstPtr> dvlDeque;
     ekfClass currentEkf, lastUpdateEkf;
-    ros::Subscriber subscriberIMU, subscriberDepth, subscriberEKF, subscriberSlamResults;
+    ros::Subscriber subscriberIMU, subscriberDepth, subscriberDVL, subscriberSlamResults;
     ros::Publisher publisherPoseEkf, publisherTwistEkf;
     std::mutex updateSlamMutex;
 

@@ -17,16 +17,30 @@
 
 class rosClassEKF {
 public:
-    rosClassEKF(ros::NodeHandle n_, double rotationOfDVLZ,std::string imuUsage) : currentEkf(ros::Time::now()) {
+    rosClassEKF(ros::NodeHandle n_, double rotationOfDVLZ,std::string imuUsage, std::string dvlUsage) : currentEkf(ros::Time::now()) {
         this->rotationOfDVL = Eigen::AngleAxisd(rotationOfDVLZ, Eigen::Vector3d::UnitZ());//yaw rotation for correct alignment of DVL data;
+        //std::cout << "we are here" << std::endl;
+        //std::cout << imuUsage << std::endl;
         if(imuUsage == "external"){
+            std::cout << "External IMU used for EKF" << std::endl;
             this->subscriberIMU = n_.subscribe("imu/data_frd", 1000, &rosClassEKF::imuCallback, this);
         }else{
+            std::cout << "Mavros IMU used for EKF" << std::endl;
             this->subscriberIMU = n_.subscribe("mavros/imu/data_frd", 1000, &rosClassEKF::imuCallback, this);
         }
 
-        this->subscriberEKF = n_.subscribe("dvl/transducer_report", 1000, &rosClassEKF::DVLCallbackDVL, this);
-        this->subscriberVelocityMavros = n_.subscribe("mavros/local_position/velocity_body_frd", 1000, &rosClassEKF::DVLCallbackMavros, this);
+        if(dvlUsage == "external"){
+            std::cout << "External DVL used for EKF" << std::endl;
+            this->subscriberDVL = n_.subscribe("dvl/transducer_report", 1000, &rosClassEKF::DVLCallbackDVL, this);
+        }else{
+            std::cout << "Mavros IMU used for EKF" << std::endl;
+            this->subscriberVelocityMavros = n_.subscribe("simulatedDVL", 1000, &rosClassEKF::DVLCallbackSimulation, this);
+        }
+
+
+
+
+
         this->subscriberDepth = n_.subscribe("mavros/altitude_frd", 1000, &rosClassEKF::depthSensorCallback, this);
         this->subscriberHeading = n_.subscribe("magnetic_heading", 1000, &rosClassEKF::headingCallback, this);
 
@@ -42,7 +56,7 @@ private:
 //    std::deque<mavros_msgs::Altitude::ConstPtr> depthDeque;
 //    std::deque<geometry_msgs::TwistStamped::ConstPtr> dvlDeque;
     ekfClassDVL currentEkf;
-    ros::Subscriber subscriberIMU, subscriberDepth, subscriberHeading, subscriberEKF, subscriberSlamResults,subscriberVelocityMavros;
+    ros::Subscriber subscriberIMU, subscriberDepth, subscriberHeading, subscriberDVL, subscriberSlamResults,subscriberVelocityMavros;
     ros::Publisher publisherPoseEkf, publisherTwistEkf;
     std::mutex updateSlamMutex;
     Eigen::Quaterniond rotationOfDVL;
@@ -116,13 +130,13 @@ private:
         this->updateSlamMutex.unlock();
     }
 
-    void DVLCallbackMavrosHelper(const geometry_msgs::TwistStamped::ConstPtr &msg) {
-        this->currentEkf.updateDVL(msg->twist.linear.x, msg->twist.linear.y, msg->twist.linear.z, Eigen::Quaterniond(1,0,0,0), msg->header.stamp);
+    void DVLCallbackSimulationHelper(const geometry_msgs::Vector3Stamped::ConstPtr &msg) {
+        this->currentEkf.updateDVL(msg->vector.x, msg->vector.y, msg->vector.z, Eigen::Quaterniond(1,0,0,0), msg->header.stamp);
     }
 
-    void DVLCallbackMavros(const geometry_msgs::TwistStamped::ConstPtr  &msg) {
+    void DVLCallbackSimulation(const geometry_msgs::Vector3Stamped::ConstPtr  &msg) {
         this->updateSlamMutex.lock();
-        this->DVLCallbackMavrosHelper(msg);
+        this->DVLCallbackSimulationHelper(msg);
         this->updateSlamMutex.unlock();
     }
 
@@ -152,7 +166,10 @@ private:
     void headingHelper(const geometry_msgs::Vector3Stamped::ConstPtr  &msg){
         this->currentEkf.updateHeading(msg->vector.z,msg->header.stamp);
     };
-
+    void getPoseOfEKF(){
+        pose EKFPose = this->currentEkf.getState();
+        EKFPose.position.x();
+    }
 };
 
 
@@ -164,32 +181,61 @@ int main(int argc, char **argv) {
     ros::start();
     ros::NodeHandle n_;
 
-    std::string s;
-//    if (n_.getParam("/EKFDVL/imu_used", s))
-//    {
-//        ROS_INFO("IMU used is: %s", s.c_str());
-//    }
-//    else
-//    {
-//        std::vector<std::string> keys;
-//        n_.getParamNames(keys);
-//
-//        for(int i = 0;i<keys.size();i++){
-//            std::cout << keys[i]<< std::endl;
-//        }
-//
-//        ROS_ERROR("Failed to get IMU parameter, which to use");
-//    }
-//
-//    if(s!="external" && s!="px4"){
-//        ROS_ERROR("You have to use px4 or external as parameter for imu_used");
-//        exit(-1);
-//    }
+    std::string whichIMUUsed;
+    if (n_.getParam("/EKFDVL/imu_used", whichIMUUsed))
+    {
+        ROS_INFO("IMU used is: %s", whichIMUUsed.c_str());
+    }
+    else
+    {
+        std::vector<std::string> keys;
+        n_.getParamNames(keys);
 
-    rosClassEKF rosClassForTests(n_,3.14159 / 4.0,"external");
+        for(int i = 0;i<keys.size();i++){
+            std::cout << keys[i]<< std::endl;
+        }
+        ROS_ERROR("Failed to get IMU parameter, which to use");
+    }
 
+    if(whichIMUUsed != "external" && whichIMUUsed != "px4"){
+        ROS_ERROR("You have to use px4 or external as parameter for imu_used");
+        exit(-1);
+    }
+
+    std::string whichDVLUsed;
+    if (n_.getParam("/EKFDVL/dvl_used", whichDVLUsed))
+    {
+        ROS_INFO("DVL used is: %s", whichDVLUsed.c_str());
+    }
+    else
+    {
+        std::vector<std::string> keys;
+        n_.getParamNames(keys);
+
+        for(int i = 0;i<keys.size();i++){
+            std::cout << keys[i]<< std::endl;
+        }
+        ROS_ERROR("Failed to get DVL parameter, which to use");
+    }
+
+    if(whichDVLUsed != "external" && whichDVLUsed != "gazebo"){
+        ROS_ERROR("You have to use gazebo or external as parameter for dvl_used");
+        exit(-1);
+    }
+
+
+    rosClassEKF rosClassEKFObject(n_,3.14159 / 4.0, whichIMUUsed,whichDVLUsed);
     ros::spin();
 
+
+    //sending position to Mavros mavros/vision_pose/pose
+    ros::Publisher publisherPoseEkf = n_.advertise<geometry_msgs::PoseStamped>("mavros/vision_pose/pose", 10);
+    geometry_msgs::PoseStamped msg_vicon_pose;
+    msg_vicon_pose.header.stamp = ros::Time::now();
+    msg_vicon_pose.header.frame_id = "map_ned"; //optional. Works fine without frame_id
+    msg_vicon_pose.pose.position.x = 1;
+    msg_vicon_pose.pose.position.y = 2;
+    msg_vicon_pose.pose.position.z = 300;
 
     return (0);
 }
