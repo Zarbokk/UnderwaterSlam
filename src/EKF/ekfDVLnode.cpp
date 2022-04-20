@@ -102,7 +102,12 @@ private:
     }
 
     void DVLCallbackDVLHelper(const waterlinked_dvl::TransducerReportStamped::ConstPtr &msg) {
-        this->currentEkf.updateDVL(msg->report.vx, msg->report.vy, msg->report.vz, this->rotationOfDVL, msg->header.stamp);
+        if (msg->report.status == -1){
+            //if we dont know anything, the ekf should just go to 0, else the IMU gives direction.
+            this->currentEkf.updateDVL(0, 0, 0, this->rotationOfDVL, msg->header.stamp);
+        }else{
+            this->currentEkf.updateDVL(msg->report.vx, msg->report.vy, msg->report.vz, this->rotationOfDVL, msg->header.stamp);
+        }
     }
 
     void DVLCallbackDVL(const waterlinked_dvl::TransducerReportStamped::ConstPtr &msg) {

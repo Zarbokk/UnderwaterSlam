@@ -58,11 +58,31 @@ int main(int argc, char **argv) {
     Eigen::Matrix4d initialGuess = Eigen::Matrix4d::Identity();
     Eigen::Matrix3d m(generalHelpfulTools::getQuaternionFromRPY(0,0,initialGuessAngleYaw));
     initialGuess.block<3, 3>(0, 0) = m;
+    Eigen::Matrix4d estimatedTransformation;
+//    std::vector<double> numberOfTimeItTakes;
+//    for(int i =0 ; i<80;i++){
 
 
-    Eigen::Matrix4d estimatedTransformation = scanRegistrationObject.generalizedIcpRegistration(scan1,scan2,final,fitnessY,initialGuess);
+//    pcl::io::loadPCDFile(
+//            "/home/tim-linux/dataFolder/gazeboCorrectedEvenAnglesPCLs_2_75/pclKeyFrame"+ std::to_string(i)+".pcd",
+//            *scan1);
+//    pcl::io::loadPCDFile(
+//            "/home/tim-linux/dataFolder/gazeboCorrectedEvenAnglesPCLs_2_75/pclKeyFrame"+ std::to_string(i+1)+".pcd",
+//            *scan2);
+//    double fitnessX,fitnessY;
+//    Eigen::Matrix4d initialGuess = Eigen::Matrix4d::Identity();
+//    Eigen::Matrix3d m(generalHelpfulTools::getQuaternionFromRPY(0,0,initialGuessAngleYaw));
+//    initialGuess.block<3, 3>(0, 0) = m;
 
-
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    estimatedTransformation = scanRegistrationObject.generalizedIcpRegistration(scan1,scan2,final,fitnessY,initialGuess);
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+//
+//    std::cout << "Time difference complete Registration = "
+//              << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
+//              << "[ms]" << std::endl;
+//        numberOfTimeItTakes.push_back((double)(std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()));
+//    }
     //saving resulting PCL
     pcl::io::savePCDFileASCII("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resulting0PCL1.pcd",
                               *scan2);
@@ -104,7 +124,18 @@ int main(int argc, char **argv) {
 
 
 //    }
-
+//    double sum = std::accumulate(numberOfTimeItTakes.begin(), numberOfTimeItTakes.end(), 0.0);
+//    double mean = sum / numberOfTimeItTakes.size();
+//
+//    std::vector<double> diff(numberOfTimeItTakes.size());
+//    std::transform(numberOfTimeItTakes.begin(), numberOfTimeItTakes.end(), diff.begin(),
+//                   std::bind2nd(std::minus<double>(), mean));
+//    double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+//    double stdev = std::sqrt(sq_sum / numberOfTimeItTakes.size());
+//
+//
+//    std::cout << "mean: " << mean << std::endl;
+//    std::cout << "stdev: " << stdev << std::endl;
 
     return (0);
 }
