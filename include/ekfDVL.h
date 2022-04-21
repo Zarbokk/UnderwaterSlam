@@ -24,7 +24,7 @@ public:
         this->processNoise = Eigen::MatrixXd::Identity(12, 12);
         this->processNoise(0, 0) = 0.02;//x
         this->processNoise(1, 1) = 0.02;//y
-        this->processNoise(2, 2) = 0.01;//z
+        this->processNoise(2, 2) = 0.005;//z
         this->processNoise(3, 3) = 0.005;//vx
         this->processNoise(4, 4) = 0.005;//vy
         this->processNoise(5, 5) = 0.01;//vz

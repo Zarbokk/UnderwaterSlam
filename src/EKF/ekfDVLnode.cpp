@@ -10,8 +10,9 @@
 #include "generalHelpfulTools.h"
 #include "waterlinked_dvl/TransducerReportStamped.h"
 #include "commonbluerovmsg/resetekf.h"
+#include "commonbluerovmsg/heightStamped.h"
 //#include <chrono>
-//#include <thread>
+#include <thread>
 
 
 
@@ -41,7 +42,7 @@ public:
 
 
 
-        this->subscriberDepth = n_.subscribe("mavros/altitude_frd", 1000, &rosClassEKF::depthSensorCallback, this);
+        this->subscriberDepth = n_.subscribe("height_baro", 1000, &rosClassEKF::depthSensorCallback, this);
         this->subscriberHeading = n_.subscribe("magnetic_heading", 1000, &rosClassEKF::headingCallback, this);
 
         this->serviceResetEkf = n_.advertiseService("resetCurrentEKF",&rosClassEKF::resetEKF,this);
@@ -148,13 +149,14 @@ private:
         return true;
     }
 
-    void depthSensorCallback(const mavros_msgs::Altitude ::ConstPtr  &msg){
+    void depthSensorCallback(const commonbluerovmsg::heightStamped ::ConstPtr  &msg){
         this->updateSlamMutex.lock();
         this->depthSensorHelper(msg);
         this->updateSlamMutex.unlock();
     }
-    void depthSensorHelper(const mavros_msgs::Altitude ::ConstPtr  &msg){
-        this->currentEkf.updateHeight(msg->local,msg->header.stamp);
+
+    void depthSensorHelper(const commonbluerovmsg::heightStamped ::ConstPtr  &msg){
+        this->currentEkf.updateHeight(msg->height,msg->header.stamp);
     };
 
     void headingCallback(const geometry_msgs::Vector3Stamped::ConstPtr  &msg){
@@ -166,12 +168,22 @@ private:
     void headingHelper(const geometry_msgs::Vector3Stamped::ConstPtr  &msg){
         this->currentEkf.updateHeading(msg->vector.z,msg->header.stamp);
     };
-    void getPoseOfEKF(){
-        pose EKFPose = this->currentEkf.getState();
-        EKFPose.position.x();
+public:
+    pose getPoseOfEKF(){
+        return this->currentEkf.getState();
     }
 };
 
+
+
+Eigen::Quaterniond getQuaternionForMavrosFromRPY(double roll, double pitch, double yaw) {
+    return generalHelpfulTools::getQuaternionFromRPY(roll, -pitch, -yaw + M_PI / 2);
+}
+
+
+void spinningRos(){
+    ros::spin();
+}
 
 int main(int argc, char **argv) {
 //    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
@@ -225,17 +237,35 @@ int main(int argc, char **argv) {
 
 
     rosClassEKF rosClassEKFObject(n_,3.14159 / 4.0, whichIMUUsed,whichDVLUsed);
-    ros::spin();
+    //ros::spin();
+    std::thread t1(spinningRos);
 
-
-    //sending position to Mavros mavros/vision_pose/pose
     ros::Publisher publisherPoseEkf = n_.advertise<geometry_msgs::PoseStamped>("mavros/vision_pose/pose", 10);
-    geometry_msgs::PoseStamped msg_vicon_pose;
-    msg_vicon_pose.header.stamp = ros::Time::now();
-    msg_vicon_pose.header.frame_id = "map_ned"; //optional. Works fine without frame_id
-    msg_vicon_pose.pose.position.x = 1;
-    msg_vicon_pose.pose.position.y = 2;
-    msg_vicon_pose.pose.position.z = 300;
 
+    ros::Rate ourRate = ros::Rate(30);
+    //sending position to Mavros mavros/vision_pose/pose
+    while(ros::ok()){
+        pose currentPoseEkf = rosClassEKFObject.getPoseOfEKF();
+        geometry_msgs::PoseStamped msg_vicon_pose;
+        msg_vicon_pose.header.stamp = currentPoseEkf.timeLastPrediction;
+        msg_vicon_pose.header.frame_id = "map_ned"; //optional. Works fine without frame_id
+
+        Eigen::AngleAxisf rotation_vector180X(180.0 / 180.0 * 3.14159, Eigen::Vector3f(1, 0, 0));
+        Eigen::AngleAxisf rotation_vector90Z(90.0 / 180.0 * 3.14159, Eigen::Vector3f(0, 0, 1));
+        Eigen::Vector3f positionRotatedForMavros = rotation_vector90Z.toRotationMatrix()*rotation_vector180X.toRotationMatrix() * currentPoseEkf.position;
+
+        msg_vicon_pose.pose.position.x = positionRotatedForMavros.x();
+        msg_vicon_pose.pose.position.y = positionRotatedForMavros.y();
+        msg_vicon_pose.pose.position.z = positionRotatedForMavros.z();
+        Eigen::Quaterniond currentRotation = getQuaternionForMavrosFromRPY(currentPoseEkf.rotation.x(),currentPoseEkf.rotation.y(),currentPoseEkf.rotation.z());
+
+
+        msg_vicon_pose.pose.orientation.x = currentRotation.x();
+        msg_vicon_pose.pose.orientation.y = currentRotation.y();
+        msg_vicon_pose.pose.orientation.z = currentRotation.z();
+        msg_vicon_pose.pose.orientation.w = currentRotation.w();
+        publisherPoseEkf.publish(msg_vicon_pose);
+        ourRate.sleep();
+    }
     return (0);
 }
