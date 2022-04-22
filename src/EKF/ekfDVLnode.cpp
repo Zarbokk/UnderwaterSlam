@@ -13,39 +13,37 @@
 #include "commonbluerovmsg/heightStamped.h"
 //#include <chrono>
 #include <thread>
-
-
+#include "underwaterslam/ekfnoiseConfig.h"
+#include <dynamic_reconfigure/server.h>
 
 class rosClassEKF {
 public:
-    rosClassEKF(ros::NodeHandle n_, double rotationOfDVLZ,std::string imuUsage, std::string dvlUsage) : currentEkf(ros::Time::now()) {
-        this->rotationOfDVL = Eigen::AngleAxisd(rotationOfDVLZ, Eigen::Vector3d::UnitZ());//yaw rotation for correct alignment of DVL data;
+    rosClassEKF(ros::NodeHandle n_, double rotationOfDVLZ, std::string imuUsage, std::string dvlUsage) : currentEkf(
+            ros::Time::now()) {
+        this->rotationOfDVL = Eigen::AngleAxisd(rotationOfDVLZ,
+                                                Eigen::Vector3d::UnitZ());//yaw rotation for correct alignment of DVL data;
         //std::cout << "we are here" << std::endl;
         //std::cout << imuUsage << std::endl;
-        if(imuUsage == "external"){
+        if (imuUsage == "external") {
             std::cout << "External IMU used for EKF" << std::endl;
             this->subscriberIMU = n_.subscribe("imu/data_frd", 1000, &rosClassEKF::imuCallback, this);
-        }else{
+        } else {
             std::cout << "Mavros IMU used for EKF" << std::endl;
             this->subscriberIMU = n_.subscribe("mavros/imu/data_frd", 1000, &rosClassEKF::imuCallback, this);
         }
 
-        if(dvlUsage == "external"){
+        if (dvlUsage == "external") {
             std::cout << "External DVL used for EKF" << std::endl;
             this->subscriberDVL = n_.subscribe("dvl/transducer_report", 1000, &rosClassEKF::DVLCallbackDVL, this);
-        }else{
+        } else {
             std::cout << "Mavros IMU used for EKF" << std::endl;
-            this->subscriberVelocityMavros = n_.subscribe("simulatedDVL", 1000, &rosClassEKF::DVLCallbackSimulation, this);
+            this->subscriberVelocityMavros = n_.subscribe("simulatedDVL", 1000, &rosClassEKF::DVLCallbackSimulation,
+                                                          this);
         }
-
-
-
-
-
         this->subscriberDepth = n_.subscribe("height_baro", 1000, &rosClassEKF::depthSensorCallback, this);
         this->subscriberHeading = n_.subscribe("magnetic_heading", 1000, &rosClassEKF::headingCallback, this);
 
-        this->serviceResetEkf = n_.advertiseService("resetCurrentEKF",&rosClassEKF::resetEKF,this);
+        this->serviceResetEkf = n_.advertiseService("resetCurrentEKF", &rosClassEKF::resetEKF, this);
 
         this->publisherPoseEkf = n_.advertise<geometry_msgs::PoseWithCovarianceStamped>("publisherPoseEkf", 10);
         this->publisherTwistEkf = n_.advertise<geometry_msgs::TwistWithCovarianceStamped>("publisherTwistEkf", 10);
@@ -57,7 +55,7 @@ private:
 //    std::deque<mavros_msgs::Altitude::ConstPtr> depthDeque;
 //    std::deque<geometry_msgs::TwistStamped::ConstPtr> dvlDeque;
     ekfClassDVL currentEkf;
-    ros::Subscriber subscriberIMU, subscriberDepth, subscriberHeading, subscriberDVL, subscriberSlamResults,subscriberVelocityMavros;
+    ros::Subscriber subscriberIMU, subscriberDepth, subscriberHeading, subscriberDVL, subscriberSlamResults, subscriberVelocityMavros;
     ros::Publisher publisherPoseEkf, publisherTwistEkf;
     std::mutex updateSlamMutex;
     Eigen::Quaterniond rotationOfDVL;
@@ -117,11 +115,12 @@ private:
     }
 
     void DVLCallbackDVLHelper(const waterlinked_dvl::TransducerReportStamped::ConstPtr &msg) {
-        if (msg->report.status == -1){
+        if (msg->report.status == -1) {
             //if we dont know anything, the ekf should just go to 0, else the IMU gives direction.
             this->currentEkf.updateDVL(0, 0, 0, this->rotationOfDVL, msg->header.stamp);
-        }else{
-            this->currentEkf.updateDVL(msg->report.vx, msg->report.vy, msg->report.vz, this->rotationOfDVL, msg->header.stamp);
+        } else {
+            this->currentEkf.updateDVL(msg->report.vx, msg->report.vy, msg->report.vz, this->rotationOfDVL,
+                                       msg->header.stamp);
         }
     }
 
@@ -132,48 +131,71 @@ private:
     }
 
     void DVLCallbackSimulationHelper(const geometry_msgs::Vector3Stamped::ConstPtr &msg) {
-        this->currentEkf.updateDVL(msg->vector.x, msg->vector.y, msg->vector.z, Eigen::Quaterniond(1,0,0,0), msg->header.stamp);
+        this->currentEkf.updateDVL(msg->vector.x, msg->vector.y, msg->vector.z, Eigen::Quaterniond(1, 0, 0, 0),
+                                   msg->header.stamp);
     }
 
-    void DVLCallbackSimulation(const geometry_msgs::Vector3Stamped::ConstPtr  &msg) {
+    void DVLCallbackSimulation(const geometry_msgs::Vector3Stamped::ConstPtr &msg) {
         this->updateSlamMutex.lock();
         this->DVLCallbackSimulationHelper(msg);
         this->updateSlamMutex.unlock();
     }
 
-    bool resetEKF(commonbluerovmsg::resetekf::Request  &req, commonbluerovmsg::resetekf::Response &res){
+    bool resetEKF(commonbluerovmsg::resetekf::Request &req, commonbluerovmsg::resetekf::Response &res) {
         this->updateSlamMutex.lock();
-        this->currentEkf.resetToPos(req.xPos,req.yPos,req.yaw,req.resetCovariances);
+        this->currentEkf.resetToPos(req.xPos, req.yPos, req.yaw, req.resetCovariances);
         this->updateSlamMutex.unlock();
         res.resetDone = true;
         return true;
     }
 
-    void depthSensorCallback(const commonbluerovmsg::heightStamped ::ConstPtr  &msg){
+    void depthSensorCallback(const commonbluerovmsg::heightStamped::ConstPtr &msg) {
         this->updateSlamMutex.lock();
         this->depthSensorHelper(msg);
         this->updateSlamMutex.unlock();
     }
 
-    void depthSensorHelper(const commonbluerovmsg::heightStamped ::ConstPtr  &msg){
-        this->currentEkf.updateHeight(msg->height,msg->header.stamp);
+    void depthSensorHelper(const commonbluerovmsg::heightStamped::ConstPtr &msg) {
+        this->currentEkf.updateHeight(msg->height, msg->header.stamp);
     };
 
-    void headingCallback(const geometry_msgs::Vector3Stamped::ConstPtr  &msg){
+    void headingCallback(const geometry_msgs::Vector3Stamped::ConstPtr &msg) {
         this->updateSlamMutex.lock();
         this->headingHelper(msg);
         this->updateSlamMutex.unlock();
     }
 
-    void headingHelper(const geometry_msgs::Vector3Stamped::ConstPtr  &msg){
-        this->currentEkf.updateHeading(msg->vector.z,msg->header.stamp);
+    void headingHelper(const geometry_msgs::Vector3Stamped::ConstPtr &msg) {
+        this->currentEkf.updateHeading(msg->vector.z, msg->header.stamp);
     };
 public:
-    pose getPoseOfEKF(){
+    pose getPoseOfEKF() {
         return this->currentEkf.getState();
     }
-};
 
+    void callbackReconfiguration(underwaterslam::ekfnoiseConfig &config, uint32_t level) {
+        this->updateSlamMutex.lock();
+
+        this->currentEkf.setProcessNoise(config.processNoiseX, config.processNoiseY, config.processNoiseZ,
+                                         config.processNoiseVX, config.processNoiseVY, config.processNoiseVZ,
+                                         config.processNoiseRoll, config.processNoisePitch, config.processNoiseYaw,
+                                         config.processNoiseVelRoll, config.processNoiseVelPitch,
+                                         config.processNoiseVelYaw);
+
+        this->currentEkf.setMeasurementNoiseDVL(config.measurementNoiseDVLVX, config.measurementNoiseDVLVY,
+                                                config.measurementNoiseDVLVZ);
+
+        this->currentEkf.setMeasurementNoiseDepth(config.measurementNoiseDepth);
+
+        this->currentEkf.setMeasurementNoiseIMUVel(config.measurementImuVelocityRoll,
+                                                   config.measurementImuVelocityPitch,
+                                                   config.measurementImuVelocityVelRoll,
+                                                   config.measurementImuVelocityVelPitch,
+                                                   config.measurementImuVelocityVelYaw);
+
+        this->updateSlamMutex.unlock();
+    }
+};
 
 
 Eigen::Quaterniond getQuaternionForMavrosFromRPY(double roll, double pitch, double yaw) {
@@ -181,7 +203,7 @@ Eigen::Quaterniond getQuaternionForMavrosFromRPY(double roll, double pitch, doub
 }
 
 
-void spinningRos(){
+void spinningRos() {
     ros::spin();
 }
 
@@ -194,57 +216,58 @@ int main(int argc, char **argv) {
     ros::NodeHandle n_;
 
     std::string whichIMUUsed;
-    if (n_.getParam("/EKFDVL/imu_used", whichIMUUsed))
-    {
+    if (n_.getParam("/EKFDVL/imu_used", whichIMUUsed)) {
         ROS_INFO("IMU used is: %s", whichIMUUsed.c_str());
-    }
-    else
-    {
+    } else {
         std::vector<std::string> keys;
         n_.getParamNames(keys);
 
-        for(int i = 0;i<keys.size();i++){
-            std::cout << keys[i]<< std::endl;
+        for (int i = 0; i < keys.size(); i++) {
+            std::cout << keys[i] << std::endl;
         }
         ROS_ERROR("Failed to get IMU parameter, which to use");
     }
 
-    if(whichIMUUsed != "external" && whichIMUUsed != "px4"){
+    if (whichIMUUsed != "external" && whichIMUUsed != "px4") {
         ROS_ERROR("You have to use px4 or external as parameter for imu_used");
         exit(-1);
     }
 
     std::string whichDVLUsed;
-    if (n_.getParam("/EKFDVL/dvl_used", whichDVLUsed))
-    {
+    if (n_.getParam("/EKFDVL/dvl_used", whichDVLUsed)) {
         ROS_INFO("DVL used is: %s", whichDVLUsed.c_str());
-    }
-    else
-    {
+    } else {
         std::vector<std::string> keys;
         n_.getParamNames(keys);
 
-        for(int i = 0;i<keys.size();i++){
-            std::cout << keys[i]<< std::endl;
+        for (int i = 0; i < keys.size(); i++) {
+            std::cout << keys[i] << std::endl;
         }
         ROS_ERROR("Failed to get DVL parameter, which to use");
     }
 
-    if(whichDVLUsed != "external" && whichDVLUsed != "gazebo"){
+    if (whichDVLUsed != "external" && whichDVLUsed != "gazebo") {
         ROS_ERROR("You have to use gazebo or external as parameter for dvl_used");
         exit(-1);
     }
 
 
-    rosClassEKF rosClassEKFObject(n_,3.14159 / 4.0, whichIMUUsed,whichDVLUsed);
+    rosClassEKF rosClassEKFObject(n_, 3.14159 / 4.0, whichIMUUsed, whichDVLUsed);
     //ros::spin();
     std::thread t1(spinningRos);
+
+    dynamic_reconfigure::Server<underwaterslam::ekfnoiseConfig> server;
+    dynamic_reconfigure::Server<underwaterslam::ekfnoiseConfig>::CallbackType f;
+
+    f = boost::bind(&rosClassEKF::callbackReconfiguration, &rosClassEKFObject, _1, _2);
+    server.setCallback(f);
+
 
     ros::Publisher publisherPoseEkf = n_.advertise<geometry_msgs::PoseStamped>("mavros/vision_pose/pose", 10);
 
     ros::Rate ourRate = ros::Rate(30);
     //sending position to Mavros mavros/vision_pose/pose
-    while(ros::ok()){
+    while (ros::ok()) {
         pose currentPoseEkf = rosClassEKFObject.getPoseOfEKF();
         geometry_msgs::PoseStamped msg_vicon_pose;
         msg_vicon_pose.header.stamp = currentPoseEkf.timeLastPrediction;
@@ -252,12 +275,16 @@ int main(int argc, char **argv) {
 
         Eigen::AngleAxisf rotation_vector180X(180.0 / 180.0 * 3.14159, Eigen::Vector3f(1, 0, 0));
         Eigen::AngleAxisf rotation_vector90Z(90.0 / 180.0 * 3.14159, Eigen::Vector3f(0, 0, 1));
-        Eigen::Vector3f positionRotatedForMavros = rotation_vector90Z.toRotationMatrix()*rotation_vector180X.toRotationMatrix() * currentPoseEkf.position;
+        Eigen::Vector3f positionRotatedForMavros =
+                rotation_vector90Z.toRotationMatrix() * rotation_vector180X.toRotationMatrix() *
+                currentPoseEkf.position;
 
         msg_vicon_pose.pose.position.x = positionRotatedForMavros.x();
         msg_vicon_pose.pose.position.y = positionRotatedForMavros.y();
         msg_vicon_pose.pose.position.z = positionRotatedForMavros.z();
-        Eigen::Quaterniond currentRotation = getQuaternionForMavrosFromRPY(currentPoseEkf.rotation.x(),currentPoseEkf.rotation.y(),currentPoseEkf.rotation.z());
+        Eigen::Quaterniond currentRotation = getQuaternionForMavrosFromRPY(currentPoseEkf.rotation.x(),
+                                                                           currentPoseEkf.rotation.y(),
+                                                                           currentPoseEkf.rotation.z());
 
 
         msg_vicon_pose.pose.orientation.x = currentRotation.x();

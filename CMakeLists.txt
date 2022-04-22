@@ -11,7 +11,7 @@ project(underwaterslam)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg  roscpp pcl_ros soft20 ping360_sonar waterlinked_dvl message_generation cv_bridge commonbluerovmsg)
+find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg  roscpp pcl_ros soft20 ping360_sonar waterlinked_dvl message_generation cv_bridge commonbluerovmsg dynamic_reconfigure)
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenCV REQUIRED)
 find_package(PCL 1.10 REQUIRED COMPONENTS common io visualization)
@@ -23,6 +23,10 @@ find_package(PCL 1.10 REQUIRED COMPONENTS common io visualization)
 #   Service1.srv
 #   Service2.srv
 # )
+generate_dynamic_reconfigure_options(
+        cfg/ekfnoise.cfg
+)
+
 
 generate_messages(
         DEPENDENCIES

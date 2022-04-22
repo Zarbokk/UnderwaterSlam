@@ -275,12 +275,40 @@ void ekfClassDVL::resetToPos(double x, double y, double yaw, bool resetCovarianc
         this->stateOfEKF.covariance(8,8) = 0;//yaw
     }
 
-
-
 }
 
+void ekfClassDVL::setProcessNoise(double xNoise, double yNoise, double zNoise, double vxNoise, double vyNoise, double vzNoise,
+                                  double rNoise, double pNoise, double yawNoise, double vrNoise, double vpNoise, double vyawNoise){
+    this->processNoise(0, 0) = xNoise;//x
+    this->processNoise(1, 1) = yNoise;//y
+    this->processNoise(2, 2) = zNoise;//z
+    this->processNoise(3, 3) = vxNoise;//vx
+    this->processNoise(4, 4) = vyNoise;//vy
+    this->processNoise(5, 5) = vzNoise;//vz
+    this->processNoise(6, 6) = rNoise;//r
+    this->processNoise(7, 7) = pNoise;//p
+    this->processNoise(8, 8) = yawNoise;//y
+    this->processNoise(9, 9) = vrNoise;//vr
+    this->processNoise(10, 10) = vpNoise;//vp
+    this->processNoise(11, 11) = vyawNoise;//vy
+}
 
+void ekfClassDVL::setMeasurementNoiseDVL(double vxNoise, double vyNoise, double vzNoise){
+    this->measurementNoiseDVL(3, 3) = vxNoise;//vx
+    this->measurementNoiseDVL(4, 4) = vyNoise;//vy
+    this->measurementNoiseDVL(5, 5) = vzNoise;//vz
+}
 
+void ekfClassDVL::setMeasurementNoiseDepth(double zNoise){
+    this->measurementNoiseDepth(2, 2) = zNoise;//z
+}
 
+void ekfClassDVL::setMeasurementNoiseIMUVel(double rNoise, double pNoise,double vrNoise, double vpNoise, double vyNoise){
+    this->measurementImuVelocity(6, 6) = rNoise;//r
+    this->measurementImuVelocity(7, 7) = pNoise;//p
+    this->measurementImuVelocity(9, 9) = vrNoise;//vr
+    this->measurementImuVelocity(10, 10) = vpNoise;//vp
+    this->measurementImuVelocity(11, 11) = vyNoise;//vy
+}
 
 
