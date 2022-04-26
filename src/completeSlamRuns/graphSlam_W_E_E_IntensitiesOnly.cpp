@@ -436,7 +436,7 @@ private:
                     1);
 
             //pointPos has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
-
+            Eigen::Quaterniond rotationOfSonarAngleQuaternion = generalHelpfulTools::getQuaternionFromRPY(0,0,this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle);
             pointPos = transformationOfVertex * pointPos;
             dataPointStruct tmpDP;
             tmpDP.x = pointPos.x();
