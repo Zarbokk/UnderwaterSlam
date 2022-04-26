@@ -16,7 +16,7 @@
 
 class scanRegistrationClass {
 public:
-    scanRegistrationClass(int N = 128, int bwOut = 128 / 2, int bwIn = 128 / 2, int degLim = 128 / 2 - 1)
+    scanRegistrationClass(int N = 64, int bwOut = 64 / 2, int bwIn = 64 / 2, int degLim = 64 / 2 - 1)
             : myRegistrationClass(N, bwOut, bwIn, degLim) {
 
     }

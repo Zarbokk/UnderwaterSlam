@@ -3,7 +3,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CATKIN_ENABLE_TESTING OFF)
-
 project(underwaterslam)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -12,7 +11,7 @@ project(underwaterslam)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg  roscpp pcl_ros soft20 ping360_sonar waterlinked_dvl message_generation cv_bridge commonbluerovmsg)
+find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg  roscpp pcl_ros soft20 ping360_sonar waterlinked_dvl message_generation cv_bridge commonbluerovmsg dynamic_reconfigure)
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenCV REQUIRED)
 find_package(PCL 1.10 REQUIRED COMPONENTS common io visualization)
@@ -24,6 +23,10 @@ find_package(PCL 1.10 REQUIRED COMPONENTS common io visualization)
 #   Service1.srv
 #   Service2.srv
 # )
+generate_dynamic_reconfigure_options(
+        cfg/ekfnoise.cfg
+)
+
 
 generate_messages(
         DEPENDENCIES
@@ -72,8 +75,9 @@ include
 #target_link_libraries(correctionPCL ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 
-add_executable(testFile src/testFiles/testFile.cpp ${SOURCE_FILES})
-target_link_libraries(testFile fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+#add_executable(testFile src/testFiles/testFile.cpp ${SOURCE_FILES})
+#target_link_libraries(testFile fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(soft20TestFile src/registration/soft20TestFile.cpp)
 target_link_libraries(soft20TestFile fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
@@ -93,8 +97,8 @@ target_link_libraries(stPereDatasetRosPublishing fftw3 ${PCL_LIBRARIES} ${catkin
 add_executable(testEKF src/EKF/testEKF.cpp ${SOURCE_FILES} include/pose.h)
 target_link_libraries(testEKF fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-add_executable(ekfGraphSlam src/completeSlamRuns/ekfGraphSlam.cpp ${SOURCE_FILES})
-target_link_libraries(ekfGraphSlam fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+#add_executable(ekfGraphSlam src/completeSlamRuns/ekfGraphSlam.cpp ${SOURCE_FILES})
+#target_link_libraries(ekfGraphSlam fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(graphSlamExternalEstimator src/completeSlamRuns/graphSlamWithExternalStateEstimator.cpp ${SOURCE_FILES})
 target_link_libraries(graphSlamExternalEstimator fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
@@ -110,3 +114,15 @@ target_link_libraries(softClassTest fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(graphSlamIntensitiesOnly src/completeSlamRuns/graphSlam_W_E_E_IntensitiesOnly.cpp ${SOURCE_FILES})
 target_link_libraries(graphSlamIntensitiesOnly fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+add_executable(stPereDatasetPublishingIntensities src/testFiles/stPereDatasetPublication.cpp ${SOURCE_FILES})
+target_link_libraries(stPereDatasetPublishingIntensities fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+#add_executable(correctionPCL src/movementCorrection/correctionPCLSTPere.cpp ${SOURCE_FILES})
+#target_link_libraries(correctionPCL fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+add_executable(registrationOfTwoPCLs src/registration/registrationOfTwoScans.cpp ${SOURCE_FILES})
+target_link_libraries(registrationOfTwoPCLs fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+add_executable(registrationOfTwoPCLICP src/registration/registrationTwoScansIPC.cpp ${SOURCE_FILES})
+target_link_libraries(registrationOfTwoPCLICP fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})

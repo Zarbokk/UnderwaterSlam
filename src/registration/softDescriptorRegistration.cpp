@@ -268,12 +268,12 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
 
     if (debug) {
         std::ofstream myFile1, myFile2, myFile3, myFile4, myFile5, myFile6;
-        myFile1.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/magnitudeFFTW1.csv");
-        myFile2.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/phaseFFTW1.csv");
-        myFile3.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW1.csv");
-        myFile4.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/magnitudeFFTW2.csv");
-        myFile5.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/phaseFFTW2.csv");
-        myFile6.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW2.csv");
+        myFile1.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW1.csv");
+        myFile2.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/phaseFFTW1.csv");
+        myFile3.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW1.csv");
+        myFile4.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW2.csv");
+        myFile5.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/phaseFFTW2.csv");
+        myFile6.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW2.csv");
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
                 myFile1 << magnitude1[j + N * i]; // real part
@@ -370,8 +370,8 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
     }
     if (debug) {
         std::ofstream myFile7, myFile8;
-        myFile7.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/resampledVoxel1.csv");
-        myFile8.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/resampledVoxel2.csv");
+        myFile7.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resampledVoxel1.csv");
+        myFile8.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resampledVoxel2.csv");
 
         for (int j = 0; j < N; j++) {
             for (int k = 0; k < N; k++) {
@@ -390,7 +390,7 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
                                                               resultingCorrelationComplex);
     if (debug) {
         FILE *fp;
-        fp = fopen("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/resultCorrelation3D.csv", "w");
+        fp = fopen("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultCorrelation3D.csv", "w");
         for (int i = 0; i < 8 * bwOut * bwOut * bwOut; i++)
             fprintf(fp, "%.16f\n", resultingCorrelationComplex[i][0]);
         fclose(fp);
@@ -443,7 +443,7 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
     angleList.push_back((float) currentAverageAngle);
     if (debug) {
         std::ofstream myFile9;
-        myFile9.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/resultingCorrelation1D.csv");
+        myFile9.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultingCorrelation1D.csv");
 
         for (int i = 0; i < correlationAveraged.size(); i++) {
             myFile9 << correlationAveraged[i]; // real part
@@ -486,150 +486,26 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
     } else {
         //guess known therefore take the angle which is closest to the initial guess
         int indexCorrectAngle = 0;
+        std::cout << "First Angle to Test: " << angleList[out[0]] << std::endl;
         for (int i = 1; i < out.size(); i++) {
+            std::cout << "Index: " << i << std::endl;
+            std::cout << "current Angle to Test: " << angleList[out[i]] << std::endl;
             if (std::abs(angleDifference(angleList[out[indexCorrectAngle]], goodGuessAlpha)) >
                 std::abs(angleDifference(angleList[out[i]], goodGuessAlpha))) {
                 indexCorrectAngle = i;
             }
         }
+        std::cout << "chosen angle" << indexCorrectAngle << std::endl;
         startIndex = indexCorrectAngle;
         endIndex = indexCorrectAngle + 1;
     }
-    ///////////////////////////////////// THIS IS THE OLD SHIFT CALCULATION /////////////////////////////////////
-//    for (int angleIndex = startIndex; angleIndex < endIndex; ++angleIndex) {
-//
-//        double currentAngle = -angleList[out[angleIndex]];//describes angle from A to B, therefore we have to reverse the angle
-//        pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputDataTMP2(new pcl::PointCloud<pcl::PointXYZ>);
-//        Eigen::Matrix4d rotationMatrixTMP;
-//        //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
-//        Eigen::AngleAxisd tmpRotVec(currentAngle, Eigen::Vector3d(0, 0, 1));
-//        Eigen::Matrix3d tmpMatrix3d = tmpRotVec.toRotationMatrix();
-//        rotationMatrixTMP.block<3, 3>(0, 0) = tmpMatrix3d;
-//        rotationMatrixTMP(0, 3) = 0;//x
-//        rotationMatrixTMP(1, 3) = 0;//y
-//        rotationMatrixTMP(2, 3) = 0;//z
-//        rotationMatrixTMP(3, 3) = 1;//1
-//        //copy the rotated PCL from PCL1 to PCL2
-//        pcl::transformPointCloud(*pointCloudInputData2, *pointCloudInputDataTMP2, rotationMatrixTMP);
-//
-//
-//        maximumScan1 = getSpectrumFromPCL2D(pointCloudInputData1, voxelData1, magnitude1, phase1,
-//                                            cellSize * this->N,
-//                                            N);
-//        maximumScan2 = getSpectrumFromPCL2D(pointCloudInputDataTMP2, voxelData2, magnitude2, phase2,
-//                                            cellSize * this->N,
-//                                            N);
-//
-//        //calc phase diff and fftshift + reduce to 2D
-//        for (int i = 0; i < N; i++) {
-//            for (int j = 0; j < N; j++) {
-//
-//                int indexX = (N / 2 + i) % N;
-//                int indexY = (N / 2 + j) % N;
-//                std::complex<double> tmpComplex;
-//                tmpComplex.real(0);
-//                tmpComplex.imag(
-//                phase1[indexY + N * indexX] - phase2[indexY + N * indexX]);
-//                std::complex<double> resultCompexNumber = std::exp(tmpComplex);
-//                resultingPhaseDiff2D[j + N * i][0] = resultCompexNumber.real();
-//                resultingPhaseDiff2D[j + N * i][1] = resultCompexNumber.imag();
-//
-//
-//            }
-//        }
-//
-//
-//        fftw_execute(planFourierToVoxel2D);
-//
-//          begin5 = std::chrono::steady_clock::now();
-//        double meanCorrelation = 0;
-//        double maximumCorrelation = 0;
-//        for (int i = 0; i < N; i++) {
-//            for (int j = 0; j < N; j++) {
-//                int indexX = (N / 2 + i) % N;
-//                int indexY = (N / 2 + j) % N;
-//                //calc magnitude and fftshift
-//                resultingCorrelationDouble[indexY + N * indexX] = sqrt(
-//                        resultingShiftPeaks2D[j + N * i][0] *
-//                        resultingShiftPeaks2D[j + N * i][0] +
-//                        resultingShiftPeaks2D[j + N * i][1] *
-//                        resultingShiftPeaks2D[j + N * i][1]); // real part;
-//                meanCorrelation = meanCorrelation + resultingCorrelationDouble[indexY + N * indexX];
-//                if (maximumCorrelation < resultingCorrelationDouble[indexY + N * indexX]) {
-//                    maximumCorrelation = resultingCorrelationDouble[indexY + N * indexX];
-//                }
-//
-//            }
-//        }
-//        meanCorrelation=(meanCorrelation/N)/N;
-//
-//        double variance = 0;
-//        for( int i=0; i < N*N; i++ )
-//        {
-//            variance += (resultingCorrelationDouble[i] - meanCorrelation) * (resultingCorrelationDouble[i] - meanCorrelation);
-//        }
-//        variance =variance/ (N*N);
-//
-////        for (int i = 0; i < N; i++) {
-////            for (int j = 0; j < N; j++) {
-////                correlation2DResult[j + N * i] = resultingCorrelationDouble[N / 2 + N * (j + N * i)];
-////            }
-////        }
-//        std::vector<indexPeak> localMaximaVector;
-//        PeakFinder::findPeaks2D(resultingCorrelationDouble, localMaximaVector, N);
-//
-//          end5 = std::chrono::steady_clock::now();
-//        std::cout << "Time of Part translation: "
-//                  << std::chrono::duration_cast<std::chrono::milliseconds>(end5 - begin5).count()
-//                  << "[ms]" << std::endl;
-//
-//        std::sort(localMaximaVector.begin(), localMaximaVector.end(), compareTwoPeaks);
-//
-//        std::vector<double> differencePeaks;
-//        int maximumDiffIterator = 0;
-//        double maximumDiffValue = 0;
-//        for (int i = 1; i < localMaximaVector.size(); i++) {
-//            differencePeaks.push_back(localMaximaVector[i - 1].height - localMaximaVector[i].height);
-//            if (localMaximaVector[i - 1].height - localMaximaVector[i].height > maximumDiffValue) {
-//                maximumDiffValue = localMaximaVector[i - 1].height - localMaximaVector[i].height;
-//                maximumDiffIterator = i - 1;
-//            }
-//        }
-//        maximumDiffIterator = 0;//set it anyway to zero; can be used to know if the result seems valid
-//
-//        heightPeakList.push_back(localMaximaVector[maximumDiffIterator].height);
-//        xShiftList.push_back((localMaximaVector[maximumDiffIterator].y - N / 2.0) * cellSize * this->N * 2.0 / N);
-//        yShiftList.push_back((localMaximaVector[maximumDiffIterator].x - N / 2.0) * cellSize * this->N * 2.0 / N);
-//        estimatedAngleList.push_back(currentAngle);
-//
-//        //currently these metrics are not used.
-//        std::cout << "current angle: " << currentAngle << std::endl;
-//        std::cout << "SNR peak/mean: " << heightPeakList[heightPeakList.size()-1]/meanCorrelation << std::endl;
-//        std::cout << "SNR var/mean: " << variance/meanCorrelation << std::endl;
-//        std::cout << "height of Peak: "<< heightPeakList[heightPeakList.size()-1] << std::endl;
-//
-//        if(debug){
-//            std::ofstream myFile10;
-//            myFile10.open("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/resultingCorrelationShift.csv");
-//
-//            for (int i = 0; i < N; i++) {
-//                for (int j = 0; j < N; j++) {
-//                    myFile10 << resultingCorrelationDouble[j + N * i];
-//                    myFile10 << "\n";
-//                }
-//            }
-//            myFile10.close();
-//        }
-//    }
-
-
-
 
 // THIS IS THE NEW CALCULATION OF SHIFT with a convolution
     for (int angleIndex = startIndex; angleIndex < endIndex; ++angleIndex) {
 
         double currentAngle = -angleList[out[angleIndex]];//describes angle from A to B, therefore we have to reverse the angle
         double currentPeakAngle = correlationAveraged[out[angleIndex]];
+        std::cout << "we try to fit following angle: "<< currentAngle << std::endl;
         pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputDataTMP2(new pcl::PointCloud<pcl::PointXYZ>);
         Eigen::Matrix4d rotationMatrixTMP;
         //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
@@ -736,19 +612,11 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
 //        std::cout << "height of Peak: " << heightPeakList[heightPeakList.size() - 1] << std::endl;
 //        std::cout << "index I: " << indexMaximumCorrelationI << std::endl;
 //        std::cout << "index J: " << indexMaximumCorrelationJ << std::endl;
-        if (debug) {
-            std::ofstream myFile10;
-            myFile10.open(
-                    "/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/resultingCorrelationShift.csv");
 
-            for (int i = 0; i < N; i++) {
-                for (int j = 0; j < N; j++) {
-                    myFile10 << resultingCorrelationDouble[j + N * i];
-                    myFile10 << "\n";
-                }
-            }
-            myFile10.close();
-        }
+
+
+
+
 
 
 
@@ -785,6 +653,75 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
         }
         fitnessY = cParam / (N - 1) * cellSize;
         //std::cout << "cParam Y: " << fitnessY<<std::endl;
+
+
+        if (debug) {
+            std::ofstream myFile10;
+            myFile10.open(
+                    "/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultingCorrelationShift"+std::to_string(angleIndex)+".csv");
+
+            for (int i = 0; i < N; i++) {
+                for (int j = 0; j < N; j++) {
+                    myFile10 << resultingCorrelationDouble[j + N * i];
+                    myFile10 << "\n";
+                }
+            }
+            myFile10.close();
+
+            Eigen::Matrix4d estimatedRotationScans = Eigen::Matrix4d::Identity();//from second scan to first
+            //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
+            Eigen::AngleAxisd rotation_vectorTMP(estimatedAngleList[angleIndex], Eigen::Vector3d(0, 0, 1));
+            Eigen::Matrix3d tmpRotMatrix3d = rotation_vectorTMP.toRotationMatrix();
+            estimatedRotationScans.block<3, 3>(0, 0) = tmpRotMatrix3d;
+            estimatedRotationScans(0, 3) = xShiftList[angleIndex];
+            estimatedRotationScans(1, 3) = yShiftList[angleIndex];
+            estimatedRotationScans(2, 3) = 0;
+            estimatedRotationScans(3, 3) = 1;
+
+            Eigen::Matrix4d estimatedRotationScans1To2 = estimatedRotationScans.inverse();
+
+            pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1Rotated(pointCloudInputData1->makeShared());
+
+            //*pointCloudInputData1Rotated = *pointCloudInputData1;
+            pcl::transformPointCloud(*pointCloudInputData1Rotated, *pointCloudInputData1Rotated, estimatedRotationScans1To2);
+
+            //saving resulting PCL
+            pcl::io::savePCDFileASCII("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resulting"+std::to_string(angleIndex)+"PCL1.pcd",
+                                      *pointCloudInputData1Rotated);
+            pcl::io::savePCDFileASCII("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resulting"+std::to_string(angleIndex)+"PCL2.pcd",
+                                      *pointCloudInputData2);
+
+
+
+            Eigen::Matrix4d finalTransformation = transformationPCL2.inverse()*estimatedRotationScans.inverse()*transformationPCL1;
+            //std::cout << finalTransformation << std::endl;
+            std::ofstream myFile11;
+            myFile11.open(
+                    "/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultingTransformation"+std::to_string(angleIndex)+".csv");
+
+            Eigen::Quaterniond quatTMP(finalTransformation.block<3, 3>(0, 0));
+            Eigen::Vector3d rpyTMP = generalHelpfulTools::getRollPitchYaw(quatTMP);
+
+            myFile11 << finalTransformation(0, 3);
+            myFile11 << "\n";
+            myFile11 << finalTransformation(1, 3);
+            myFile11 << "\n";
+            myFile11 << finalTransformation(2, 3);
+            myFile11 << "\n";
+
+            myFile11 << rpyTMP.x();
+            myFile11 << "\n";
+            myFile11 << rpyTMP.y();
+            myFile11 << "\n";
+            myFile11 << rpyTMP.z();
+            myFile11 << "\n";
+            myFile11.close();
+
+
+
+        }
+
+
     }
 
 
@@ -800,7 +737,7 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
 //    std::cout << "Estimated yShift: " << yShiftList[distanceToMaxElement] << std::endl;
 //    std::cout << "Estimated Height Shift Peak: " << heightPeakList[distanceToMaxElement] << std::endl;
 
-    Eigen::Matrix4d estimatedRotationScans;//from second scan to first
+    Eigen::Matrix4d estimatedRotationScans = Eigen::Matrix4d::Identity();//from second scan to first
     //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
     Eigen::AngleAxisd rotation_vectorTMP(estimatedAngleList[distanceToMaxElement], Eigen::Vector3d(0, 0, 1));
     Eigen::Matrix3d tmpRotMatrix3d = rotation_vectorTMP.toRotationMatrix();
@@ -811,25 +748,41 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
     estimatedRotationScans(3, 3) = 1;
 
     //inverting the transformation from 2->1 to 1->2
-    Eigen::Matrix4d estimatedRotationScans1To2 = estimatedRotationScans.inverse();
+
     //std::cout << estimatedRotationScans << std::endl;
 
 //    pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2RotatedTo1(new pcl::PointCloud<pcl::PointXYZ>);
 //    pcl::transformPointCloud(*pointCloudInputData2, *pointCloudInputData2RotatedTo1, estimatedRotationScans);
 
 
+    //std::cout << estimatedRotationScans1To2 << std::endl;
+    //std::cout << "next" << std::endl;
 
-    pcl::transformPointCloud(*pointCloudInputData1, *pointCloudInputData1, estimatedRotationScans1To2);
-
-    //saving resulting PCL
-    pcl::io::savePCDFileASCII("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/resultingPCL1.pcd",
-                              *pointCloudInputData1);
-    pcl::io::savePCDFileASCII("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/resultingPCL2.pcd",
-                              *pointCloudInputData2);
 
 
 //    std::cout << "MyRandom Parameters: " << 1/sqrt(fitnessX*fitnessX+fitnessY*fitnessY) << " " << heightPeakList[distanceToMaxElement]<< " " <<heightPeakAngleList[distanceToMaxElement]<< std::endl;
 //    std::cout << "MyRandom Parameter: " << 1/sqrt(fitnessX*fitnessX+fitnessY*fitnessY) *heightPeakList[distanceToMaxElement]*heightPeakAngleList[distanceToMaxElement]/100000.0<< std::endl;
+
+    //std::cout << finalTransformation << std::endl;
+
+
+    if(debug){
+
+        std::ofstream myFile12;
+        myFile12.open(
+                "/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/dataForReadIn.csv");
+
+        myFile12 << heightPeakList.size();//number of possible solutions
+        myFile12 << "\n";
+        myFile12 << distanceToMaxElement;//best Solution
+        myFile12 << "\n";
+
+        myFile12.close();
+
+    }
+
+
+
 
 
     return transformationPCL2.inverse()*estimatedRotationScans.inverse()*transformationPCL1;//makes out of transform from 2 to 1, transform 1 to 2 and added initial movement

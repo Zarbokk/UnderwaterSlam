@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Start remapping of laserscan to PCL -->
+    <node pkg="underwaterslam" type="EKFDVL" name="EKFDVL" output="screen" required="true">
+    </node>
+    <!-- Start from rotating sonar to full sonar -->
+    <node pkg="underwaterslam" type="stPereDatasetPublishingIntensities" name="stPereDatasetPublishingIntensities" output="screen" required="true">
+    </node>
+
+</launch>

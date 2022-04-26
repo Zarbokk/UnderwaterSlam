@@ -234,7 +234,7 @@ slamToolsRos::correctPointCloudAtPos(int positionToCorrect, graphSlamSaveStructu
     }
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloudScan = currentGraph.getVertexList()->at(positionToCorrect).getPointCloudRaw();
     pcl::PointCloud<pcl::PointXYZ>::Ptr correctedPointCloud(new pcl::PointCloud<pcl::PointXYZ>);
-    *correctedPointCloud = *cloudScan;
+    *correctedPointCloud = *cloudScan;//copy raw in corrected
     slamToolsRos::correctPointCloudByPosition(correctedPointCloud, posDiff,
                                               currentGraph.getVertexList()->at(lastIndex).getTimeStamp(), beginAngle,
                                               endAngle, reverseScanDirection,
@@ -313,16 +313,25 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
     //calculate angle of every point
     std::vector<pclAngle> vectorOfPointsAngle;
     for (int i = 0; i <
-                    cloudScan->size(); i++) {//@TODO has to be corrected Last Point is always a positive angle and not under 2 pi
+                    cloudScan->size(); i++) {
         double currentAngle = fmod(2 * (double) M_PI + atan2(cloudScan->points[i].y, cloudScan->points[i].x), 2 * M_PI);
         pclAngle tmpPCL;
         tmpPCL.pointXyz = cloudScan->points[i];
         tmpPCL.angle = currentAngle;
         vectorOfPointsAngle.push_back(tmpPCL);
     }
-    //sort from 0 to 2pi if rotation is positive
-    std::sort(vectorOfPointsAngle.begin(), vectorOfPointsAngle.end(),
-              [](const auto &i, const auto &j) { return i.angle < j.angle; });
+    if(reverseScanDirection){
+        //from 2pi to 0
+        std::sort(vectorOfPointsAngle.begin(), vectorOfPointsAngle.end(),
+                  [](const auto &i, const auto &j) { return i.angle > j.angle; });
+    }else{
+        //sort from 0 to 2pi if rotation is positive
+        std::sort(vectorOfPointsAngle.begin(), vectorOfPointsAngle.end(),
+                  [](const auto &i, const auto &j) { return i.angle < j.angle; });
+    }
+
+//    std::sort(vectorOfPointsAngle.begin(), vectorOfPointsAngle.end(),
+//              [](const auto &i, const auto &j) { return i.angle < j.angle; });
 
 
 
@@ -440,15 +449,19 @@ slamToolsRos::correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cl
 
 
         //find nearest timeStamp
-        int positionInArray = (int) (relativeTimestampDesired / (endTime - startTime) * timeStepsForCorrection.size());
+        int positionInArray = (int) (relativeTimestampDesired / (endTime - startTime) * (timeStepsForCorrection.size()-1));
         //positionInArray=positionInArray;
         //if scan direction is reserved calculate correct position in array
-        if (reverseScanDirection) {
-            positionInArray = listOfTransformations.size() - positionInArray - 1;
-        }
+//        if (reverseScanDirection) {
+//            positionInArray = listOfTransformations.size() - positionInArray - 1;
+//        }
 
         //@TODO interpolate between the two transformations( should be double, and then interpolate between two 4x4 matrices)
         currentPoint = listOfTransformations[positionInArray].inverse() * currentPoint;
+        if(!std::isfinite(currentPoint.x())){
+            std::cout << "we got a problem" << std::endl;
+        }
+
         point.x = currentPoint.x();
         point.y = currentPoint.y();
         point.z = currentPoint.z();

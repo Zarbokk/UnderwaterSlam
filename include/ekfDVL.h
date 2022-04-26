@@ -24,9 +24,9 @@ public:
         this->processNoise = Eigen::MatrixXd::Identity(12, 12);
         this->processNoise(0, 0) = 0.02;//x
         this->processNoise(1, 1) = 0.02;//y
-        this->processNoise(2, 2) = 0.01;//z
-        this->processNoise(3, 3) = 0.01;//vx
-        this->processNoise(4, 4) = 0.01;//vy
+        this->processNoise(2, 2) = 0.005;//z
+        this->processNoise(3, 3) = 0.005;//vx
+        this->processNoise(4, 4) = 0.005;//vy
         this->processNoise(5, 5) = 0.01;//vz
         this->processNoise(6, 6) = 0.01;//r
         this->processNoise(7, 7) = 0.01;//p
@@ -39,9 +39,9 @@ public:
         this->measurementNoiseDepth(2, 2) = 0.5;//z
 
         this->measurementNoiseDVL = Eigen::MatrixXd::Identity(12, 12);
-        this->measurementNoiseDVL(3, 3) = 0.2;//vx
-        this->measurementNoiseDVL(4, 4) = 0.2;//vy
-        this->measurementNoiseDVL(5, 5) = 0.2;//vz
+        this->measurementNoiseDVL(3, 3) = 0.1;//vx
+        this->measurementNoiseDVL(4, 4) = 0.1;//vy
+        this->measurementNoiseDVL(5, 5) = 0.1;//vz
 
 
         this->measurementImuVelocity = Eigen::MatrixXd::Identity(12, 12);
@@ -51,6 +51,7 @@ public:
         this->measurementImuVelocity(10, 10) = 0.1;//vp
         this->measurementImuVelocity(11, 11) = 0.1;//vy
 
+        //not used
         this->measurementNoiseSlam = Eigen::MatrixXd::Identity(12, 12);
         this->measurementNoiseSlam(0, 0) = 1.0;//x
         this->measurementNoiseSlam(1, 1) = 1.0;//y
@@ -65,12 +66,14 @@ public:
     void
     predictionImu(double xAccel, double yAccel, double zAccel, Eigen::Quaterniond currentRotation, ros::Time timeStamp);
 
+    void simplePrediction(ros::Time timeStamp);
+
     void updateDVL(double xVel, double yVel, double zVel, Eigen::Quaterniond rotationOfDVL, ros::Time timeStamp);
 
     void updateIMU(double roll, double pitch, double xAngularVel, double yAngularVel, double zAngularVel,
                    Eigen::Quaterniond currentRotation, ros::Time timeStamp);
 
-    void updateHeight(double depth,ros::Time timeStamp);
+    void updateHeight(double depth, ros::Time timeStamp);
 
     pose getState();
 
@@ -81,6 +84,17 @@ public:
     void resetToPos(double x, double y, double yaw, bool resetCovariance);
 
     Eigen::VectorXd innovationStateDiff(Eigen::VectorXd z, Eigen::MatrixXd H, Eigen::VectorXd currentStateBeforeUpdate);
+
+    void updateHeading(double yawRotation, ros::Time timeStamp);
+
+    void setProcessNoise(double xNoise, double yNoise, double zNoise, double vxNoise, double vyNoise, double vzNoise,
+                         double rNoise, double pNoise, double yawNoise, double vrNoise, double vpNoise, double vyawNoise);
+
+    void setMeasurementNoiseDVL(double vxNoise, double vyNoise, double vzNoise);
+
+    void setMeasurementNoiseDepth(double zNoise);
+
+    void setMeasurementNoiseIMUVel(double rNoise, double pNoise,double vrNoise, double vpNoise, double vyNoise);
 
 private:
     pose stateOfEKF;
