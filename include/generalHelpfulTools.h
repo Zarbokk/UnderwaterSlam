@@ -8,6 +8,8 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <Eigen/Geometry>
 #include <Eigen/StdVector>
+#include <iostream>
+
 class generalHelpfulTools {
 public:
     static Eigen::Vector3d getRollPitchYaw(Eigen::Quaterniond quat);

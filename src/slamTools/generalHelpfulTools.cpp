@@ -62,3 +62,40 @@ Eigen::Matrix4d generalHelpfulTools::getTransformationMatrix(Eigen::Vector3d &tr
     transformation.block<3, 3>(0, 0) = rotation.toRotationMatrix();
     return transformation;
 }
+
+double generalHelpfulTools::weighted_mean(const std::vector<double> & data)
+{
+    double mean=0.0;
+
+    for (int i=0 ; i<data.size() ; i++){
+        mean+=data[i];
+    }
+    return mean/double(data.size()) ;
+}
+
+void generalHelpfulTools::smooth_curve(const std::vector<double> & input, std::vector<double> & smoothedOutput, int window_half_width){
+
+    int window_width=2*window_half_width+1;
+
+    int size=input.size();
+
+    std::vector<double> sample(window_width);
+
+    for (int i=0 ; i < size ; i++){
+
+        for ( int j=0 ; j < window_width ; j++ ){
+
+            int shifted_index=i+j-window_half_width;
+            if (shifted_index<0) shifted_index=0;
+            if (shifted_index>size-1) shifted_index=size-1;
+            sample[j]=input[shifted_index];
+
+        }
+
+        smoothedOutput.push_back(generalHelpfulTools::weighted_mean(sample));
+
+    }
+
+}
+
+

@@ -156,7 +156,7 @@ private:
 
         int indexOfLastKeyframe;
         double angleDiff = angleBetweenLastKeyframeAndNow();
-        // best would be scan matching between this angle and transformation based last angle
+        // best would be scan matching between this angle and transformation based last angle( i think this is currently done)
         if (angleDiff > 2*M_PI) {
             this->graphSaved.getVertexList()->back().setTypeOfVertex(INTENSITY_SAVED_AND_KEYFRAME);
             //create a voxel of current scan (last rotation) and voxel of the rotation before that
@@ -164,6 +164,7 @@ private:
             double* voxelData2;
             voxelData1 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION*NUMBER_OF_POINTS_DIMENSION);
             voxelData2 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION*NUMBER_OF_POINTS_DIMENSION);
+            //still missing
             createVoxelOfGraph(voxelData1,this->graphSaved.getVertexList()->size()-1);//get voxel
             createVoxelOfGraph(voxelData2,indexOfLastKeyframe);//get voxel
 
@@ -178,7 +179,7 @@ private:
 
             //we need inverse transformation
             this->currentTransformation = scanRegistrationObject.sofftRegistrationVoxel(
-                    *this->previousScan, *this->graphSaved.getVertexList()->back().getPointCloudCorrected(),
+                    voxelData1, voxelData2,
                     fitnessScoreX, fitnessScoreY,
                     std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)),
                     false).inverse();
@@ -189,7 +190,7 @@ private:
 
 
             std::cout << "difference of angle after Registration: " << differenceAngleBeforeAfter << std::endl;
-            //only if angle diff is smaller thatn 10 degreece its ok
+            //only if angle diff is smaller than 10 degreece its ok
             if (abs(differenceAngleBeforeAfter) < 10.0 / 180.0 * M_PI) {
                 Eigen::Quaterniond qTMP(this->currentTransformation.block<3, 3>(0, 0));
                 graphSaved.addEdge(getLastIntensityKeyframe(),
@@ -362,38 +363,38 @@ private:
         return tmpEdge;
     }
 
-    pcl::PointCloud<pcl::PointXYZ> createPointCloudFromIntensities() {
-
-        //stupid way to find pointcloud:
-
-        double averageIntensity = 0;
-        for (int i = 0; i < this->sonarIntensityList.size(); i++) {
-            double currentAverage = 0;
-            for (int j = 0; j < this->sonarIntensityList[i].intensities.size(); j++) {
-                currentAverage += this->sonarIntensityList[i].intensities[j];
-            }
-            currentAverage = currentAverage / (double) this->sonarIntensityList[i].intensities.size();
-            averageIntensity += currentAverage;
-        }
-        averageIntensity = averageIntensity / (double) this->sonarIntensityList.size();
-
-        double threashHoldIntensity = averageIntensity * 4;
-        pcl::PointCloud<pcl::PointXYZ> returnCloud;
-        for (int i = 0; i < this->sonarIntensityList.size(); i++) {
-            for (int j = 0; j < this->sonarIntensityList[i].intensities.size(); j++) {
-                if (this->sonarIntensityList[i].intensities[j] > threashHoldIntensity && j > 4) {
-                    //calculate position of the point in xy coordinates
-                    double distanceFromRobot = (double) j * this->sonarIntensityList[i].range /
-                                               this->sonarIntensityList[i].number_of_samples;
-                    pcl::PointXYZ tmpPoint(distanceFromRobot * cos(this->sonarIntensityList[i].angle / 400 * 2 * M_PI),
-                                           distanceFromRobot * sin(this->sonarIntensityList[i].angle / 400 * 2 * M_PI),
-                                           0);
-                    returnCloud.push_back(tmpPoint);
-                }
-            }
-        }
-        return (returnCloud);
-    }
+//    pcl::PointCloud<pcl::PointXYZ> createPointCloudFromIntensities() {
+//
+//        //stupid way to find pointcloud:
+//
+//        double averageIntensity = 0;
+//        for (int i = 0; i < this->sonarIntensityList.size(); i++) {
+//            double currentAverage = 0;
+//            for (int j = 0; j < this->sonarIntensityList[i].intensities.size(); j++) {
+//                currentAverage += this->sonarIntensityList[i].intensities[j];
+//            }
+//            currentAverage = currentAverage / (double) this->sonarIntensityList[i].intensities.size();
+//            averageIntensity += currentAverage;
+//        }
+//        averageIntensity = averageIntensity / (double) this->sonarIntensityList.size();
+//
+//        double threashHoldIntensity = averageIntensity * 4;
+//        pcl::PointCloud<pcl::PointXYZ> returnCloud;
+//        for (int i = 0; i < this->sonarIntensityList.size(); i++) {
+//            for (int j = 0; j < this->sonarIntensityList[i].intensities.size(); j++) {
+//                if (this->sonarIntensityList[i].intensities[j] > threashHoldIntensity && j > 4) {
+//                    //calculate position of the point in xy coordinates
+//                    double distanceFromRobot = (double) j * this->sonarIntensityList[i].range /
+//                                               this->sonarIntensityList[i].number_of_samples;
+//                    pcl::PointXYZ tmpPoint(distanceFromRobot * cos(this->sonarIntensityList[i].angle / 400 * 2 * M_PI),
+//                                           distanceFromRobot * sin(this->sonarIntensityList[i].angle / 400 * 2 * M_PI),
+//                                           0);
+//                    returnCloud.push_back(tmpPoint);
+//                }
+//            }
+//        }
+//        return (returnCloud);
+//    }
 
     bool saveGraph(commonbluerovmsg::saveGraph::Request &req, commonbluerovmsg::saveGraph::Response &res) {
         std::cout << "test for testing" << std::endl;
@@ -403,76 +404,60 @@ private:
         return true;
     }
 
-    bool getDatasetFromGraph(int numberOfPointsInDataset, std::vector<dataPointStruct> &dataSet) {
+    bool getDatasetFromGraphForHilbertMap(int numberOfPointsInDataset, std::vector<dataPointStruct> &dataSet) {
         std::lock_guard<std::mutex> lock(this->graphSlamMutex);
 //        std::vector<dataPointStruct> dataSet;
 
-        if (this->graphSaved.getVertexList()->size() < this->numberOfEdgesBetweenScans) {
-            return false;
-        }
         std::random_device rd;  // Will be used to obtain a seed for the random number engine
         std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
         std::uniform_real_distribution<> dis(0.0, 1.0);
 
         for (int i = 0; i < numberOfPointsInDataset; i++) {
 
-            //get some random number indexPointCloud and Random Number of Point
-            int indexPointCloud = (int) (dis(gen) *
-                                         (double) (this->graphSaved.getVertexList()->size() - 1));
+            //get some random number indexVertex and Random Number of Point
+            int indexVertex = (int) (dis(gen) *
+                                     (double) (this->graphSaved.getVertexList()->size() - 1));
 
-            int addingValueIndex = 1;
-            if (this->graphSaved.getVertexList()->size() - indexPointCloud < 10 &&
-                this->graphSaved.getVertexList()->size() > 50) {
-                addingValueIndex = -1;
-            }
+            int indexOfPointInIntensitieList = (int) (dis(gen) *
+                                                      (double) this->graphSaved.getVertexList()->at(
+                                                          indexVertex).getIntensities().size-1);
 
 
-            while (true) {
-                indexPointCloud += addingValueIndex;
+            Eigen::Matrix4d transformationOfVertex = this->graphSaved.getVertexList()->at(
+                    indexVertex).getTransformation();
 
-
-                if (this->graphSaved.getVertexList()->at(indexPointCloud).getTypeOfVertex() ==
-                    POINT_CLOUD_SAVED) {
-                    break;
-                }
-            }
-            int indexOfPointInPointcloud = (int) (dis(gen) *
-                                                  (double) this->graphSaved.getVertexList()->at(
-                                                          indexPointCloud).getPointCloudCorrected()->points.size());
-
-
-            Eigen::Matrix4d transformationOfPointcloud = this->graphSaved.getVertexList()->at(
-                    indexPointCloud).getTransformation();
+            double distanceOfIntensity = indexOfPointInIntensitieList*this->graphSaved.getVertexList()->at(indexVertex).getIntensities().increment;
 
 
             Eigen::Vector4d pointPos(
-                    this->graphSaved.getVertexList()->at(
-                            indexPointCloud).getPointCloudCorrected()->points[indexOfPointInPointcloud].x,
-                    this->graphSaved.getVertexList()->at(
-                            indexPointCloud).getPointCloudCorrected()->points[indexOfPointInPointcloud].y,
+                    distanceOfIntensity,
+                    0,
                     0,
                     1);
-            pointPos = transformationOfPointcloud * pointPos;
+
+            //pointPos has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
+
+            pointPos = transformationOfVertex * pointPos;
             dataPointStruct tmpDP;
             tmpDP.x = pointPos.x();
             tmpDP.y = pointPos.y();
             tmpDP.z = pointPos.z();
-            tmpDP.occupancy = 1;
+            tmpDP.occupancy = this->graphSaved.getVertexList()->at(indexVertex).getIntensities().intensities.at(indexOfPointInIntensitieList);
             dataSet.push_back(tmpDP);
 
             //create 3 additional point where occupancy = -1
             for (int j = 0; j < 1; j++) {
                 Eigen::Vector4d pointPosTwo(
                         this->graphSaved.getVertexList()->at(
-                                indexPointCloud).getPointCloudCorrected()->points[indexOfPointInPointcloud].x,
+                                indexVertex).getPointCloudCorrected()->points[indexOfPointInIntensitieList].x,
                         this->graphSaved.getVertexList()->at(
-                                indexPointCloud).getPointCloudCorrected()->points[indexOfPointInPointcloud].y,
+                                indexVertex).getPointCloudCorrected()->points[indexOfPointInIntensitieList].y,
                         0,
                         1);
 
 
                 //double randomNumber = dis(gen);// should be between 0 and 1
-                pointPosTwo = transformationOfPointcloud * dis(gen) * pointPosTwo;
+                pointPosTwo = transformationOfVertex * dis(gen) * pointPosTwo;
                 tmpDP.x = pointPosTwo.x();
                 tmpDP.y = pointPosTwo.y();
                 tmpDP.z = pointPosTwo.z();
@@ -482,6 +467,8 @@ private:
         }
         return true;
     }
+
+
     int getLastIntensityKeyframe(){//the absolut last entry is ignored
         int lastKeyframeIndex = this->graphSaved.getVertexList()->size() - 2;//ignore the last index
         //find last keyframe
@@ -509,7 +496,6 @@ private:
         return resultingAngle;
     }
 
-
     void createVoxelOfGraph(double voxelData[],int indexStart){
 
     }
@@ -520,7 +506,7 @@ public:
         std::cout << "started Hilbert Shift:" << std::endl;
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         std::vector<dataPointStruct> dataSet;
-        bool foundDataset = this->getDatasetFromGraph(numberOfPointsDataset, dataSet);
+        bool foundDataset = this->getDatasetFromGraphForHilbertMap(numberOfPointsDataset, dataSet);
         //return if dataset cannot be found
         if (!foundDataset) {
             return;

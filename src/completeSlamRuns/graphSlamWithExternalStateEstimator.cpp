@@ -467,7 +467,7 @@ private:
         return true;
     }
 
-    bool getDatasetFromGraph(int numberOfPointsInDataset,std::vector<dataPointStruct> &dataSet) {
+    bool getDatasetFromGraphForHilbertMap(int numberOfPointsInDataset, std::vector<dataPointStruct> &dataSet) {
         std::lock_guard<std::mutex> lock(this->graphSlamMutex);
 //        std::vector<dataPointStruct> dataSet;
 
@@ -547,7 +547,7 @@ public:
         std::cout << "started Hilbert Shift:" << std::endl;
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         std::vector<dataPointStruct> dataSet;
-        bool foundDataset =  this->getDatasetFromGraph(numberOfPointsDataset,dataSet);
+        bool foundDataset = this->getDatasetFromGraphForHilbertMap(numberOfPointsDataset, dataSet);
         //return if dataset cannot be found
         if(!foundDataset){
             return;
