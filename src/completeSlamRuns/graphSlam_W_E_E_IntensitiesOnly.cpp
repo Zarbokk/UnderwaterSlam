@@ -14,6 +14,8 @@
 
 
 #define NUMBER_OF_POINTS_DIMENSION 128
+#define DIMENSION_OF_VOXEL_DATA 60
+
 class rosClassEKF {
 public:
     rosClassEKF(ros::NodeHandle n_) : graphSaved(3, INTENSITY_BASED_GRAPH),
@@ -157,16 +159,17 @@ private:
         int indexOfLastKeyframe;
         double angleDiff = angleBetweenLastKeyframeAndNow();
         // best would be scan matching between this angle and transformation based last angle( i think this is currently done)
-        if (angleDiff > 2*M_PI) {
+        if (angleDiff > 2 * M_PI) {
             this->graphSaved.getVertexList()->back().setTypeOfVertex(INTENSITY_SAVED_AND_KEYFRAME);
+            indexOfLastKeyframe = getLastIntensityKeyframe();
             //create a voxel of current scan (last rotation) and voxel of the rotation before that
-            double* voxelData1;
-            double* voxelData2;
-            voxelData1 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION*NUMBER_OF_POINTS_DIMENSION);
-            voxelData2 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION*NUMBER_OF_POINTS_DIMENSION);
+            double *voxelData1;
+            double *voxelData2;
+            voxelData1 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
+            voxelData2 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
             //still missing
-            createVoxelOfGraph(voxelData1,this->graphSaved.getVertexList()->size()-1);//get voxel
-            createVoxelOfGraph(voxelData2,indexOfLastKeyframe);//get voxel
+            createVoxelOfGraph(voxelData1, this->graphSaved.getVertexList()->size() - 1);//get voxel
+            createVoxelOfGraph(voxelData2, indexOfLastKeyframe);//get voxel
 
 
             //match these voxels together
@@ -404,7 +407,8 @@ private:
         return true;
     }
 
-    bool getDatasetFromGraphForHilbertMap(int numberOfPointsInDataset, std::vector<dataPointStruct> &dataSet) {
+    bool getDatasetFromGraphForHilbertMap(int numberOfPointsInDataset, std::vector<dataPointStruct> &dataSet,
+                                          int numberOfMultiplyPoints) {
         std::lock_guard<std::mutex> lock(this->graphSlamMutex);
 //        std::vector<dataPointStruct> dataSet;
 
@@ -418,50 +422,39 @@ private:
             int indexVertex = (int) (dis(gen) *
                                      (double) (this->graphSaved.getVertexList()->size() - 1));
 
-            int indexOfPointInIntensitieList = (int) (dis(gen) *
-                                                      (double) this->graphSaved.getVertexList()->at(
-                                                          indexVertex).getIntensities().size-1);
 
 
-            Eigen::Matrix4d transformationOfVertex = this->graphSaved.getVertexList()->at(
-                    indexVertex).getTransformation();
+            //create 5 point with occupancy
+            for (int j = 0; j < numberOfMultiplyPoints; j++) {
+                int indexOfPointInIntensitieList = (int) (dis(gen) *
+                                                          (double) this->graphSaved.getVertexList()->at(
+                                                                  indexVertex).getIntensities().size - 1);
 
-            double distanceOfIntensity = indexOfPointInIntensitieList*this->graphSaved.getVertexList()->at(indexVertex).getIntensities().increment;
+
+                Eigen::Matrix4d transformationOfVertex = this->graphSaved.getVertexList()->at(
+                        indexVertex).getTransformation();
+
+                double distanceOfIntensity = indexOfPointInIntensitieList * this->graphSaved.getVertexList()->at(
+                        indexVertex).getIntensities().increment;
 
 
-            Eigen::Vector4d pointPos(
-                    distanceOfIntensity,
-                    0,
-                    0,
-                    1);
-
-            //pointPos has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
-            Eigen::Quaterniond rotationOfSonarAngleQuaternion = generalHelpfulTools::getQuaternionFromRPY(0,0,this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle);
-            pointPos = transformationOfVertex * pointPos;
-            dataPointStruct tmpDP;
-            tmpDP.x = pointPos.x();
-            tmpDP.y = pointPos.y();
-            tmpDP.z = pointPos.z();
-            tmpDP.occupancy = this->graphSaved.getVertexList()->at(indexVertex).getIntensities().intensities.at(indexOfPointInIntensitieList);
-            dataSet.push_back(tmpDP);
-
-            //create 3 additional point where occupancy = -1
-            for (int j = 0; j < 1; j++) {
-                Eigen::Vector4d pointPosTwo(
-                        this->graphSaved.getVertexList()->at(
-                                indexVertex).getPointCloudCorrected()->points[indexOfPointInIntensitieList].x,
-                        this->graphSaved.getVertexList()->at(
-                                indexVertex).getPointCloudCorrected()->points[indexOfPointInIntensitieList].y,
+                Eigen::Vector4d pointPos(
+                        distanceOfIntensity,
+                        0,
                         0,
                         1);
 
+                //pointPos has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
+                Eigen::Quaterniond rotationOfSonarAngleQuaternion = generalHelpfulTools::getQuaternionFromRPY(0, 0,
+                                                                                                              this->graphSaved.getVertexList()->at( indexVertex).getIntensities().angle);
 
-                //double randomNumber = dis(gen);// should be between 0 and 1
-                pointPosTwo = transformationOfVertex * dis(gen) * pointPosTwo;
-                tmpDP.x = pointPosTwo.x();
-                tmpDP.y = pointPosTwo.y();
-                tmpDP.z = pointPosTwo.z();
-                tmpDP.occupancy = -1;
+                pointPos = transformationOfVertex * rotationOfSonarAngleQuaternion*pointPos;
+                dataPointStruct tmpDP;
+                tmpDP.x = pointPos.x();
+                tmpDP.y = pointPos.y();
+                tmpDP.z = pointPos.z();
+                tmpDP.occupancy = this->graphSaved.getVertexList()->at(indexVertex).getIntensities().intensities.at(
+                        indexOfPointInIntensitieList);
                 dataSet.push_back(tmpDP);
             }
         }
@@ -469,7 +462,7 @@ private:
     }
 
 
-    int getLastIntensityKeyframe(){//the absolut last entry is ignored
+    int getLastIntensityKeyframe() {//the absolut last entry is ignored
         int lastKeyframeIndex = this->graphSaved.getVertexList()->size() - 2;//ignore the last index
         //find last keyframe
         while (this->graphSaved.getVertexList()->at(lastKeyframeIndex).getTypeOfVertex() !=
@@ -490,15 +483,64 @@ private:
                     this->graphSaved.getVertexList()->at(lastKeyframeIndex).getRotationVertex().inverse() *
                     this->graphSaved.getVertexList()->at(lastKeyframeIndex + 1).getRotationVertex();
             Eigen::Vector3d rpy = generalHelpfulTools::getRollPitchYaw(currentRot);
-            resultingAngle+=rpy(2)+this->graphSaved.getVertexList()->at(lastKeyframeIndex+1).getIntensities().increment;
+            resultingAngle +=
+                    rpy(2) + this->graphSaved.getVertexList()->at(lastKeyframeIndex + 1).getIntensities().increment;
         }
 
         return resultingAngle;
     }
 
-    void createVoxelOfGraph(double voxelData[],int indexStart){
+    void createVoxelOfGraph(double voxelData[], int indexStart) {
+        int *voxelDataIndex;
+        voxelDataIndex = (int *) malloc(sizeof(int) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
+        //set zero voxel and index
+        for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION; i++) {
+            voxelDataIndex[i] = 0;
+            voxelData[i] = 0;
+        }
 
+
+        int i = 1;
+        while (this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
+               this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != INTENSITY_SAVED_AND_KEYFRAME) {
+            //calculate the position of each intensity and create an index in two arrays. First in voxel data, and second save number of intensities.
+
+
+            //get position of current intensityRay
+            Eigen::Matrix4d transformationOfIntensityRay =
+                    this->graphSaved.getVertexList()->at(indexStart - i).getTransformation().inverse() *
+                    this->graphSaved.getVertexList()->at(indexStart - i).getTransformation();
+
+
+            for (int j = 0; j < this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().size; j++) {
+                double distanceOfIntensity = j * this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().increment;
+                Eigen::Vector4d positionOfIntensity(
+                        distanceOfIntensity,
+                        0,
+                        0,
+                        1);
+
+                //positionOfIntensity has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
+                Eigen::Quaterniond rotationOfSonarAngleQuaternion = generalHelpfulTools::getQuaternionFromRPY(0, 0,
+                                                                                                              this->graphSaved.getVertexList()->at(
+                                                                                                                      indexStart - i).getIntensities().angle);
+                positionOfIntensity = transformationOfIntensityRay * rotationOfSonarAngleQuaternion * positionOfIntensity;
+                //calculate index dependent on  DIMENSION_OF_VOXEL_DATA and NUMBER_OF_POINTS_DIMENSION the middle
+                int indexX;
+                int indexY;
+
+
+
+
+            }
+
+
+        }
+
+
+        free(voxelDataIndex);
     }
+
 
 public:
     void updateHilbertMap() {
@@ -506,23 +548,25 @@ public:
         std::cout << "started Hilbert Shift:" << std::endl;
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         std::vector<dataPointStruct> dataSet;
-        bool foundDataset = this->getDatasetFromGraphForHilbertMap(numberOfPointsDataset, dataSet);
+        bool foundDataset = this->getDatasetFromGraphForHilbertMap(numberOfPointsDataset / 5, dataSet, 5);
+
         //return if dataset cannot be found
         if (!foundDataset) {
             return;
         }
-        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        std::cout << "Time it takes to get the dataset = "
-                  << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
-                  << "[ms]" << std::endl;
-
-        std::chrono::steady_clock::time_point begin2 = std::chrono::steady_clock::now();
-        this->occupancyMap.trainClassifier(dataSet, (int) (numberOfPointsDataset * 1.8));
+        //@TODO normalization of the dataset
+//        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+//        std::cout << "Time it takes to get the dataset = "
+//                  << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
+//                  << "[ms]" << std::endl;
+//
+//        std::chrono::steady_clock::time_point begin2 = std::chrono::steady_clock::now();
+        this->occupancyMap.trainClassifier(dataSet, (int) (numberOfPointsDataset));
         nav_msgs::OccupancyGrid map = this->occupancyMap.createOccupancyMapOfHilbert(0, 0, 70, true);
-        std::chrono::steady_clock::time_point end2 = std::chrono::steady_clock::now();
-        std::cout << "Time it takes to train the dataset = "
-                  << std::chrono::duration_cast<std::chrono::milliseconds>(end2 - begin2).count()
-                  << "[ms]" << std::endl;
+//        std::chrono::steady_clock::time_point end2 = std::chrono::steady_clock::now();
+//        std::cout << "Time it takes to train the dataset = "
+//                  << std::chrono::duration_cast<std::chrono::milliseconds>(end2 - begin2).count()
+//                  << "[ms]" << std::endl;
 
         map.header.stamp = ros::Time::now();
         map.header.frame_id = "map_ned";
