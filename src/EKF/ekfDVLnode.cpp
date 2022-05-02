@@ -216,6 +216,8 @@ int main(int argc, char **argv) {
     ros::NodeHandle n_;
 
     std::string whichIMUUsed;
+    //whichIMUUsed = "external";
+
     if (n_.getParam("/EKFDVL/imu_used", whichIMUUsed)) {
         ROS_INFO("IMU used is: %s", whichIMUUsed.c_str());
     } else {
@@ -234,6 +236,8 @@ int main(int argc, char **argv) {
     }
 
     std::string whichDVLUsed;
+    //whichDVLUsed = "external";
+
     if (n_.getParam("/EKFDVL/dvl_used", whichDVLUsed)) {
         ROS_INFO("DVL used is: %s", whichDVLUsed.c_str());
     } else {
