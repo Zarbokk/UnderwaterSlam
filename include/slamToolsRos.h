@@ -16,6 +16,7 @@
 #include <scanRegistrationClass.h>
 #include <random>
 #include "generalHelpfulTools.h"
+
 #ifndef SIMULATION_BLUEROV_SLAMTOOLSROS_H
 #define SIMULATION_BLUEROV_SLAMTOOLSROS_H
 
@@ -50,60 +51,61 @@ struct DvlData {
 class slamToolsRos {
 
 public:
-    static void visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros::Publisher &publisherPath,
-                                      ros::Publisher &publisherCloud, ros::Publisher &publisherMarkerArray,
-                                      double sigmaScaling, ros::Publisher &publisherPathGT,
-                                      std::vector<measurement> *groundTruthSorted,
-                                      ros::Publisher &publisherMarkerArrayLoopClosures,
-                                      double plotGTToTime,int numberOfEdgesBetweenScans);
+//    static void visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros::Publisher &publisherPath,
+//                                      ros::Publisher &publisherCloud, ros::Publisher &publisherMarkerArray,
+//                                      double sigmaScaling, ros::Publisher &publisherPathGT,
+//                                      std::vector<measurement> *groundTruthSorted,
+//                                      ros::Publisher &publisherMarkerArrayLoopClosures,
+//                                      double plotGTToTime,int numberOfEdgesBetweenScans);
 
     static std::vector<measurement>
     parseCSVFile(std::istream &stream);//this is first line description then keyframe,x,y,z,timestamp
 
     static std::vector<std::vector<measurement>> sortToKeyframe(std::vector<measurement> &input);
 
-    static void correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cloudScan, std::vector<edge> &posDiff,
-                                            double timeStampBeginning, double beginAngle,
-                                            double endAngle, bool reverseScanDirection,
-                                            Eigen::Matrix4d transformationPosData2PclCoord);
+//    static void correctPointCloudByPosition(pcl::PointCloud<pcl::PointXYZ>::Ptr cloudScan, std::vector<edge> &posDiff,
+//                                            double timeStampBeginning, double beginAngle,
+//                                            double endAngle, bool reverseScanDirection,
+//                                            Eigen::Matrix4d transformationPosData2PclCoord);
 
     static void
     calculatePositionOverTime(std::deque<ImuData> &angularVelocityList, std::deque<DvlData> &bodyVelocityList,
                               std::vector<edge> &posOverTimeEdge,
                               double lastScanTimeStamp, double currentScanTimeStamp, double noiseAddedStdDiv, int numberOfEdges);
 
-    static void
-    debugPlotting(pcl::PointCloud<pcl::PointXYZ>::Ptr lastScan, pcl::PointCloud<pcl::PointXYZ>::Ptr afterRegistration,
-                  pcl::PointCloud<pcl::PointXYZ>::Ptr currentScanBeforeCorrection,
-                  pcl::PointCloud<pcl::PointXYZ>::Ptr currentScanAfterCorrection, ros::Publisher &publisherLastPCL,
-                  ros::Publisher &publisherRegistrationPCL, ros::Publisher &publisherBeforeCorrection,
-                  ros::Publisher &publisherAfterCorrection);
+//    static void
+//    debugPlotting(pcl::PointCloud<pcl::PointXYZ>::Ptr lastScan, pcl::PointCloud<pcl::PointXYZ>::Ptr afterRegistration,
+//                  pcl::PointCloud<pcl::PointXYZ>::Ptr currentScanBeforeCorrection,
+//                  pcl::PointCloud<pcl::PointXYZ>::Ptr currentScanAfterCorrection, ros::Publisher &publisherLastPCL,
+//                  ros::Publisher &publisherRegistrationPCL, ros::Publisher &publisherBeforeCorrection,
+//                  ros::Publisher &publisherAfterCorrection);
 
-    static bool detectLoopClosureSOFFT(graphSlamSaveStructure &graphSaved,
-                                  double sigmaScaling, double maxTimeOptimization,scanRegistrationClass &scanRegistrationObject);
-    static bool detectLoopClosureIPC(graphSlamSaveStructure &graphSaved,
-                                       double sigmaScaling, double cutoffFitnessOnDetect, double maxTimeOptimization,scanRegistrationClass &scanRegistrationObject);
+//    static bool detectLoopClosureSOFFT(graphSlamSaveStructure &graphSaved,
+//                                  double sigmaScaling, double maxTimeOptimization,scanRegistrationClass &scanRegistrationObject);
+//
+//    static bool detectLoopClosureIPC(graphSlamSaveStructure &graphSaved,
+//                                       double sigmaScaling, double cutoffFitnessOnDetect, double maxTimeOptimization,scanRegistrationClass &scanRegistrationObject);
 
     static std::vector<double> linspace(double start_in, double end_in, int num_in);
 
-    static void
-    correctPointCloudAtPos(int positionToCorrect, graphSlamSaveStructure &currentGraph,
-                           double beginAngle,
-                           double endAngle, bool reverseScanDirection, Eigen::Matrix4d transformationPosData2PclCoord);
+//    static void
+//    correctPointCloudAtPos(int positionToCorrect, graphSlamSaveStructure &currentGraph,
+//                           double beginAngle,
+//                           double endAngle, bool reverseScanDirection, Eigen::Matrix4d transformationPosData2PclCoord);
 
-    static void correctEveryPointCloud(graphSlamSaveStructure &currentGraph,
-                                       double beginAngle,
-                                       double endAngle, bool reverseScanDirection,
-                                       Eigen::Matrix4d transformationPosData2PclCoord);
+//    static void correctEveryPointCloud(graphSlamSaveStructure &currentGraph,
+//                                       double beginAngle,
+//                                       double endAngle, bool reverseScanDirection,
+//                                       Eigen::Matrix4d transformationPosData2PclCoord);
 
-    static void recalculatePCLEdges(graphSlamSaveStructure &currentGraph);
+//    static void recalculatePCLEdges(graphSlamSaveStructure &currentGraph);
 
-    static void appendEdgesToGraph(graphSlamSaveStructure
-                                   &currentGraph,
-                                   std::deque<edge> &listOfEdges,
-                                   double noiseVelocityIntigration,
-                                   double scalingAngle, double maxTimeOptimization, int maximumNumberOfAddedEdges
-    );
+//    static void appendEdgesToGraph(graphSlamSaveStructure
+//                                   &currentGraph,
+//                                   std::deque<edge> &listOfEdges,
+//                                   double noiseVelocityIntigration,
+//                                   double scalingAngle, double maxTimeOptimization, int maximumNumberOfAddedEdges
+//    );
 };
 
 

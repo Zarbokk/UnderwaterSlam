@@ -14,6 +14,7 @@ class generalHelpfulTools {
 public:
     static Eigen::Vector3d getRollPitchYaw(Eigen::Quaterniond quat);
     static Eigen::Quaterniond getQuaternionFromRPY(double roll, double pitch, double yaw);
+    static Eigen::Matrix4d getTransformationMatrixFromRPY(double roll, double pitch, double yaw);
     static double angleDiff(double first, double second);//first-second
     static Eigen::Matrix4d interpolationTwo4DTransformations(Eigen::Matrix4d &transformation1,Eigen::Matrix4d &transformation2,double &t);// from 1 to two by t[0-1]
     static Eigen::Matrix4d getTransformationMatrix(Eigen::Vector3d &translation, Eigen::Quaterniond &rotation);

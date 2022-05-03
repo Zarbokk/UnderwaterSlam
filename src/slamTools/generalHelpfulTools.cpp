@@ -13,6 +13,13 @@ Eigen::Vector3d generalHelpfulTools::getRollPitchYaw(Eigen::Quaterniond quat) {
     return returnVector;
 }
 
+Eigen::Matrix4d generalHelpfulTools::getTransformationMatrixFromRPY(double roll, double pitch, double yaw){
+    Eigen::Quaterniond rotationAsQuaternion = generalHelpfulTools::getQuaternionFromRPY( roll,  pitch,  yaw);
+    Eigen::Matrix4d returnMatrix = Eigen::Matrix4d::Identity();
+    returnMatrix.block<3, 3>(0, 0) = rotationAsQuaternion.toRotationMatrix();
+    return returnMatrix;
+}
+
 Eigen::Quaterniond generalHelpfulTools::getQuaternionFromRPY(double roll, double pitch, double yaw) {
 //        tf2::Matrix3x3 m;
 //        m.setRPY(roll,pitch,yaw);

@@ -93,10 +93,15 @@ public:
 
     void saveGraphJson(std::string nameSavingFile);
 
-
-
-
-
+//    static const int POINT_CLOUD_SAVED = 0;
+//    static const int INTEGRATED_POSE =1;
+//    static const int FIRST_ENTRY =2;
+//    static const int INTENSITY_SAVED =3;
+//    static const int INTENSITY_BASED_GRAPH =4;
+//    static const int POINT_CLOUD_BASED_GRAPH =5;
+//    static const int ONLY_SIMPLE_GRAPH =6;
+//    static const int INTENSITY_SAVED_AND_KEYFRAME =7;
+//    static const int LOOP_CLOSURE =8;
 
 private:
 

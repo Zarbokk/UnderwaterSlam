@@ -168,8 +168,8 @@ private:
             voxelData1 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
             voxelData2 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
             //still missing
-            createVoxelOfGraph(voxelData1, this->graphSaved.getVertexList()->size() - 1);//get voxel
-            createVoxelOfGraph(voxelData2, indexOfLastKeyframe);//get voxel
+            createVoxelOfGraph(voxelData1, this->graphSaved.getVertexList()->size() - 1,Eigen::Matrix4d::Identity());//get voxel
+            createVoxelOfGraph(voxelData2, indexOfLastKeyframe,Eigen::Matrix4d::Identity());//get voxel
 
 
             //match these voxels together
@@ -181,7 +181,7 @@ private:
             double fitnessScoreX, fitnessScoreY;
 
             //we need inverse transformation
-            this->currentTransformation = scanRegistrationObject.sofftRegistrationVoxel(
+            this->currentTransformation = scanRegistrationObject.sofftRegistrationVoxel2D(
                     voxelData1, voxelData2,
                     fitnessScoreX, fitnessScoreY,
                     std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)),
@@ -445,10 +445,11 @@ private:
                         1);
 
                 //pointPos has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
-                Eigen::Quaterniond rotationOfSonarAngleQuaternion = generalHelpfulTools::getQuaternionFromRPY(0, 0,
-                                                                                                              this->graphSaved.getVertexList()->at( indexVertex).getIntensities().angle);
+                Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
+                                                                                                                 this->graphSaved.getVertexList()->at(
+                                                                                                                         indexVertex).getIntensities().angle);
 
-                pointPos = transformationOfVertex * rotationOfSonarAngleQuaternion*pointPos;
+                pointPos = transformationOfVertex * rotationOfSonarAngleMatrix * pointPos;
                 dataPointStruct tmpDP;
                 tmpDP.x = pointPos.x();
                 tmpDP.y = pointPos.y();
@@ -490,7 +491,7 @@ private:
         return resultingAngle;
     }
 
-    void createVoxelOfGraph(double voxelData[], int indexStart) {
+    void createVoxelOfGraph(double voxelData[], int indexStart, Eigen::Matrix4d transformationInTheEndOfCalculation) {
         int *voxelDataIndex;
         voxelDataIndex = (int *) malloc(sizeof(int) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
         //set zero voxel and index
@@ -500,9 +501,8 @@ private:
         }
 
 
-        int i = 1;
-        while (this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
-               this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != INTENSITY_SAVED_AND_KEYFRAME) {
+        int i = 0;
+        do {
             //calculate the position of each intensity and create an index in two arrays. First in voxel data, and second save number of intensities.
 
 
@@ -512,8 +512,10 @@ private:
                     this->graphSaved.getVertexList()->at(indexStart - i).getTransformation();
 
 
-            for (int j = 0; j < this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().size; j++) {
-                double distanceOfIntensity = j * this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().increment;
+            for (int j = 0;
+                 j < this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
+                double distanceOfIntensity =
+                        j * this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().increment;
                 Eigen::Vector4d positionOfIntensity(
                         distanceOfIntensity,
                         0,
@@ -521,23 +523,36 @@ private:
                         1);
 
                 //positionOfIntensity has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
-                Eigen::Quaterniond rotationOfSonarAngleQuaternion = generalHelpfulTools::getQuaternionFromRPY(0, 0,
-                                                                                                              this->graphSaved.getVertexList()->at(
-                                                                                                                      indexStart - i).getIntensities().angle);
-                positionOfIntensity = transformationOfIntensityRay * rotationOfSonarAngleQuaternion * positionOfIntensity;
+                Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
+                                                                                                                 this->graphSaved.getVertexList()->at(
+                                                                                                                         indexStart -
+                                                                                                                         i).getIntensities().angle);
+                positionOfIntensity = transformationInTheEndOfCalculation * transformationOfIntensityRay *
+                                      rotationOfSonarAngleMatrix * positionOfIntensity;
                 //calculate index dependent on  DIMENSION_OF_VOXEL_DATA and NUMBER_OF_POINTS_DIMENSION the middle
-                int indexX;
-                int indexY;
-
-
-
-
+                int indexX = (int) ((DIMENSION_OF_VOXEL_DATA / 2) / positionOfIntensity.x()) +
+                             NUMBER_OF_POINTS_DIMENSION / 2;
+                int indexY = (int) ((DIMENSION_OF_VOXEL_DATA / 2) / positionOfIntensity.y()) +
+                             NUMBER_OF_POINTS_DIMENSION / 2;
+                if (indexX < NUMBER_OF_POINTS_DIMENSION && indexY < NUMBER_OF_POINTS_DIMENSION) {
+                    //if index fits inside of our data, add that data. Else Ignore
+                    voxelDataIndex[indexY + NUMBER_OF_POINTS_DIMENSION * indexX] =
+                            voxelDataIndex[indexY + NUMBER_OF_POINTS_DIMENSION * indexX] + 1;
+                    voxelData[indexY + NUMBER_OF_POINTS_DIMENSION * indexX] =
+                            voxelData[indexY + NUMBER_OF_POINTS_DIMENSION * indexX] +
+                            this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[j];
+                }
             }
+            i++;
+        } while (this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
+                 this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
+                 INTENSITY_SAVED_AND_KEYFRAME);
 
-
+        for (i = 0; i < NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION; i++) {
+            if (voxelDataIndex[i] > 0) {
+                voxelData[i] = voxelData[i] / voxelDataIndex[i];
+            }
         }
-
-
         free(voxelDataIndex);
     }
 
