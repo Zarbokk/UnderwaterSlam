@@ -77,9 +77,9 @@ private:
         Eigen::Vector3d euler = generalHelpfulTools::getRollPitchYaw(tmpRot);// roll pitch yaw
 
         //calculate roll pitch from IMU accel data
-//        std::cout << "my Roll: "<< euler.x()*180/M_PI<< std::endl;
-//        std::cout << "my Pitch: "<< euler.y()*180/M_PI<< std::endl;
-//        std::cout << "my Yaw: "<< euler.z()*180/M_PI<< std::endl;
+        std::cout << "my Roll: "<< euler.x()*180/M_PI<< std::endl;
+        std::cout << "my Pitch: "<< euler.y()*180/M_PI<< std::endl;
+        std::cout << "my Yaw: "<< euler.z()*180/M_PI<< std::endl;
         currentEkf.updateIMU(euler.x(), euler.y(), msg.get()->angular_velocity.x, msg.get()->angular_velocity.y,
                              msg.get()->angular_velocity.z, tmpRot, msg->header.stamp);
         pose currentStateEkf = currentEkf.getState();
