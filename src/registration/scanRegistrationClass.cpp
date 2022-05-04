@@ -79,8 +79,23 @@ Eigen::Matrix4d scanRegistrationClass::sofftRegistration(const pcl::PointCloud<p
                                                       fitnessY, goodGuessAlpha, debug);
 }
 
-Eigen::Matrix4d sofftRegistrationVoxel(double voxelData1[],
-                                       double voxelData2[],
-                                       double &fitnessX, double &fitnessY, double goodGuessAlpha = -100,bool debug = false){
+double scanRegistrationClass::sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[],double voxelData2Input[],double goodGuessAlpha,bool debug){
+
+
+    return myRegistrationClass.sofftRegistrationVoxel2DRotationOnly(voxelData1Input,voxelData2Input,goodGuessAlpha,debug);
 
 }
+
+Eigen::Vector2d
+scanRegistrationClass::sofftRegistrationVoxel2DTranslation(double voxelData1Input[], double voxelData2Input[], double &fitnessX, double &fitnessY,double cellSize,
+                                    bool debug){
+
+    return myRegistrationClass.sofftRegistrationVoxel2DTransformation(voxelData1Input,voxelData2Input,fitnessX,fitnessY,cellSize,debug);
+
+}
+
+//Eigen::Matrix4d sofftRegistrationVoxel(double voxelData1[],
+//                                       double voxelData2[],
+//                                       double &fitnessX, double &fitnessY, double goodGuessAlpha = -100,bool debug = false){
+//
+//}

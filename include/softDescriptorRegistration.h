@@ -88,15 +88,17 @@ public:
 
     double movePCLtoMiddle(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, Eigen::Matrix4d &transformationPCL);
 
-    Eigen::Matrix4d
-    registrationOfTwoVoxel2D(double voxelData1[], double voxelData2[], double &fitnessX, double &fitnessY,
-                             double goodGuessAlpha, bool debug);
-    std::vector<double> sofftRegistrationVoxel2DRotationOnly(double voxelData1[],
-                                                             double voxelData2[],
-                                                             double &fitnessX, double &fitnessY, double goodGuessAlpha = -100,bool debug = false);
-    Eigen::Matrix4d sofftRegistrationVoxel2DTransformation(double voxelData1[],
-                                                           double voxelData2[],
-                                                           double &fitnessX, double &fitnessY, double goodGuessAlpha = -100,bool debug = false);
+//    Eigen::Matrix4d
+//    registrationOfTwoVoxel2D(double voxelData1[], double voxelData2[], double &fitnessX, double &fitnessY,
+//                             double goodGuessAlpha, bool debug);
+
+
+    double
+    sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[], double voxelData2Input[], double goodGuessAlpha, bool debug = false);
+
+    Eigen::Vector2d sofftRegistrationVoxel2DTransformation(double voxelData1Input[],
+                                                           double voxelData2Input[],
+                                                           double &fitnessX, double &fitnessY,double cellSize, bool debug = false);
 
 
 private://here everything is created. malloc is done in the constructor

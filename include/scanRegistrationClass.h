@@ -37,7 +37,8 @@ public:
 
     Eigen::Matrix4d sofftRegistration(const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1,
                                       const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2,
-                                      double &fitnessX, double &fitnessY, double goodGuessAlpha = -100,bool debug = false);
+                                      double &fitnessX, double &fitnessY, double goodGuessAlpha = -100,
+                                      bool debug = false);
 
 
     static Eigen::Matrix4d icpRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
@@ -48,12 +49,12 @@ public:
 //                                           double voxelData2[],
 //                                           double &fitnessX, double &fitnessY, double goodGuessAlpha = -100,bool debug = false);
 
-    std::vector<double> sofftRegistrationVoxel2DRotationOnly(double voxelData1[],
-                                                             double voxelData2[],
-                                                             double &fitnessX, double &fitnessY, double goodGuessAlpha = -100,bool debug = false);
-    Eigen::Matrix4d sofftRegistrationVoxel2DTransformation(double voxelData1[],
-                                                           double voxelData2[],
-                                                           double &fitnessX, double &fitnessY, double goodGuessAlpha = -100,bool debug = false);
+    double
+    sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[], double voxelData2Input[],double goodGuessAlpha, bool debug = false);
+
+    Eigen::Vector2d
+    sofftRegistrationVoxel2DTranslation(double voxelData1Input[], double voxelData2Input[], double &fitnessX, double &fitnessY,double cellSize,
+                                        bool debug = false);
 
 
 private:

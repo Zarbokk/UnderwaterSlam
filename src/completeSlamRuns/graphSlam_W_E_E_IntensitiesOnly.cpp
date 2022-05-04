@@ -23,6 +23,7 @@ public:
                                       occupancyMap(256, NUMBER_OF_POINTS_DIMENSION, 70, hilbertMap::HINGED_FEATURES) {
 
         subscriberEKF = n_.subscribe("publisherPoseEkf", 1000, &rosClassEKF::stateEstimationCallback, this);
+        ros::Duration(1).sleep();
         subscriberIntensitySonar = n_.subscribe("sonar/intensity", 1000, &rosClassEKF::scanCallback, this);
         this->serviceSaveGraph = n_.advertiseService("saveGraphOfSLAM", &rosClassEKF::saveGraph, this);
 
@@ -101,6 +102,7 @@ private:
 
 
     void scanCallback(const ping360_sonar::SonarEcho::ConstPtr &msg) {
+        ros::Duration(0.02).sleep();//wait a moment for EKF values to come in assumes at least 50 hz.
         std::lock_guard<std::mutex> lock(this->graphSlamMutex);
         if (firstSonarInput) {
 
@@ -162,14 +164,7 @@ private:
         if (angleDiff > 2 * M_PI) {
             this->graphSaved.getVertexList()->back().setTypeOfVertex(INTENSITY_SAVED_AND_KEYFRAME);
             indexOfLastKeyframe = getLastIntensityKeyframe();
-            //create a voxel of current scan (last rotation) and voxel of the rotation before that
-            double *voxelData1;
-            double *voxelData2;
-            voxelData1 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
-            voxelData2 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
-            //still missing
-            createVoxelOfGraph(voxelData1, this->graphSaved.getVertexList()->size() - 1,Eigen::Matrix4d::Identity());//get voxel
-            createVoxelOfGraph(voxelData2, indexOfLastKeyframe,Eigen::Matrix4d::Identity());//get voxel
+
 
 
             //match these voxels together
@@ -181,11 +176,14 @@ private:
             double fitnessScoreX, fitnessScoreY;
 
             //we need inverse transformation
-            this->currentTransformation = scanRegistrationObject.sofftRegistrationVoxel2D(
-                    voxelData1, voxelData2,
-                    fitnessScoreX, fitnessScoreY,
-                    std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)),
-                    false).inverse();
+            this->currentTransformation = this->registrationOfTwoVoxels(this->graphSaved.getVertexList()->size() - 1,
+                                                                        indexOfLastKeyframe, fitnessScoreX,
+                                                                        fitnessScoreY,
+                                                                        std::atan2(
+                                                                                this->initialGuessTransformation(1, 0),
+                                                                                this->initialGuessTransformation(0, 0)),
+                                                                        false);
+
 
             double differenceAngleBeforeAfter = generalHelpfulTools::angleDiff(
                     std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)),
@@ -291,29 +289,29 @@ private:
         Eigen::Matrix4d transformationTMP = Eigen::Matrix4d::Identity();
 
         if (indexOfStart > 0) {
-            double interpolationFactor = (this->timeVector[indexOfStart - 1] - startTimetoAdd) /
-                                         (this->timeVector[indexOfStart] - this->timeVector[indexOfStart - 1]);
+            double interpolationFactor = 1.0-((this->timeVector[indexOfStart+1]-startTimetoAdd) /
+                                         (this->timeVector[indexOfStart+1] - this->timeVector[indexOfStart]));
 
             Eigen::Matrix4d transformationOfEKFStart = Eigen::Matrix4d::Identity();
             transformationOfEKFStart.block<3, 3>(0, 0) = this->rotationVector[indexOfStart - 1].toRotationMatrix();
-            transformationOfEKFStart(0, 3) = this->xPositionVector[indexOfStart - 1];
-            transformationOfEKFStart(1, 3) = this->yPositionVector[indexOfStart - 1];
-            transformationOfEKFStart(2, 3) = this->zPositionVector[indexOfStart - 1];
+            transformationOfEKFStart(0, 3) = this->xPositionVector[indexOfStart];
+            transformationOfEKFStart(1, 3) = this->yPositionVector[indexOfStart];
+            transformationOfEKFStart(2, 3) = this->zPositionVector[indexOfStart];
 
             Eigen::Matrix4d transformationOfEKFEnd = Eigen::Matrix4d::Identity();
             transformationOfEKFEnd.block<3, 3>(0, 0) = this->rotationVector[indexOfStart].toRotationMatrix();
-            transformationOfEKFEnd(0, 3) = this->xPositionVector[indexOfStart];
-            transformationOfEKFEnd(1, 3) = this->yPositionVector[indexOfStart];
-            transformationOfEKFEnd(2, 3) = this->zPositionVector[indexOfStart];
+            transformationOfEKFEnd(0, 3) = this->xPositionVector[indexOfStart+1];
+            transformationOfEKFEnd(1, 3) = this->yPositionVector[indexOfStart+1];
+            transformationOfEKFEnd(2, 3) = this->zPositionVector[indexOfStart+1];
 
             transformationTMP = transformationTMP *
                                 generalHelpfulTools::interpolationTwo4DTransformations(transformationOfEKFStart,
                                                                                        transformationOfEKFEnd,
-                                                                                       interpolationFactor);
+                                                                                       interpolationFactor).inverse()*transformationOfEKFEnd;
         }
 
 
-        int i = indexOfStart;
+        int i = indexOfStart+1;
         while (i < indexOfEnd) {
             Eigen::Matrix4d transformationOfEKFEnd = Eigen::Matrix4d::Identity();
             transformationOfEKFEnd.block<3, 3>(0, 0) = this->rotationVector[i].toRotationMatrix();
@@ -332,22 +330,22 @@ private:
         }
 
         if (indexOfEnd > 0) {
-            double interpolationFactor = (endTimeToAdd - this->timeVector[indexOfEnd - 1]) /
-                                         (this->timeVector[indexOfEnd] - this->timeVector[indexOfEnd - 1]);
+            double interpolationFactor = ((endTimeToAdd - this->timeVector[indexOfEnd]) /
+                                         (this->timeVector[indexOfEnd+1] - this->timeVector[indexOfEnd]));
 
             Eigen::Matrix4d transformationOfEKFStart = Eigen::Matrix4d::Identity();
-            transformationOfEKFStart.block<3, 3>(0, 0) = this->rotationVector[indexOfStart - 1].toRotationMatrix();
-            transformationOfEKFStart(0, 3) = this->xPositionVector[indexOfStart - 1];
-            transformationOfEKFStart(1, 3) = this->yPositionVector[indexOfStart - 1];
-            transformationOfEKFStart(2, 3) = this->zPositionVector[indexOfStart - 1];
+            transformationOfEKFStart.block<3, 3>(0, 0) = this->rotationVector[indexOfEnd ].toRotationMatrix();
+            transformationOfEKFStart(0, 3) = this->xPositionVector[indexOfEnd ];
+            transformationOfEKFStart(1, 3) = this->yPositionVector[indexOfEnd ];
+            transformationOfEKFStart(2, 3) = this->zPositionVector[indexOfEnd ];
 
             Eigen::Matrix4d transformationOfEKFEnd = Eigen::Matrix4d::Identity();
-            transformationOfEKFEnd.block<3, 3>(0, 0) = this->rotationVector[indexOfStart].toRotationMatrix();
-            transformationOfEKFEnd(0, 3) = this->xPositionVector[indexOfStart];
-            transformationOfEKFEnd(1, 3) = this->yPositionVector[indexOfStart];
-            transformationOfEKFEnd(2, 3) = this->zPositionVector[indexOfStart];
+            transformationOfEKFEnd.block<3, 3>(0, 0) = this->rotationVector[indexOfEnd + 1].toRotationMatrix();
+            transformationOfEKFEnd(0, 3) = this->xPositionVector[indexOfEnd + 1];
+            transformationOfEKFEnd(1, 3) = this->yPositionVector[indexOfEnd + 1];
+            transformationOfEKFEnd(2, 3) = this->zPositionVector[indexOfEnd + 1];
 
-            transformationTMP = transformationTMP *
+            transformationTMP = transformationTMP *transformationOfEKFStart.inverse()*
                                 generalHelpfulTools::interpolationTwo4DTransformations(transformationOfEKFStart,
                                                                                        transformationOfEKFEnd,
                                                                                        interpolationFactor);
@@ -552,10 +550,55 @@ private:
             if (voxelDataIndex[i] > 0) {
                 voxelData[i] = voxelData[i] / voxelDataIndex[i];
             }
-        }
+        }// @TODO calculate the maximum and normalize everything
+
+
+
+
         free(voxelDataIndex);
     }
 
+    Eigen::Matrix4d registrationOfTwoVoxels(int indexVoxel1,
+                                            int indexVoxel2,
+                                            double &fitnessX, double &fitnessY, double goodGuessAlpha = -100,
+                                            bool debug = false) {
+
+
+        //create a voxel of current scan (last rotation) and voxel of the rotation before that
+        double *voxelData1;
+        double *voxelData2;
+        voxelData1 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
+        voxelData2 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
+        //still missing
+        createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity());//get voxel
+        createVoxelOfGraph(voxelData2, indexVoxel2, Eigen::Matrix4d::Identity());//get voxel
+
+
+        double estimatedAngle = this->scanRegistrationObject.sofftRegistrationVoxel2DRotationOnly(voxelData1,
+                                                                                                  voxelData2, goodGuessAlpha,debug);
+        Eigen::Matrix4d rotationMatrixTMP = Eigen::Matrix4d::Identity();
+        Eigen::AngleAxisd tmpRotVec(-estimatedAngle, Eigen::Vector3d(0, 0, 1));
+        Eigen::Matrix3d tmpMatrix3d = tmpRotVec.toRotationMatrix();
+        rotationMatrixTMP.block<3, 3>(0, 0) = tmpMatrix3d;
+        createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity());//get voxel
+        createVoxelOfGraph(voxelData2, indexVoxel2, rotationMatrixTMP);//get voxel
+        Eigen::Vector2d translation = this->scanRegistrationObject.sofftRegistrationVoxel2DTranslation(voxelData1,
+                                                                                                       voxelData2,
+                                                                                                       fitnessX,
+                                                                                                       fitnessY,
+                                                                                                       DIMENSION_OF_VOXEL_DATA/NUMBER_OF_POINTS_DIMENSION, debug);
+
+        Eigen::Matrix4d estimatedRotationScans;//from second scan to first
+        //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
+        Eigen::AngleAxisd rotation_vectorTMP(estimatedAngle, Eigen::Vector3d(0, 0, 1));
+        Eigen::Matrix3d tmpRotMatrix3d = rotation_vectorTMP.toRotationMatrix();
+        estimatedRotationScans.block<3, 3>(0, 0) = tmpRotMatrix3d;
+        estimatedRotationScans(0, 3) = translation.x();
+        estimatedRotationScans(1, 3) = translation.y();
+        estimatedRotationScans(2, 3) = 0;
+        estimatedRotationScans(3, 3) = 1;
+        return estimatedRotationScans;//should be the transformation matrix from 1 to 2
+    }
 
 public:
     void updateHilbertMap() {
@@ -608,7 +651,7 @@ int main(int argc, char **argv) {
     while (ros::ok()) {
 //        ros::spinOnce();
 
-        rosClassForTests.updateHilbertMap();
+        //rosClassForTests.updateHilbertMap();
         loop_rate.sleep();
 
         //std::cout << ros::Time::now() << std::endl;
