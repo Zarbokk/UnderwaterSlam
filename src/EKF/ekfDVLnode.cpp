@@ -15,6 +15,7 @@
 #include <thread>
 #include "underwaterslam/ekfnoiseConfig.h"
 #include <dynamic_reconfigure/server.h>
+#include <commonbluerovmsg/stateOfBlueRov.h>
 
 class rosClassEKF {
 public:
@@ -47,6 +48,7 @@ public:
 
         this->publisherPoseEkf = n_.advertise<geometry_msgs::PoseWithCovarianceStamped>("publisherPoseEkf", 10);
         this->publisherTwistEkf = n_.advertise<geometry_msgs::TwistWithCovarianceStamped>("publisherTwistEkf", 10);
+
 
     }
 
@@ -268,11 +270,13 @@ int main(int argc, char **argv) {
 
 
     ros::Publisher publisherPoseEkf = n_.advertise<geometry_msgs::PoseStamped>("mavros/vision_pose/pose", 10);
-
+    ros::Publisher publisherEasyReadEkf = n_.advertise<commonbluerovmsg::stateOfBlueRov>("ekfStateRPY", 10);
     ros::Rate ourRate = ros::Rate(30);
     //sending position to Mavros mavros/vision_pose/pose
     while (ros::ok()) {
         pose currentPoseEkf = rosClassEKFObject.getPoseOfEKF();
+
+        //calculate pose for Mavros
         geometry_msgs::PoseStamped msg_vicon_pose;
         msg_vicon_pose.header.stamp = currentPoseEkf.timeLastPrediction;
         msg_vicon_pose.header.frame_id = "map_ned"; //optional. Works fine without frame_id
@@ -296,6 +300,19 @@ int main(int argc, char **argv) {
         msg_vicon_pose.pose.orientation.z = currentRotation.z();
         msg_vicon_pose.pose.orientation.w = currentRotation.w();
         publisherPoseEkf.publish(msg_vicon_pose);
+        //calculate pose and publish for easy reading
+        commonbluerovmsg::stateOfBlueRov msgForRPYState;
+        msgForRPYState.header.stamp = currentPoseEkf.timeLastPrediction;
+        msgForRPYState.header.frame_id = "map_ned";
+        msgForRPYState.x = currentPoseEkf.position.x();
+        msgForRPYState.y = currentPoseEkf.position.y();
+        msgForRPYState.z = currentPoseEkf.position.z();
+
+        msgForRPYState.Roll = currentPoseEkf.rotation.x();
+        msgForRPYState.Pitch = currentPoseEkf.rotation.y();
+        msgForRPYState.Yaw = currentPoseEkf.rotation.z();
+
+        publisherEasyReadEkf.publish(msgForRPYState);
         ourRate.sleep();
     }
     return (0);
