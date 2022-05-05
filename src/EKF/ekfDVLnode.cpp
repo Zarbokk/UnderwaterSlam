@@ -189,8 +189,8 @@ public:
 
         this->currentEkf.setMeasurementNoiseDepth(config.measurementNoiseDepth);
 
-        this->currentEkf.setMeasurementNoiseIMUVel(config.measurementImuVelocityRoll,
-                                                   config.measurementImuVelocityPitch,
+        this->currentEkf.setMeasurementNoiseIMUVel(config.measurementImuRoll,
+                                                   config.measurementImuPitch,
                                                    config.measurementImuVelocityVelRoll,
                                                    config.measurementImuVelocityVelPitch,
                                                    config.measurementImuVelocityVelYaw);
