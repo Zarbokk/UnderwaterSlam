@@ -13,8 +13,8 @@
 #include <hilbertMap.h>
 
 
-#define NUMBER_OF_POINTS_DIMENSION 128
-#define DIMENSION_OF_VOXEL_DATA 60
+#define NUMBER_OF_POINTS_DIMENSION 64
+#define DIMENSION_OF_VOXEL_DATA 30
 
 class rosClassEKF {
 public:
@@ -54,6 +54,7 @@ public:
 //        this->maxTimeOptimization = 1.0;
 
         this->firstSonarInput = true;
+        this->firstCompleteSonarScan = true;
         this->saveGraphStructure = false;
 
         this->occupancyMap.createRandomMap();
@@ -95,14 +96,14 @@ private:
     //double startTimeOfCorrection;
     graphSlamSaveStructure graphSaved;
     scanRegistrationClass scanRegistrationObject;
-    bool firstSonarInput, saveGraphStructure;
+    bool firstSonarInput,firstCompleteSonarScan, saveGraphStructure;
     std::string saveStringGraph;
     double maxTimeOptimization;
     hilbertMap occupancyMap;
 
 
     void scanCallback(const ping360_sonar::SonarEcho::ConstPtr &msg) {
-        ros::Duration(0.02).sleep();//wait a moment for EKF values to come in assumes at least 50 hz.
+
         std::lock_guard<std::mutex> lock(this->graphSlamMutex);
         if (firstSonarInput) {
 
@@ -121,18 +122,18 @@ private:
             firstSonarInput = false;
             return;
         }
-
         //add a new edge and vertex to the graph defined by EKF and Intensity Measurement
         intensityMeasurement intensityTMP;
         intensityTMP.angle = msg->angle / 400.0 * M_PI * 2.0;
         intensityTMP.time = msg->header.stamp.toSec();
         intensityTMP.size = msg->intensities.size();
-        intensityTMP.increment = msg->step_size;
+        intensityTMP.increment = 40.0/200;//msg->step_size;//JUST A HACK
         std::vector<double> intensitiesVector;
         for (int i = 0; i < msg->intensities.size(); i++) {
             intensitiesVector.push_back(msg->intensities[i]);
         }
         intensityTMP.intensities = intensitiesVector;
+
 
         edge differenceOfEdge = this->calculatePoseDiffByTimeDepOnEKF(
                 this->graphSaved.getVertexList()->back().getTimeStamp(), msg->header.stamp.toSec());
@@ -144,9 +145,11 @@ private:
         Eigen::Matrix3d rotM = tmpTransformation.block<3, 3>(0, 0);
         Eigen::Quaterniond rot(rotM);
 
+
         this->graphSaved.addVertex(this->graphSaved.getVertexList()->back().getVertexNumber() + 1, pos, rot,
                                    this->graphSaved.getVertexList()->back().getCovariancePosition(),
                                    this->graphSaved.getVertexList()->back().getCovarianceQuaternion(),
+                                   intensityTMP,
                                    msg->header.stamp.toSec(),
                                    INTENSITY_SAVED);
 
@@ -156,13 +159,29 @@ private:
                                  Eigen::Vector3d(0.06, 0.06, 0),
                                  0.25 * 0.06, INTEGRATED_POSE,
                                  maxTimeOptimization);
+
+
+//        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+//        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+//        std::cout << "Time difference 4 = " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() << "[µs]" << std::endl;
         //test if a scan matching should be done
 
         int indexOfLastKeyframe;
         double angleDiff = angleBetweenLastKeyframeAndNow();
+        std::cout << angleDiff << std::endl;
+//        std::cout << msg->header.stamp.toSec() << std::endl;
+//        std::cout << ros::Time::now().toSec() << std::endl;
+
         // best would be scan matching between this angle and transformation based last angle( i think this is currently done)
         if (angleDiff > 2 * M_PI) {
+
             this->graphSaved.getVertexList()->back().setTypeOfVertex(INTENSITY_SAVED_AND_KEYFRAME);
+
+            if (firstCompleteSonarScan){
+                firstCompleteSonarScan = false;
+                return;
+            }
+
             indexOfLastKeyframe = getLastIntensityKeyframe();
 
 
@@ -182,7 +201,7 @@ private:
                                                                         std::atan2(
                                                                                 this->initialGuessTransformation(1, 0),
                                                                                 this->initialGuessTransformation(0, 0)),
-                                                                        false);
+                                                                        true);
 
 
             double differenceAngleBeforeAfter = generalHelpfulTools::angleDiff(
@@ -269,6 +288,12 @@ private:
     }
 
     edge calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endTimeToAdd) {
+        //this is done to make sure 1 more message is coming from the EKF directly
+        if (endTimeToAdd > this->timeVector[this->timeVector.size() - 1]) {
+            ros::topic::waitForMessage<geometry_msgs::PoseWithCovarianceStamped>("publisherPoseEkf");
+            ros::Duration(0.001).sleep();
+        }
+
         //@TEST
         std::lock_guard<std::mutex> lock(this->stateEstimationMutex);
         //find index of start and end
@@ -289,8 +314,8 @@ private:
         Eigen::Matrix4d transformationTMP = Eigen::Matrix4d::Identity();
 
         if (indexOfStart > 0) {
-            double interpolationFactor = 1.0-((this->timeVector[indexOfStart+1]-startTimetoAdd) /
-                                         (this->timeVector[indexOfStart+1] - this->timeVector[indexOfStart]));
+            double interpolationFactor = 1.0 - ((this->timeVector[indexOfStart + 1] - startTimetoAdd) /
+                                                (this->timeVector[indexOfStart + 1] - this->timeVector[indexOfStart]));
 
             Eigen::Matrix4d transformationOfEKFStart = Eigen::Matrix4d::Identity();
             transformationOfEKFStart.block<3, 3>(0, 0) = this->rotationVector[indexOfStart - 1].toRotationMatrix();
@@ -300,18 +325,19 @@ private:
 
             Eigen::Matrix4d transformationOfEKFEnd = Eigen::Matrix4d::Identity();
             transformationOfEKFEnd.block<3, 3>(0, 0) = this->rotationVector[indexOfStart].toRotationMatrix();
-            transformationOfEKFEnd(0, 3) = this->xPositionVector[indexOfStart+1];
-            transformationOfEKFEnd(1, 3) = this->yPositionVector[indexOfStart+1];
-            transformationOfEKFEnd(2, 3) = this->zPositionVector[indexOfStart+1];
+            transformationOfEKFEnd(0, 3) = this->xPositionVector[indexOfStart + 1];
+            transformationOfEKFEnd(1, 3) = this->yPositionVector[indexOfStart + 1];
+            transformationOfEKFEnd(2, 3) = this->zPositionVector[indexOfStart + 1];
 
             transformationTMP = transformationTMP *
                                 generalHelpfulTools::interpolationTwo4DTransformations(transformationOfEKFStart,
                                                                                        transformationOfEKFEnd,
-                                                                                       interpolationFactor).inverse()*transformationOfEKFEnd;
+                                                                                       interpolationFactor).inverse() *
+                                transformationOfEKFEnd;
         }
 
 
-        int i = indexOfStart+1;
+        int i = indexOfStart + 1;
         while (i < indexOfEnd) {
             Eigen::Matrix4d transformationOfEKFEnd = Eigen::Matrix4d::Identity();
             transformationOfEKFEnd.block<3, 3>(0, 0) = this->rotationVector[i].toRotationMatrix();
@@ -331,13 +357,13 @@ private:
 
         if (indexOfEnd > 0) {
             double interpolationFactor = ((endTimeToAdd - this->timeVector[indexOfEnd]) /
-                                         (this->timeVector[indexOfEnd+1] - this->timeVector[indexOfEnd]));
+                                          (this->timeVector[indexOfEnd + 1] - this->timeVector[indexOfEnd]));
 
             Eigen::Matrix4d transformationOfEKFStart = Eigen::Matrix4d::Identity();
-            transformationOfEKFStart.block<3, 3>(0, 0) = this->rotationVector[indexOfEnd ].toRotationMatrix();
-            transformationOfEKFStart(0, 3) = this->xPositionVector[indexOfEnd ];
-            transformationOfEKFStart(1, 3) = this->yPositionVector[indexOfEnd ];
-            transformationOfEKFStart(2, 3) = this->zPositionVector[indexOfEnd ];
+            transformationOfEKFStart.block<3, 3>(0, 0) = this->rotationVector[indexOfEnd].toRotationMatrix();
+            transformationOfEKFStart(0, 3) = this->xPositionVector[indexOfEnd];
+            transformationOfEKFStart(1, 3) = this->yPositionVector[indexOfEnd];
+            transformationOfEKFStart(2, 3) = this->zPositionVector[indexOfEnd];
 
             Eigen::Matrix4d transformationOfEKFEnd = Eigen::Matrix4d::Identity();
             transformationOfEKFEnd.block<3, 3>(0, 0) = this->rotationVector[indexOfEnd + 1].toRotationMatrix();
@@ -345,7 +371,7 @@ private:
             transformationOfEKFEnd(1, 3) = this->yPositionVector[indexOfEnd + 1];
             transformationOfEKFEnd(2, 3) = this->zPositionVector[indexOfEnd + 1];
 
-            transformationTMP = transformationTMP *transformationOfEKFStart.inverse()*
+            transformationTMP = transformationTMP * transformationOfEKFStart.inverse() *
                                 generalHelpfulTools::interpolationTwo4DTransformations(transformationOfEKFStart,
                                                                                        transformationOfEKFEnd,
                                                                                        interpolationFactor);
@@ -483,7 +509,9 @@ private:
                     this->graphSaved.getVertexList()->at(lastKeyframeIndex + 1).getRotationVertex();
             Eigen::Vector3d rpy = generalHelpfulTools::getRollPitchYaw(currentRot);
             resultingAngle +=
-                    rpy(2) + this->graphSaved.getVertexList()->at(lastKeyframeIndex + 1).getIntensities().increment;
+                    rpy(2) + generalHelpfulTools::angleDiff(
+                            this->graphSaved.getVertexList()->at(lastKeyframeIndex + 1).getIntensities().angle,
+                            this->graphSaved.getVertexList()->at(lastKeyframeIndex).getIntensities().angle);
         }
 
         return resultingAngle;
@@ -528,17 +556,23 @@ private:
                 positionOfIntensity = transformationInTheEndOfCalculation * transformationOfIntensityRay *
                                       rotationOfSonarAngleMatrix * positionOfIntensity;
                 //calculate index dependent on  DIMENSION_OF_VOXEL_DATA and NUMBER_OF_POINTS_DIMENSION the middle
-                int indexX = (int) ((DIMENSION_OF_VOXEL_DATA / 2) / positionOfIntensity.x()) +
+                int indexX = (int) (positionOfIntensity.x()/(DIMENSION_OF_VOXEL_DATA / 2)*NUMBER_OF_POINTS_DIMENSION / 2) +
                              NUMBER_OF_POINTS_DIMENSION / 2;
-                int indexY = (int) ((DIMENSION_OF_VOXEL_DATA / 2) / positionOfIntensity.y()) +
+                int indexY = (int) (positionOfIntensity.y()/(DIMENSION_OF_VOXEL_DATA / 2)*NUMBER_OF_POINTS_DIMENSION / 2) +
                              NUMBER_OF_POINTS_DIMENSION / 2;
-                if (indexX < NUMBER_OF_POINTS_DIMENSION && indexY < NUMBER_OF_POINTS_DIMENSION) {
+
+
+                if (indexX < NUMBER_OF_POINTS_DIMENSION && indexY < NUMBER_OF_POINTS_DIMENSION && indexY >= 0 && indexX >= 0) {
+                    std::cout << indexX << " " << indexY << std::endl;
                     //if index fits inside of our data, add that data. Else Ignore
                     voxelDataIndex[indexY + NUMBER_OF_POINTS_DIMENSION * indexX] =
                             voxelDataIndex[indexY + NUMBER_OF_POINTS_DIMENSION * indexX] + 1;
+                    std::cout << "Index: "<< voxelDataIndex[indexY + NUMBER_OF_POINTS_DIMENSION * indexX] << std::endl;
                     voxelData[indexY + NUMBER_OF_POINTS_DIMENSION * indexX] =
                             voxelData[indexY + NUMBER_OF_POINTS_DIMENSION * indexX] +
                             this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[j];
+                    std::cout << "Intensity: "<< voxelData[indexY + NUMBER_OF_POINTS_DIMENSION * indexX] << std::endl;
+                    std::cout << "random: "<< std::endl;
                 }
             }
             i++;
@@ -549,6 +583,8 @@ private:
         for (i = 0; i < NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION; i++) {
             if (voxelDataIndex[i] > 0) {
                 voxelData[i] = voxelData[i] / voxelDataIndex[i];
+                //std::cout << voxelData[i] << std::endl;
+
             }
         }// @TODO calculate the maximum and normalize everything
 
@@ -575,7 +611,9 @@ private:
 
 
         double estimatedAngle = this->scanRegistrationObject.sofftRegistrationVoxel2DRotationOnly(voxelData1,
-                                                                                                  voxelData2, goodGuessAlpha,debug);
+                                                                                                  voxelData2,
+                                                                                                  goodGuessAlpha,
+                                                                                                  debug);
         Eigen::Matrix4d rotationMatrixTMP = Eigen::Matrix4d::Identity();
         Eigen::AngleAxisd tmpRotVec(-estimatedAngle, Eigen::Vector3d(0, 0, 1));
         Eigen::Matrix3d tmpMatrix3d = tmpRotVec.toRotationMatrix();
@@ -586,7 +624,9 @@ private:
                                                                                                        voxelData2,
                                                                                                        fitnessX,
                                                                                                        fitnessY,
-                                                                                                       DIMENSION_OF_VOXEL_DATA/NUMBER_OF_POINTS_DIMENSION, debug);
+                                                                                                       DIMENSION_OF_VOXEL_DATA /
+                                                                                                       NUMBER_OF_POINTS_DIMENSION,
+                                                                                                       debug);
 
         Eigen::Matrix4d estimatedRotationScans;//from second scan to first
         //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
