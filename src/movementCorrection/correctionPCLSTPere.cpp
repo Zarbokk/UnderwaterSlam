@@ -2,7 +2,7 @@
 // Created by tim on 26.03.21.
 //
 
-#include "slamToolsRos.h"
+#include "../slamTools/slamToolsRos.h"
 
 double scalingAngle = 0.05;
 double scalingAllg = 0.25;

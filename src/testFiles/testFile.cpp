@@ -2,7 +2,7 @@
 // Created by tim on 26.03.21.
 //
 
-#include <slamToolsRos.h>
+#include "../slamTools/slamToolsRos.h"
 #include <hilbertMap.h>
 #include "json.h"
 

@@ -2,7 +2,7 @@
 // Created by tim on 26.03.21.
 //
 #include <ros/ros.h>
-#include <graphSlamSaveStructure.h>
+#include "graphSlamSaveStructure.h"
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 #include "nav_msgs/Path.h"
@@ -13,7 +13,7 @@
 #include <pcl/registration/gicp.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/common/projection_matrix.h>
-#include <scanRegistrationClass.h>
+#include "scanRegistrationClass.h"
 #include <random>
 #include "generalHelpfulTools.h"
 
@@ -57,6 +57,7 @@ public:
 //                                      std::vector<measurement> *groundTruthSorted,
 //                                      ros::Publisher &publisherMarkerArrayLoopClosures,
 //                                      double plotGTToTime,int numberOfEdgesBetweenScans);
+    static void visualizeCurrentPoseGraph(graphSlamSaveStructure &graphSaved,ros::Publisher &publisherPath);
 
     static std::vector<measurement>
     parseCSVFile(std::istream &stream);//this is first line description then keyframe,x,y,z,timestamp

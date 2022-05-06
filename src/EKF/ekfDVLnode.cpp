@@ -7,7 +7,7 @@
 #include "mavros_msgs/Altitude.h"
 #include "geometry_msgs/TwistWithCovarianceStamped.h"
 #include "geometry_msgs/TwistStamped.h"
-#include "generalHelpfulTools.h"
+#include "../slamTools/generalHelpfulTools.h"
 #include "waterlinked_dvl/TransducerReportStamped.h"
 #include "commonbluerovmsg/resetekf.h"
 #include "commonbluerovmsg/heightStamped.h"

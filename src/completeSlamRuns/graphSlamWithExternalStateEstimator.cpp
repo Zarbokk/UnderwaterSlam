@@ -7,8 +7,8 @@
 #include "mavros_msgs/Altitude.h"
 #include "geometry_msgs/TwistStamped.h"
 #include "ping360_sonar/SonarEcho.h"
-#include "generalHelpfulTools.h"
-#include <slamToolsRos.h>
+#include "../slamTools/generalHelpfulTools.h"
+#include "../slamTools/slamToolsRos.h"
 #include "commonbluerovmsg/saveGraph.h"
 #include <hilbertMap.h>
 

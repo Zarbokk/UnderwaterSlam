@@ -3,9 +3,9 @@
 
 
 #include <deque>
-#include "generalHelpfulTools.h"
+#include "../src/slamTools/generalHelpfulTools.h"
 #include "pose.h"
-#include "slamToolsRos.h"
+#include "../src/slamTools/slamToolsRos.h"
 //asynchronous EKF with horizon horizont correction
 
 

@@ -152,6 +152,41 @@
 //
 //}
 
+void slamToolsRos::visualizeCurrentPoseGraph(graphSlamSaveStructure &graphSaved, ros::Publisher &publisherPath) {
+
+    nav_msgs::Path posOverTime;
+    posOverTime.header.frame_id = "map_ned";
+    Eigen::Matrix4d currentTransformation, completeTransformation;
+    //pcl::PointCloud<pcl::PointXYZ> completeCloudWithPos;
+    //visualization_msgs::MarkerArray markerArray;
+    int k = 0;
+    //std::vector<vertex> vertexList =;
+    for (int i = 0; i <  graphSaved.getVertexList()->size(); i++) {//skip the first pointCloud
+        vertex vertexElement =  graphSaved.getVertexList()->at(i);
+        //pcl::PointCloud<pcl::PointXYZ> currentScanTransformed;
+        //vertexElement.getTransformation();
+        //completeTransformation = vertexElement.getTransformation();
+//        if(vertexElement.getTypeOfVertex()==graphSlamSaveStructure::POINT_CLOUD_SAVED){
+//            pcl::io::savePCDFileASCII("/home/jurobotics/DataForTests/savingRandomPCL/firstPCL.pcd",*vertexElement.getPointCloudCorrected());
+//            pcl::io::savePCDFileASCII("/home/jurobotics/DataForTests/savingRandomPCL/secondPCL.pcd",currentScanTransformed);
+//        }
+
+        geometry_msgs::PoseStamped pos;
+        pos.pose.position.x = vertexElement.getPositionVertex().x();
+        pos.pose.position.y = vertexElement.getPositionVertex().y();
+        pos.pose.position.z = vertexElement.getPositionVertex().z();
+        pos.pose.orientation.x = vertexElement.getRotationVertex().x();
+        pos.pose.orientation.y = vertexElement.getRotationVertex().y();
+        pos.pose.orientation.z = vertexElement.getRotationVertex().z();
+        pos.pose.orientation.w = vertexElement.getRotationVertex().w();
+
+        posOverTime.poses.push_back(pos);
+
+    }
+
+    publisherPath.publish(posOverTime);
+}
+
 std::vector<measurement> slamToolsRos::parseCSVFile(std::istream &stream) {
     std::vector<measurement> returnVector;
 

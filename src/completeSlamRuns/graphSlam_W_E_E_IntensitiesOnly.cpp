@@ -7,14 +7,14 @@
 #include "mavros_msgs/Altitude.h"
 #include "geometry_msgs/TwistStamped.h"
 #include "ping360_sonar/SonarEcho.h"
-#include "generalHelpfulTools.h"
-#include <slamToolsRos.h>
+#include "../slamTools/generalHelpfulTools.h"
+#include "../slamTools/slamToolsRos.h"
 #include "commonbluerovmsg/saveGraph.h"
 #include <hilbertMap.h>
 
 
 #define NUMBER_OF_POINTS_DIMENSION 64
-#define DIMENSION_OF_VOXEL_DATA 30
+#define DIMENSION_OF_VOXEL_DATA 40
 
 class rosClassEKF {
 public:
@@ -96,7 +96,7 @@ private:
     //double startTimeOfCorrection;
     graphSlamSaveStructure graphSaved;
     scanRegistrationClass scanRegistrationObject;
-    bool firstSonarInput,firstCompleteSonarScan, saveGraphStructure;
+    bool firstSonarInput, firstCompleteSonarScan, saveGraphStructure;
     std::string saveStringGraph;
     double maxTimeOptimization;
     hilbertMap occupancyMap;
@@ -127,7 +127,7 @@ private:
         intensityTMP.angle = msg->angle / 400.0 * M_PI * 2.0;
         intensityTMP.time = msg->header.stamp.toSec();
         intensityTMP.size = msg->intensities.size();
-        intensityTMP.increment = 40.0/200;//msg->step_size;//JUST A HACK
+        intensityTMP.increment = 40.0 / 200;//msg->step_size;//JUST A HACK
         std::vector<double> intensitiesVector;
         for (int i = 0; i < msg->intensities.size(); i++) {
             intensitiesVector.push_back(msg->intensities[i]);
@@ -168,7 +168,7 @@ private:
 
         int indexOfLastKeyframe;
         double angleDiff = angleBetweenLastKeyframeAndNow();
-        std::cout << angleDiff << std::endl;
+        //std::cout << angleDiff << std::endl;
 //        std::cout << msg->header.stamp.toSec() << std::endl;
 //        std::cout << ros::Time::now().toSec() << std::endl;
 
@@ -177,7 +177,7 @@ private:
 
             this->graphSaved.getVertexList()->back().setTypeOfVertex(INTENSITY_SAVED_AND_KEYFRAME);
 
-            if (firstCompleteSonarScan){
+            if (firstCompleteSonarScan) {
                 firstCompleteSonarScan = false;
                 return;
             }
@@ -201,14 +201,16 @@ private:
                                                                         std::atan2(
                                                                                 this->initialGuessTransformation(1, 0),
                                                                                 this->initialGuessTransformation(0, 0)),
-                                                                        true);
+                                                                        true).inverse();
 
 
             double differenceAngleBeforeAfter = generalHelpfulTools::angleDiff(
                     std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)),
                     std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)));
-
-
+            std::cout << "currentTransformation" << std::endl;
+            std::cout << this->currentTransformation << std::endl;
+//            std::cout << "currentTransformation Inverted" << std::endl;
+//            std::cout << this->currentTransformation.inverse() << std::endl;
             std::cout << "difference of angle after Registration: " << differenceAngleBeforeAfter << std::endl;
             //only if angle diff is smaller than 10 degreece its ok
             if (abs(differenceAngleBeforeAfter) < 10.0 / 180.0 * M_PI) {
@@ -239,6 +241,8 @@ private:
             std::cout << "next: " << std::endl;
         }
 
+
+        slamToolsRos::visualizeCurrentPoseGraph(this->graphSaved, this->publisherPathOverTime);
 
 //        this->lastAngle = msg->angle;
 
@@ -534,7 +538,7 @@ private:
 
             //get position of current intensityRay
             Eigen::Matrix4d transformationOfIntensityRay =
-                    this->graphSaved.getVertexList()->at(indexStart - i).getTransformation().inverse() *
+                    this->graphSaved.getVertexList()->at(indexStart).getTransformation().inverse() *
                     this->graphSaved.getVertexList()->at(indexStart - i).getTransformation();
 
 
@@ -556,23 +560,28 @@ private:
                 positionOfIntensity = transformationInTheEndOfCalculation * transformationOfIntensityRay *
                                       rotationOfSonarAngleMatrix * positionOfIntensity;
                 //calculate index dependent on  DIMENSION_OF_VOXEL_DATA and NUMBER_OF_POINTS_DIMENSION the middle
-                int indexX = (int) (positionOfIntensity.x()/(DIMENSION_OF_VOXEL_DATA / 2)*NUMBER_OF_POINTS_DIMENSION / 2) +
-                             NUMBER_OF_POINTS_DIMENSION / 2;
-                int indexY = (int) (positionOfIntensity.y()/(DIMENSION_OF_VOXEL_DATA / 2)*NUMBER_OF_POINTS_DIMENSION / 2) +
-                             NUMBER_OF_POINTS_DIMENSION / 2;
+                int indexX =
+                        (int) (positionOfIntensity.x() / (DIMENSION_OF_VOXEL_DATA / 2) * NUMBER_OF_POINTS_DIMENSION /
+                               2) +
+                        NUMBER_OF_POINTS_DIMENSION / 2;
+                int indexY =
+                        (int) (positionOfIntensity.y() / (DIMENSION_OF_VOXEL_DATA / 2) * NUMBER_OF_POINTS_DIMENSION /
+                               2) +
+                        NUMBER_OF_POINTS_DIMENSION / 2;
 
 
-                if (indexX < NUMBER_OF_POINTS_DIMENSION && indexY < NUMBER_OF_POINTS_DIMENSION && indexY >= 0 && indexX >= 0) {
-                    std::cout << indexX << " " << indexY << std::endl;
+                if (indexX < NUMBER_OF_POINTS_DIMENSION && indexY < NUMBER_OF_POINTS_DIMENSION && indexY >= 0 &&
+                    indexX >= 0) {
+//                    std::cout << indexX << " " << indexY << std::endl;
                     //if index fits inside of our data, add that data. Else Ignore
-                    voxelDataIndex[indexY + NUMBER_OF_POINTS_DIMENSION * indexX] =
-                            voxelDataIndex[indexY + NUMBER_OF_POINTS_DIMENSION * indexX] + 1;
-                    std::cout << "Index: "<< voxelDataIndex[indexY + NUMBER_OF_POINTS_DIMENSION * indexX] << std::endl;
-                    voxelData[indexY + NUMBER_OF_POINTS_DIMENSION * indexX] =
-                            voxelData[indexY + NUMBER_OF_POINTS_DIMENSION * indexX] +
+                    voxelDataIndex[indexX + NUMBER_OF_POINTS_DIMENSION * indexY] =
+                            voxelDataIndex[indexX + NUMBER_OF_POINTS_DIMENSION * indexY] + 1;
+//                    std::cout << "Index: " << voxelDataIndex[indexY + NUMBER_OF_POINTS_DIMENSION * indexX] << std::endl;
+                    voxelData[indexX + NUMBER_OF_POINTS_DIMENSION * indexY] =
+                            voxelData[indexX + NUMBER_OF_POINTS_DIMENSION * indexY] +
                             this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[j];
-                    std::cout << "Intensity: "<< voxelData[indexY + NUMBER_OF_POINTS_DIMENSION * indexX] << std::endl;
-                    std::cout << "random: "<< std::endl;
+//                    std::cout << "Intensity: " << voxelData[indexY + NUMBER_OF_POINTS_DIMENSION * indexX] << std::endl;
+//                    std::cout << "random: " << std::endl;
                 }
             }
             i++;
@@ -624,8 +633,8 @@ private:
                                                                                                        voxelData2,
                                                                                                        fitnessX,
                                                                                                        fitnessY,
-                                                                                                       DIMENSION_OF_VOXEL_DATA /
-                                                                                                       NUMBER_OF_POINTS_DIMENSION,
+                                                                                                       (double) DIMENSION_OF_VOXEL_DATA /
+                                                                                                       (double) NUMBER_OF_POINTS_DIMENSION,
                                                                                                        debug);
 
         Eigen::Matrix4d estimatedRotationScans;//from second scan to first
