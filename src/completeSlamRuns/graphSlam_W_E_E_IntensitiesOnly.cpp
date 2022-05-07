@@ -293,6 +293,7 @@ private:
 
     edge calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endTimeToAdd) {
         //this is done to make sure 1 more message is coming from the EKF directly
+        //ros::Duration(0.001).sleep();
         if (endTimeToAdd > this->timeVector[this->timeVector.size() - 1]) {
             ros::topic::waitForMessage<geometry_msgs::PoseWithCovarianceStamped>("publisherPoseEkf");
             ros::Duration(0.001).sleep();
