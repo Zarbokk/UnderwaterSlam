@@ -2,7 +2,7 @@
 // Created by tim on 26.03.21.
 //
 
-#include "../slamTools/slamToolsRos.h"
+#include "slamToolsRos.h"
 #include "sensor_msgs/Imu.h"
 #include "geometry_msgs/TwistStamped.h"
 #include <iostream>

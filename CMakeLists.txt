@@ -103,6 +103,13 @@ include
 #add_executable(graphSlamExternalEstimator src/completeSlamRuns/graphSlamWithExternalStateEstimator.cpp ${SOURCE_FILES})
 #target_link_libraries(graphSlamExternalEstimator fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
+
+add_executable(stPereDatasetRosPub src/stPereDataset/stPereDatasetPublishingRos.cpp ${SOURCE_FILES})
+target_link_libraries(stPereDatasetRosPub fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+add_executable(graphSlamExternalEstimator src/completeSlamRuns/graphSlamWithExternalStateEstimator.cpp ${SOURCE_FILES})
+target_link_libraries(graphSlamExternalEstimator fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
 add_executable(EKFDVL src/EKF/ekfDVLnode.cpp ${SOURCE_FILES} include/pose.h src/EKF/ekfDVL.cpp)
 target_link_libraries(EKFDVL fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
