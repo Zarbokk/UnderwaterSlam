@@ -15,7 +15,7 @@
 #include <pcl/common/projection_matrix.h>
 #include "scanRegistrationClass.h"
 #include <random>
-#include "generalHelpfulTools.h"
+//#include "generalHelpfulTools.h"
 
 #ifndef SIMULATION_BLUEROV_SLAMTOOLSROS_H
 #define SIMULATION_BLUEROV_SLAMTOOLSROS_H

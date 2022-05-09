@@ -2,19 +2,20 @@
 // Created by tim on 26.03.21.
 //
 
-#include "slamToolsRos.h"
+#include "../src/slamTools/slamToolsRos.h"
 #include "sensor_msgs/Imu.h"
 #include "geometry_msgs/TwistStamped.h"
 #include <iostream>
 #include "ping360_sonar/SonarEcho.h"
 
-struct intensityMeasurement {
-    double timeStamp;
-    double angle;//in rad
-    double increment;
-    int size;
-    std::vector<int> intensities;
-};
+
+//struct intensityMeasurement {
+//    double timeStamp;
+//    double angle;//in rad
+//    double increment;
+//    int size;
+//    std::vector<int> intensities;
+//};
 
 struct groundTruthData {
     double x;
@@ -171,7 +172,7 @@ std::deque<intensityMeasurement> parseCSVFileIntensityTimeStamps(std::istream &s
         if(removeLinesUntil<std::stod(result[0])) {
             intensityMeasurement tmpIntensity{};
 
-            tmpIntensity.timeStamp = std::stod(result[0]);
+            tmpIntensity.time = std::stod(result[0]);
             double angleTMP=std::stod(result[1])+M_PI;
             if(angleTMP>2*M_PI){
                 angleTMP=angleTMP-2*M_PI;
@@ -291,7 +292,7 @@ main(int argc, char **argv) {
         //publish that thing
         //remove it and start anew.
         if (IMUSorted[0].timeStamp < bodyVelocitySorted[0].timeStamp &&
-            IMUSorted[0].timeStamp < intensitySonarSorted[0].timeStamp &&
+            IMUSorted[0].timeStamp < intensitySonarSorted[0].time &&
             IMUSorted[0].timeStamp < groundTruthSorted[0].timeStamp) {
             //publish imu data
             //std::cout << "publish IMU" << std::endl;
@@ -306,6 +307,7 @@ main(int argc, char **argv) {
             Eigen::Quaterniond currentOrientationAUV = generalHelpfulTools::getQuaternionFromRPY(IMUSorted[0].roll,
                                                                                                  IMUSorted[0].pitch, 0);
 
+
             msg.orientation.x = currentOrientationAUV.x();
             msg.orientation.y = currentOrientationAUV.y();
             msg.orientation.z = currentOrientationAUV.z();
@@ -315,7 +317,7 @@ main(int argc, char **argv) {
             IMUSorted.pop_front();
 
         } else {
-            if (bodyVelocitySorted[0].timeStamp < intensitySonarSorted[0].timeStamp &&
+            if (bodyVelocitySorted[0].timeStamp < intensitySonarSorted[0].time &&
                 bodyVelocitySorted[0].timeStamp < groundTruthSorted[0].timeStamp) {
                 //publish body velocity
                 //std::cout << "publish VEL" << std::endl;
@@ -328,12 +330,12 @@ main(int argc, char **argv) {
                 bodyVelocitySorted.pop_front();
 
             } else {
-                if (intensitySonarSorted[0].timeStamp < groundTruthSorted[0].timeStamp) {
+                if (intensitySonarSorted[0].time < groundTruthSorted[0].timeStamp) {
                     //publish intensity
                     //std::cout << "publish Intensity" << std::endl;
 //                    std::cout << intensitySonarSorted.size() << std::endl;
                     ping360_sonar::SonarEcho msg;
-                    msg.header.stamp = ros::Time(intensitySonarSorted[0].timeStamp);
+                    msg.header.stamp = ros::Time(intensitySonarSorted[0].time);
                     msg.angle = intensitySonarSorted[0].angle*200/M_PI;
                     msg.step_size = 0.1;
                     msg.range = 50;

@@ -3,7 +3,7 @@
 //
 
 #include "slamToolsRos.h"
-#include "generalHelpfulTools.h"
+//#include "generalHelpfulTools.h"
 
 //void slamToolsRos::visualizeCurrentGraph(graphSlamSaveStructure &graphSaved, ros::Publisher &publisherPath,
 //                                         ros::Publisher &publisherCloud, ros::Publisher &publisherMarkerArray,
