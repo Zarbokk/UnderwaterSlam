@@ -28,11 +28,11 @@ generate_dynamic_reconfigure_options(
 )
 
 
-generate_messages(
-        DEPENDENCIES
-        sensor_msgs
-        std_msgs
-)
+#generate_messages(
+#        DEPENDENCIES
+#        sensor_msgs
+#        std_msgs
+#)
 
 set(SOURCE_FILES src/registration/scanRegistrationClass.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} src/poseGraphsrc/graphSlamSaveStructure.cpp src/poseGraphsrc/edge.cpp src/poseGraphsrc/vertex.cpp src/EKF/ekfPos.cpp)
@@ -71,39 +71,6 @@ include
 #add_executable(slamLabyrinth src/completeSlamRuns/slamOfLabyrinth01.cpp src/registration/scanRegistrationClass.cpp src/poseGraphsrc/graphSlamSaveStructure.cpp src/poseGraphsrc/edge.cpp src/poseGraphsrc/vertex.cpp src/slamTools/slamToolsRos.cpp src/json/jsoncpp.cpp)
 #target_link_libraries(slamLabyrinth ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-
-
-
-#add_executable(testFile src/testFiles/testFile.cpp ${SOURCE_FILES})
-#target_link_libraries(testFile fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
-
-#add_executable(soft20TestFile src/registration/soft20TestFile.cpp)
-#target_link_libraries(soft20TestFile fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
-
-#add_executable(correlationRotationSoft20 src/registration/correlationRotationSoft20.cpp include/PeakFinder.h src/slamTools/PeakFinder.cpp)
-#target_link_libraries(correlationRotationSoft20 fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
-
-#add_executable(hilbertMapTestFile src/testFiles/hilbertMapExample.cpp ${SOURCE_FILES})
-#target_link_libraries(hilbertMapTestFile fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
-
-#add_executable(stPereDatasetRosPublishing src/completeSlamRuns/stPereDatasetPublishingRos.cpp ${SOURCE_FILES})
-#target_link_libraries(stPereDatasetRosPublishing fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
-
-#add_executable(graphSlamWithROS src/completeSlamRuns/graphSlamWithROS.cpp ${SOURCE_FILES})
-#target_link_libraries(graphSlamWithROS ${PCL_LIBRARIES} ${catkin_LIBRARIES})
-
-#add_executable(testEKF src/EKF/testEKF.cpp ${SOURCE_FILES} include/pose.h)
-#target_link_libraries(testEKF fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
-
-#add_executable(ekfGraphSlam src/completeSlamRuns/ekfGraphSlam.cpp ${SOURCE_FILES})
-#target_link_libraries(ekfGraphSlam fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
-
-add_executable(graphSlamExternalEstimator src/completeSlamRuns/graphSlamWithExternalStateEstimator.cpp ${SOURCE_FILES})
-target_link_libraries(graphSlamExternalEstimator fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
-
-add_executable(EKFDVL src/EKF/ekfDVLnode.cpp ${SOURCE_FILES} include/pose.h src/EKF/ekfDVL.cpp)
-target_link_libraries(EKFDVL fftw3 ${catkin_LIBRARIES})
-
 #add_executable(compensationSonarData src/movementCorrection/compensationSonarDataWithEKF.cpp)
 #target_link_libraries(compensationSonarData fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
@@ -115,6 +82,36 @@ target_link_libraries(EKFDVL fftw3 ${catkin_LIBRARIES})
 
 #add_executable(correctionPCL src/movementCorrection/correctionPCLSTPere.cpp ${SOURCE_FILES})
 #target_link_libraries(correctionPCL fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+#add_executable(testFile src/testFiles/testFile.cpp ${SOURCE_FILES})
+#target_link_libraries(testFile fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+#add_executable(soft20TestFile src/registration/soft20TestFile.cpp)
+#target_link_libraries(soft20TestFile fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+#add_executable(correlationRotationSoft20 src/registration/correlationRotationSoft20.cpp include/PeakFinder.h src/slamTools/PeakFinder.cpp)
+#target_link_libraries(correlationRotationSoft20 fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+#add_executable(hilbertMapTestFile src/testFiles/hilbertMapExample.cpp ${SOURCE_FILES})
+#target_link_libraries(hilbertMapTestFile fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+#add_executable(graphSlamWithROS src/completeSlamRuns/graphSlamWithROS.cpp ${SOURCE_FILES})
+#target_link_libraries(graphSlamWithROS ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+#add_executable(testEKF src/EKF/testEKF.cpp ${SOURCE_FILES} include/pose.h)
+#target_link_libraries(testEKF fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+#add_executable(ekfGraphSlam src/completeSlamRuns/ekfGraphSlam.cpp ${SOURCE_FILES})
+#target_link_libraries(ekfGraphSlam fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+
+
+add_executable(stPereDatasetRosPub src/stPereDataset/stPereDatasetPublishingRos.cpp ${SOURCE_FILES})
+target_link_libraries(stPereDatasetRosPub fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+add_executable(graphSlamExternalEstimator src/completeSlamRuns/graphSlamWithExternalStateEstimator.cpp ${SOURCE_FILES})
+target_link_libraries(graphSlamExternalEstimator fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+add_executable(EKFDVL src/EKF/ekfDVLnode.cpp ${SOURCE_FILES} include/pose.h src/EKF/ekfDVL.cpp)
+target_link_libraries(EKFDVL fftw3 ${catkin_LIBRARIES})
 
 add_executable(registrationOfTwoPCLs src/registration/registrationOfTwoScans.cpp ${SOURCE_FILES})
 target_link_libraries(registrationOfTwoPCLs fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
