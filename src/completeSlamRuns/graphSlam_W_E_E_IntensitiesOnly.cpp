@@ -14,7 +14,7 @@
 
 
 #define NUMBER_OF_POINTS_DIMENSION 64
-#define DIMENSION_OF_VOXEL_DATA 40
+#define DIMENSION_OF_VOXEL_DATA 50
 
 class rosClassEKF {
 public:
@@ -110,8 +110,8 @@ private:
             intensityMeasurement intensityTMP;
             intensityTMP.angle = msg->angle / 400.0 * M_PI * 2.0;
             intensityTMP.time = msg->header.stamp.toSec();
-            intensityTMP.size = msg->intensities.size();
             intensityTMP.increment = msg->step_size;
+            intensityTMP.range = msg->range;
             std::vector<double> intensitiesVector;
             for (int i = 0; i < msg->intensities.size(); i++) {
                 intensitiesVector.push_back(msg->intensities[i]);
@@ -126,8 +126,9 @@ private:
         intensityMeasurement intensityTMP;
         intensityTMP.angle = msg->angle / 400.0 * M_PI * 2.0;
         intensityTMP.time = msg->header.stamp.toSec();
-        intensityTMP.size = msg->intensities.size();
-        intensityTMP.increment = 40.0 / 200;//msg->step_size;//JUST A HACK
+        intensityTMP.range = msg->range;
+        //intensityTMP.size = msg->intensities.size();
+        intensityTMP.increment = msg->step_size;
         std::vector<double> intensitiesVector;
         for (int i = 0; i < msg->intensities.size(); i++) {
             intensitiesVector.push_back(msg->intensities[i]);
@@ -167,13 +168,13 @@ private:
         //test if a scan matching should be done
 
         int indexOfLastKeyframe;
-        double angleDiff = angleBetweenLastKeyframeAndNow();
+        double angleDiff = angleBetweenLastKeyframeAndNow(true);// i think this is always true
         //std::cout << angleDiff << std::endl;
 //        std::cout << msg->header.stamp.toSec() << std::endl;
 //        std::cout << ros::Time::now().toSec() << std::endl;
 
         // best would be scan matching between this angle and transformation based last angle( i think this is currently done)
-        if (angleDiff > 2 * M_PI) {
+        if (abs(angleDiff) > 2 * M_PI) {
 
             this->graphSaved.getVertexList()->back().setTypeOfVertex(INTENSITY_SAVED_AND_KEYFRAME);
 
@@ -181,39 +182,58 @@ private:
                 firstCompleteSonarScan = false;
                 return;
             }
-
+            //angleDiff = angleBetweenLastKeyframeAndNow(false);
             indexOfLastKeyframe = getLastIntensityKeyframe();
 
 
 
             //match these voxels together
             this->initialGuessTransformation =
-                    this->graphSaved.getVertexList()->at(getLastIntensityKeyframe()).getTransformation().inverse() *
+                    this->graphSaved.getVertexList()->at(indexOfLastKeyframe).getTransformation().inverse() *
                     this->graphSaved.getVertexList()->back().getTransformation();
+            std::cout << "start Transformation:" << std::endl;
+            std::cout << this->graphSaved.getVertexList()->at(indexOfLastKeyframe).getTransformation() << std::endl;
+            std::cout << "end Transformation:" << std::endl;
+            std::cout << this->graphSaved.getVertexList()->back().getTransformation() << std::endl;
+            std::cout << "initial Guess Transformation:" << std::endl;
+            std::cout << this->initialGuessTransformation << std::endl;
 
-
+            double initialGuessAngle = std::atan2( this->initialGuessTransformation(1, 0),this->initialGuessTransformation(0, 0));
             double fitnessScoreX, fitnessScoreY;
 
-            //we need inverse transformation
-            this->currentTransformation = this->registrationOfTwoVoxels(this->graphSaved.getVertexList()->size() - 1,
-                                                                        indexOfLastKeyframe, fitnessScoreX,
+            // transform from 1 to 2
+            this->currentTransformation = this->registrationOfTwoVoxels(indexOfLastKeyframe,
+                                                                        this->graphSaved.getVertexList()->size() - 1,
+                                                                        fitnessScoreX,
                                                                         fitnessScoreY,
-                                                                        std::atan2(
-                                                                                this->initialGuessTransformation(1, 0),
-                                                                                this->initialGuessTransformation(0, 0)),
-                                                                        true).inverse();
-
+                                                                        initialGuessAngle,
+                                                                        true);
+//            double xValue = this->currentTransformation(0, 3);
+//            double yValue = this->currentTransformation(1, 3);
+//            this->currentTransformation(0, 3) = yValue;
+//            this->currentTransformation(1, 3) = xValue;
 
             double differenceAngleBeforeAfter = generalHelpfulTools::angleDiff(
-                    std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)),
-                    std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)));
-            std::cout << "currentTransformation" << std::endl;
+                    std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)),
+                    initialGuessAngle);
+
+            std::cout << "currentTransformation:" << std::endl;
             std::cout << this->currentTransformation << std::endl;
+
+
+            std::cout << "currentTransformation.inverse()" << std::endl;
+            std::cout << this->currentTransformation.inverse() << std::endl;
+            std::cout << "Initial guess angle: "
+                      << initialGuessAngle
+                      << std::endl;
 //            std::cout << "currentTransformation Inverted" << std::endl;
 //            std::cout << this->currentTransformation.inverse() << std::endl;
-            std::cout << "difference of angle after Registration: " << differenceAngleBeforeAfter << std::endl;
+            std::cout << "Registration angle: "
+                      << std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)) << std::endl;
+            std::cout << "difference of angle after Registration: " << differenceAngleBeforeAfter * 180 / M_PI
+                      << std::endl;
             //only if angle diff is smaller than 10 degreece its ok
-            if (abs(differenceAngleBeforeAfter) < 10.0 / 180.0 * M_PI) {
+            if (abs(differenceAngleBeforeAfter) < 30.0 / 180.0 * M_PI) {
                 Eigen::Quaterniond qTMP(this->currentTransformation.block<3, 3>(0, 0));
                 graphSaved.addEdge(getLastIntensityKeyframe(),
                                    graphSaved.getVertexList()->size() - 1,
@@ -228,7 +248,8 @@ private:
 
 
             //add position and optimize/publish everything
-
+//            std::vector<int> holdStill{0};
+//            graphSaved.optimizeGraphWithSlam(false, holdStill,1.0);
             graphSaved.optimizeGraphWithSlamTopDown(false, 0.05, 1.0);
             graphSaved.calculateCovarianceInCloseProximity(1.0);
             //@TODO visualization has to be created anew
@@ -294,7 +315,7 @@ private:
     edge calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endTimeToAdd) {
         //this is done to make sure 1 more message is coming from the EKF directly
         //ros::Duration(0.001).sleep();
-        if (endTimeToAdd > this->timeVector[this->timeVector.size() - 1]) {
+        while (endTimeToAdd > this->timeVector[this->timeVector.size() - 1]) {
             ros::topic::waitForMessage<geometry_msgs::PoseWithCovarianceStamped>("publisherPoseEkf");
             ros::Duration(0.001).sleep();
         }
@@ -457,14 +478,17 @@ private:
             for (int j = 0; j < numberOfMultiplyPoints; j++) {
                 int indexOfPointInIntensitieList = (int) (dis(gen) *
                                                           (double) this->graphSaved.getVertexList()->at(
-                                                                  indexVertex).getIntensities().size - 1);
+                                                                  indexVertex).getIntensities().intensities.size() - 1);
 
 
                 Eigen::Matrix4d transformationOfVertex = this->graphSaved.getVertexList()->at(
                         indexVertex).getTransformation();
 
-                double distanceOfIntensity = indexOfPointInIntensitieList * this->graphSaved.getVertexList()->at(
-                        indexVertex).getIntensities().increment;
+                double distanceOfIntensity =
+                        indexOfPointInIntensitieList / ((double) this->graphSaved.getVertexList()->at(
+                                indexVertex).getIntensities().intensities.size()) *
+                        ((double) this->graphSaved.getVertexList()->at(
+                                indexVertex).getIntensities().range);
 
 
                 Eigen::Vector4d pointPos(
@@ -503,26 +527,32 @@ private:
         return lastKeyframeIndex;
     }
 
-    double angleBetweenLastKeyframeAndNow() {
-        double resultingAngle = 0;
-
+    double angleBetweenLastKeyframeAndNow(bool positiveRotatingDirection) {
+        double resultingAngleSonar = 0;
+        double resultingAngleMovement = 0;
         int lastKeyframeIndex = getLastIntensityKeyframe();
 
         for (int i = lastKeyframeIndex; i < this->graphSaved.getVertexList()->size() - 1; i++) {
             Eigen::Quaterniond currentRot =
-                    this->graphSaved.getVertexList()->at(lastKeyframeIndex).getRotationVertex().inverse() *
-                    this->graphSaved.getVertexList()->at(lastKeyframeIndex + 1).getRotationVertex();
+                    this->graphSaved.getVertexList()->at(i).getRotationVertex().inverse() *
+                    this->graphSaved.getVertexList()->at(i + 1).getRotationVertex();
+
+
             Eigen::Vector3d rpy = generalHelpfulTools::getRollPitchYaw(currentRot);
-            resultingAngle +=
-                    rpy(2) + generalHelpfulTools::angleDiff(
-                            this->graphSaved.getVertexList()->at(lastKeyframeIndex + 1).getIntensities().angle,
-                            this->graphSaved.getVertexList()->at(lastKeyframeIndex).getIntensities().angle);
+            resultingAngleMovement += rpy(2);
+            resultingAngleSonar += generalHelpfulTools::angleDiff(
+                    this->graphSaved.getVertexList()->at(i + 1).getIntensities().angle,
+                    this->graphSaved.getVertexList()->at(i).getIntensities().angle);
+        }
+         if (positiveRotatingDirection) {
+            return resultingAngleMovement + resultingAngleSonar;
+        } else {
+            return resultingAngleSonar - resultingAngleMovement;
         }
 
-        return resultingAngle;
     }
 
-    void createVoxelOfGraph(double voxelData[], int indexStart, Eigen::Matrix4d transformationInTheEndOfCalculation) {
+    double createVoxelOfGraph(double voxelData[], int indexStart, Eigen::Matrix4d transformationInTheEndOfCalculation) {
         int *voxelDataIndex;
         voxelDataIndex = (int *) malloc(sizeof(int) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
         //set zero voxel and index
@@ -542,22 +572,25 @@ private:
                     this->graphSaved.getVertexList()->at(indexStart).getTransformation().inverse() *
                     this->graphSaved.getVertexList()->at(indexStart - i).getTransformation();
 
+            //positionOfIntensity has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
+            Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
+                                                                                                             this->graphSaved.getVertexList()->at(
+                                                                                                                     indexStart -
+                                                                                                                     i).getIntensities().angle);
 
             for (int j = 0;
                  j < this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
                 double distanceOfIntensity =
-                        j * this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().increment;
+                        j / ((double) this->graphSaved.getVertexList()->at(
+                                indexStart - i).getIntensities().intensities.size()) *
+                        ((double) this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().range);
                 Eigen::Vector4d positionOfIntensity(
                         distanceOfIntensity,
                         0,
                         0,
                         1);
 
-                //positionOfIntensity has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
-                Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
-                                                                                                                 this->graphSaved.getVertexList()->at(
-                                                                                                                         indexStart -
-                                                                                                                         i).getIntensities().angle);
+
                 positionOfIntensity = transformationInTheEndOfCalculation * transformationOfIntensityRay *
                                       rotationOfSonarAngleMatrix * positionOfIntensity;
                 //calculate index dependent on  DIMENSION_OF_VOXEL_DATA and NUMBER_OF_POINTS_DIMENSION the middle
@@ -589,19 +622,23 @@ private:
         } while (this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
                  this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
                  INTENSITY_SAVED_AND_KEYFRAME);
-
+        double maximumOfVoxelData = 0;
         for (i = 0; i < NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION; i++) {
             if (voxelDataIndex[i] > 0) {
                 voxelData[i] = voxelData[i] / voxelDataIndex[i];
+                if (maximumOfVoxelData < voxelData[i]) {
+                    maximumOfVoxelData = voxelData[i];
+                }
                 //std::cout << voxelData[i] << std::endl;
 
             }
-        }// @TODO calculate the maximum and normalize everything
+        }// @TODO calculate the maximum and normalize "somehow"
 
 
 
 
         free(voxelDataIndex);
+        return maximumOfVoxelData;
     }
 
     Eigen::Matrix4d registrationOfTwoVoxels(int indexVoxel1,
@@ -616,20 +653,45 @@ private:
         voxelData1 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
         voxelData2 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
         //still missing
-        createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity());//get voxel
-        createVoxelOfGraph(voxelData2, indexVoxel2, Eigen::Matrix4d::Identity());//get voxel
-
+        double maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity());//get voxel
+        double maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, Eigen::Matrix4d::Identity());//get voxel
+//        double normalizationValue = 1;
+//        for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION; i++) {
+//            voxelData1[i] = normalizationValue * voxelData1[i] / maximumVoxel1;
+//            voxelData2[i] = normalizationValue * voxelData2[i] / maximumVoxel2;
+//        }
 
         double estimatedAngle = this->scanRegistrationObject.sofftRegistrationVoxel2DRotationOnly(voxelData1,
                                                                                                   voxelData2,
                                                                                                   goodGuessAlpha,
                                                                                                   debug);
         Eigen::Matrix4d rotationMatrixTMP = Eigen::Matrix4d::Identity();
-        Eigen::AngleAxisd tmpRotVec(-estimatedAngle, Eigen::Vector3d(0, 0, 1));
+        Eigen::AngleAxisd tmpRotVec(estimatedAngle, Eigen::Vector3d(0, 0, 1));
         Eigen::Matrix3d tmpMatrix3d = tmpRotVec.toRotationMatrix();
         rotationMatrixTMP.block<3, 3>(0, 0) = tmpMatrix3d;
-        createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity());//get voxel
-        createVoxelOfGraph(voxelData2, indexVoxel2, rotationMatrixTMP);//get voxel
+        maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity());//get voxel
+        maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, rotationMatrixTMP);//get voxel
+//        for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION; i++) {
+//            voxelData1[i] = normalizationValue * voxelData1[i] / maximumVoxel1;
+//            voxelData2[i] = normalizationValue * voxelData2[i] / maximumVoxel2;
+//        }
+//        if (debug) {
+//            std::ofstream myFile3, myFile6;
+//            myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW1.csv");
+//            myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW2.csv");
+//            for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION; i++) {
+//                for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
+//
+//                    myFile3 << voxelData1[j + NUMBER_OF_POINTS_DIMENSION * i]; // imaginary part
+//                    myFile3 << "\n";
+//                    myFile6 << voxelData2[j + NUMBER_OF_POINTS_DIMENSION * i]; // imaginary part
+//                    myFile6 << "\n";
+//                }
+//            }
+//            myFile3.close();
+//            myFile6.close();
+//        }
+
         Eigen::Vector2d translation = this->scanRegistrationObject.sofftRegistrationVoxel2DTranslation(voxelData1,
                                                                                                        voxelData2,
                                                                                                        fitnessX,
@@ -647,6 +709,48 @@ private:
         estimatedRotationScans(1, 3) = translation.y();
         estimatedRotationScans(2, 3) = 0;
         estimatedRotationScans(3, 3) = 1;
+
+
+        maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity());//get voxel
+        maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, estimatedRotationScans);//get voxel
+
+        if (debug) {
+            std::ofstream myFile1, myFile2;
+            myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel1.csv");
+            myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel2.csv");
+            for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION; i++) {
+                for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
+                    myFile1 << voxelData1[j + NUMBER_OF_POINTS_DIMENSION * i]; // real part
+                    myFile1 << "\n";
+                    myFile2 << voxelData2[j + NUMBER_OF_POINTS_DIMENSION * i]; // imaginary part
+                    myFile2 << "\n";
+                }
+            }
+            myFile1.close();
+            myFile2.close();
+        }
+
+
+//        maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, estimatedRotationScans.inverse());//get voxel
+//        maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, Eigen::Matrix4d::Identity());//get voxel
+//
+//        if (debug) {
+//            std::ofstream myFile1, myFile2;
+//            myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel1.csv");
+//            myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel2.csv");
+//            for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION; i++) {
+//                for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
+//                    myFile1 << voxelData1[j + NUMBER_OF_POINTS_DIMENSION* i]; // real part
+//                    myFile1 << "\n";
+//                    myFile2 << voxelData2[j + NUMBER_OF_POINTS_DIMENSION * i]; // imaginary part
+//                    myFile2 << "\n";
+//                }
+//            }
+//            myFile1.close();
+//            myFile2.close();
+//        }
+
+
         return estimatedRotationScans;//should be the transformation matrix from 1 to 2
     }
 

@@ -843,7 +843,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
     //normalize and fftshift
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
-            for (int k = 0; k < N; k++) {
+            //for (int k = 0; k < N; k++) {
                 int indexX = (N / 2 + i) % N;
                 int indexY = (N / 2 + j) % N;
 //                int indexZ = (N / 2 + k) % N;
@@ -852,7 +852,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
                         magnitude1[j + N * i] / globalMaximumMagnitude;
                 magnitude2Shifted[indexY + N * indexX] =
                         magnitude2[j + N * i] / globalMaximumMagnitude;
-            }
+           // }
         }
     }
 
@@ -945,7 +945,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
             if (tmpHolding.correlation > maxCorrelation) {
                 maxCorrelation = tmpHolding.correlation;
             }
-            tmpHolding.angle = std::fmod(currentThetaAngle + currentPsiAngle + 4 * M_PI, 2 * M_PI);
+            tmpHolding.angle = std::fmod(-(currentThetaAngle + currentPsiAngle) + 6 * M_PI, 2 * M_PI);
             correlationOfAngle.push_back(tmpHolding);
         }
     }
@@ -995,6 +995,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
     std::vector<int> out;
 
     PeakFinder::findPeaks(correlationAveraged, out, true);
+
     std::rotate(correlationAveraged.begin(),
                 correlationAveraged.begin() + correlationAveraged.size() - distanceToMinElement,
                 correlationAveraged.end());
@@ -1004,7 +1005,11 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
             out[i] = out[i] - correlationAveraged.size();
         }
     }
-
+    std::cout << "peaks at: "<< std::endl;
+    for (auto&& i : out){
+        std::cout << i << std::endl;
+    }
+    //goodGuessAlpha=-goodGuessAlpha;
     int indexCorrectAngle = 0;
     for (int i = 1; i < out.size(); i++) {
         if (std::abs(angleDifference(angleList[out[indexCorrectAngle]], goodGuessAlpha)) >
@@ -1012,8 +1017,8 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
             indexCorrectAngle = i;
         }
     }
-    double bestMatchAngle = angleList[out[indexCorrectAngle]];
-
+    double bestMatchAngle = angleList[out[indexCorrectAngle]];//this angle is from Pos1 to Pos 2
+    std::cout << "best Match Angle : "<< bestMatchAngle <<std::endl;
     // for each angle calculate the shift correlation of that angle
     //for( int angleIndex=0; angleIndex<out.size(); ++angleIndex){
 
@@ -1123,8 +1128,9 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTransformati
 //        maximumDiffIterator = 0;//set it anyway to zero; can be used to know if the result seems valid
 
 
-    Eigen::Vector2d translationCalculated((indexMaximumCorrelationI - N / 2.0) * cellSize,(indexMaximumCorrelationJ - N / 2.0) * cellSize);
-
+    Eigen::Vector3d translationCalculated((indexMaximumCorrelationI - N / 2.0) * cellSize,(indexMaximumCorrelationJ - N / 2.0) * cellSize,0);
+    std::cout << "translationCalculated: "<< std::endl;
+    std::cout << translationCalculated << std::endl;
 
 
     //currently these metrics are not used.
@@ -1183,7 +1189,13 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTransformati
     }
     fitnessY = cParam / (N - 1) * cellSize;
 
-    return translationCalculated;
+
+    //translationCalculated = generalHelpfulTools::getQuaternionFromRPY(0,0,M_PI).toRotationMatrix()*translationCalculated;
+
+    Eigen::Vector2d returnVector;
+    returnVector[0]=translationCalculated[0];
+    returnVector[1]=translationCalculated[1];
+    return returnVector;
 }
 
 

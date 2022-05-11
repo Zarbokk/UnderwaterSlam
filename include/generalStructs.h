@@ -19,8 +19,8 @@
 struct intensityMeasurement {
     double time;
     double angle;//in rad
-    double increment;
-    int size;
+    double increment;//step size of angle;
+    double range;
     std::vector<double> intensities;
 };
 

@@ -337,7 +337,7 @@ main(int argc, char **argv) {
                     ping360_sonar::SonarEcho msg;
                     msg.header.stamp = ros::Time(intensitySonarSorted[0].time);
                     msg.angle = intensitySonarSorted[0].angle*200/M_PI;
-                    msg.step_size = 0.1;
+                    msg.step_size = 2;
                     msg.range = 50;
                     for (int k = 0; k < intensitySonarSorted[0].intensities.size(); k++) {
                         msg.intensities.push_back(intensitySonarSorted[0].intensities[k]);
@@ -359,6 +359,10 @@ main(int argc, char **argv) {
                 }
             }
         }
+        if (intensitySonarSorted.empty()){
+            break;
+        }
+        std::cout << "length of intensitySonarSorted: " <<  intensitySonarSorted.size()<<std::endl;
         ros::Duration(0.002).sleep();
     }
 
