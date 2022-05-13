@@ -10,6 +10,7 @@ Panels:
         - /Grid1/Offset1
         - /Path1
         - /PoseWithCovariance1/Status1
+        - /Map1
         - /Map1/Status1
         - /Image1
       Splitter Ratio: 0.550000011920929
@@ -197,16 +198,16 @@ Visualization Manager:
       Topic: /publisherPoseEkf
       Unreliable: false
       Value: true
-    - Alpha: 0.699999988079071
+    - Alpha: 0.30000001192092896
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: false
+      Enabled: true
       Name: Map
       Topic: /occupancyHilbertMap
       Unreliable: false
       Use Timestamp: false
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: false
       Marker Topic: /covariance
@@ -283,7 +284,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 46.58677291870117
+      Distance: 44.92523956298828
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -291,17 +292,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 14.763733863830566
-        Y: 3.327975273132324
-        Z: 0.04856116697192192
+        X: 3.6920905113220215
+        Y: -5.36520528793335
+        Z: 0.9134044051170349
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: true
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.2247966527938843
+      Pitch: 1.089796781539917
       Target Frame: map_ned
-      Yaw: 4.885455131530762
+      Yaw: 4.757242202758789
     Saved: ~
 Window Geometry:
   Displays:

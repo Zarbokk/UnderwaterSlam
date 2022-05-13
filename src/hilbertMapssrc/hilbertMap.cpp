@@ -54,6 +54,7 @@ Eigen::VectorXd hilbertMap::getGradient(Eigen::Vector3d pointOfInterest, double 
     if (hilbertMap::HINGED_FEATURES == this->featureThatIsUsed) {
         return this->gradientOfHingedFeatures(pointOfInterest, occupancy);
     }
+    exit(-1);
 }
 
 void hilbertMap::trainClassifier(std::vector<dataPointStruct> &dataSet, int numberOfUsedDatapoints) {
@@ -167,6 +168,7 @@ double hilbertMap::calculateOccupancy(Eigen::Vector3d pointOfInterest) {
     if (hilbertMap::HINGED_FEATURES == this->featureThatIsUsed) {
         return 1 - 1 / (1 + exp(this->weightVector.transpose() * this->mappingByHingedFeatures(pointOfInterest)));
     }
+    exit(-1);
 }
 
 int hilbertMap::getNumberOfPointsToCalculateOccupancy() const {

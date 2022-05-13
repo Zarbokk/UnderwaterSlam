@@ -722,12 +722,12 @@ void graphSlamSaveStructure::printCurrentStateGeneralInformation() {
                   << this->vertexList[i].getPositionVertex() << std::endl;
     }
 
-    std::cout << "Number of Edges:" << this->numberOfEdges << std::endl;
-    for (int i = 0; i < this->numberOfEdges; i++) {
-        std::cout << "Edge from " << this->edgeList[i].getFromVertex() << " to "
-                  << this->edgeList[i].getToVertex() << " covariance Position "
-                  << this->edgeList[i].getCovariancePosition() << std::endl;
-    }
+//    std::cout << "Number of Edges:" << this->numberOfEdges << std::endl;
+//    for (int i = 0; i < this->numberOfEdges; i++) {
+//        std::cout << "Edge from " << this->edgeList[i].getFromVertex() << " to "
+//                  << this->edgeList[i].getToVertex() << " Position:\n"
+//                  << this->edgeList[i].getPositionDifference() << std::endl;
+//    }
 
 }
 
@@ -795,7 +795,7 @@ void graphSlamSaveStructure::optimizeGraphWithSlamTopDown(bool verbose, double c
                                            this->vertexList[this->lookUpTableCell[currentHierachicalSupGraphCell.getVertexNumber()][0]].getPositionVertex();
             Eigen::Quaterniond diffRotation = currentHierachicalSupGraphCell.getRotationVertex() *
                                               this->vertexList[this->lookUpTableCell[currentHierachicalSupGraphCell.getVertexNumber()][0]].getRotationVertex().inverse();
-            if (diffPosition.norm() > cellSize * 0.01) {//@TODO change this to dependent on the cell size
+            if (diffPosition.norm() > cellSize * 0.01) {
                 //propagate down
                 for (int indexVertex : this->lookUpTableCell[currentHierachicalSupGraphCell.getVertexNumber()]) {// also is done for every cell member
                     this->vertexList[indexVertex].setPositionVertex(

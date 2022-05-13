@@ -32,6 +32,7 @@ void edge::setEdge(edge &edgeToCopy){
     this->covarianceQuaternion = edgeToCopy.getCovarianceQuaternion();
     this->positionDifference = edgeToCopy.getPositionDifference();
     this->rotationDifference = edgeToCopy.getRotationDifference();
+    this->rotationDifference.normalize();
 }
 
 void edge::setCovariancePosition(Eigen::Vector3d &covariancePositionInput) {
@@ -60,6 +61,7 @@ Eigen::Quaterniond edge::getRotationDifference() const {
 
 void edge::setRotationDifference(const Eigen::Quaterniond &rotationDifferenceInput) {
     this->rotationDifference = rotationDifferenceInput;
+    this->rotationDifference.normalize();
 }
 
 int edge::getTypeOfEdge() const {

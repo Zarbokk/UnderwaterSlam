@@ -152,13 +152,13 @@
 //
 //}
 
-void slamToolsRos::visualizeCurrentPoseGraph(graphSlamSaveStructure &graphSaved, ros::Publisher &publisherPath) {
+void slamToolsRos::visualizeCurrentPoseGraph(graphSlamSaveStructure &graphSaved, ros::Publisher &publisherPath,ros::Publisher &publisherMarkerArray, double sigmaScaling) {
 
     nav_msgs::Path posOverTime;
     posOverTime.header.frame_id = "map_ned";
     Eigen::Matrix4d currentTransformation, completeTransformation;
     //pcl::PointCloud<pcl::PointXYZ> completeCloudWithPos;
-    //visualization_msgs::MarkerArray markerArray;
+    visualization_msgs::MarkerArray markerArray;
     int k = 0;
     //std::vector<vertex> vertexList =;
     for (int i = 0; i <  graphSaved.getVertexList()->size(); i++) {//skip the first pointCloud
@@ -181,9 +181,31 @@ void slamToolsRos::visualizeCurrentPoseGraph(graphSlamSaveStructure &graphSaved,
         pos.pose.orientation.w = vertexElement.getRotationVertex().w();
 
         posOverTime.poses.push_back(pos);
+        visualization_msgs::Marker currentMarker;
+        currentMarker.pose.position.x = pos.pose.position.x;
+        currentMarker.pose.position.y = pos.pose.position.y;
+        currentMarker.pose.position.z = pos.pose.position.z;
+        currentMarker.pose.orientation.w = 1;
+        currentMarker.header.frame_id = "map_ned";
+        currentMarker.scale.x = sigmaScaling *
+                                2 *
+                                vertexElement.getCovariancePosition()[0];
+        currentMarker.scale.y = sigmaScaling *
+                                2 *
+                                vertexElement.getCovariancePosition()[1];
+        currentMarker.scale.z = 0;
+        currentMarker.color.r = 0;
+        currentMarker.color.g = 1;
+        currentMarker.color.b = 0;
+        currentMarker.color.a = 0.02;
+//currentMarker.lifetime.sec = 10;
+        currentMarker.type = 2;
+        currentMarker.id = k;
+        k++;
+        markerArray.markers.push_back(currentMarker);
 
     }
-
+    publisherMarkerArray.publish(markerArray);
     publisherPath.publish(posOverTime);
 }
 

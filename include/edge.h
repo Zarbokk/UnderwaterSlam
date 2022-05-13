@@ -19,7 +19,7 @@ public:
             edge::toVertex = toVertex;
             edge::positionDifference = positionDifference;
             edge::rotationDifference = rotationDifference;
-
+            this->rotationDifference.normalize();
             edge::covariancePosition = covariancePosition;
             edge::covarianceQuaternion = covarianceQuaternion;
 

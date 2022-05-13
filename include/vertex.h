@@ -21,6 +21,7 @@ public:
             vertex::vertexNumber = vertexNumber;
             vertex::positionVertex = positionVertex;
             vertex::rotationVertex = rotationVertex;
+            vertex::rotationVertex.normalize();
             pcl::PointCloud<pcl::PointXYZ>::Ptr tmp(new pcl::PointCloud<pcl::PointXYZ>);
             vertex::pointCloudRaw = tmp;
             pcl::PointCloud<pcl::PointXYZ>::Ptr tmp2(new pcl::PointCloud<pcl::PointXYZ>);
@@ -43,6 +44,7 @@ public:
             vertex::vertexNumber = vertexNumber;
             vertex::positionVertex = positionVertex;
             vertex::rotationVertex = rotationVertex;
+            vertex::rotationVertex.normalize();
             pcl::PointCloud<pcl::PointXYZ>::Ptr tmp(new pcl::PointCloud<pcl::PointXYZ>);
             vertex::pointCloudRaw = tmp;
             pcl::PointCloud<pcl::PointXYZ>::Ptr tmp2(new pcl::PointCloud<pcl::PointXYZ>);
@@ -67,6 +69,7 @@ public:
             vertex::vertexNumber = vertexNumber;
             vertex::positionVertex = positionVertex;
             vertex::rotationVertex = rotationVertex;
+            vertex::rotationVertex.normalize();
             vertex::covariancePosition = covariancePosition;
             vertex::covarianceQuaternion = covarianceQuaternion;
             this->intensities = intensities;

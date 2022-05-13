@@ -25,7 +25,8 @@ Eigen::Quaterniond vertex::getRotationVertex() const {
 }
 
 void vertex::setRotationVertex(const Eigen::Quaterniond &rotationVertexInput) {
-    vertex::rotationVertex = rotationVertexInput;
+    this->rotationVertex = rotationVertexInput;
+    this->rotationVertex.normalize();
 }
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr vertex::getPointCloudRaw() const {

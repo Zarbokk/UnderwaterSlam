@@ -98,7 +98,7 @@ public:
 
     Eigen::Vector2d sofftRegistrationVoxel2DTransformation(double voxelData1Input[],
                                                            double voxelData2Input[],
-                                                           double &fitnessX, double &fitnessY,double cellSize, bool debug = false);
+                                                           double &fitnessX, double &fitnessY,double cellSize, Eigen::Vector3d &initialGuess,bool useInitialGuess,bool debug = false);
 
 
 private://here everything is created. malloc is done in the constructor

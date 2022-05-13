@@ -1005,10 +1005,10 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
             out[i] = out[i] - correlationAveraged.size();
         }
     }
-    std::cout << "peaks at: "<< std::endl;
-    for (auto&& i : out){
-        std::cout << i << std::endl;
-    }
+//    std::cout << "peaks at: "<< std::endl;
+//    for (auto&& i : out){
+//        std::cout << i << std::endl;
+//    }
     //goodGuessAlpha=-goodGuessAlpha;
     int indexCorrectAngle = 0;
     for (int i = 1; i < out.size(); i++) {
@@ -1045,7 +1045,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
 
 Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTransformation(double voxelData1Input[],
                                                        double voxelData2Input[],
-                                                       double &fitnessX, double &fitnessY, double cellSize, bool debug){
+                                                       double &fitnessX, double &fitnessY, double cellSize, Eigen::Vector3d &initialGuess,bool useInitialGuess,bool debug){
 
     //std::vector<double> xShiftList, yShiftList, heightPeakList, estimatedAngleList, heightPeakAngleList;
 
@@ -1106,31 +1106,40 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTransformati
 
         }
     }
-//some random comment
-    //meanCorrelation=(meanCorrelation/N)/N;
-//        std::vector<indexPeak> localMaximaVector;
-//        PeakFinder::findPeaks2D(resultingCorrelationDouble, localMaximaVector, N);
-//
-//
-//
-//        std::sort(localMaximaVector.begin(), localMaximaVector.end(), compareTwoPeaks);
-//
-//        std::vector<double> differencePeaks;
-//        int maximumDiffIterator = 0;
-//        double maximumDiffValue = 0;
-//        for (int i = 1; i < localMaximaVector.size(); i++) {
-//            differencePeaks.push_back(localMaximaVector[i - 1].height - localMaximaVector[i].height);
-//            if (localMaximaVector[i - 1].height - localMaximaVector[i].height > maximumDiffValue) {
-//                maximumDiffValue = localMaximaVector[i - 1].height - localMaximaVector[i].height;
-//                maximumDiffIterator = i - 1;
-//            }
-//        }
-//        maximumDiffIterator = 0;//set it anyway to zero; can be used to know if the result seems valid
+
+
+
+    if(useInitialGuess){
+        //find local maximum in 2d array
+        int initialIndexX = (int)(initialGuess[0]/cellSize+N/2);
+        int initialIndexY = (int)(initialGuess[1]/cellSize+N/2);
+        int localMaxDiffX = 0;
+        int localMaxDiffY = 0;
+        do {
+            localMaxDiffX = 0;
+            localMaxDiffY = 0;
+
+            for (int i = -1; i < 2; i++) {
+                for (int j = -1; j < 2; j++) {
+                    if (resultingCorrelationDouble[(initialIndexY + localMaxDiffY) +
+                                                   N * (initialIndexX + localMaxDiffX)] <
+                        resultingCorrelationDouble[(initialIndexY + j) + N * (initialIndexX + i)]) {
+                        localMaxDiffX = i;
+                        localMaxDiffY = j;
+                    }
+                }
+            }
+            initialIndexY+=localMaxDiffY;
+            initialIndexX+=localMaxDiffX;
+        }while(localMaxDiffX!=0 || localMaxDiffY!=0);
+        indexMaximumCorrelationI = initialIndexX;
+        indexMaximumCorrelationJ = initialIndexY;
+    }
 
 
     Eigen::Vector3d translationCalculated((indexMaximumCorrelationI - N / 2.0) * cellSize,(indexMaximumCorrelationJ - N / 2.0) * cellSize,0);
-    std::cout << "translationCalculated: "<< std::endl;
-    std::cout << translationCalculated << std::endl;
+//    std::cout << "translationCalculated: "<< std::endl;
+//    std::cout << translationCalculated << std::endl;
 
 
     //currently these metrics are not used.

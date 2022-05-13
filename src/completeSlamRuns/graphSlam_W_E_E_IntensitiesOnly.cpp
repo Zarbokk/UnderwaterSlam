@@ -13,14 +13,25 @@
 #include <hilbertMap.h>
 
 
-#define NUMBER_OF_POINTS_DIMENSION 64
-#define DIMENSION_OF_VOXEL_DATA 50
+#define NUMBER_OF_POINTS_DIMENSION 128
+#define DIMENSION_OF_VOXEL_DATA 60
+#define NUMBER_OF_POINTS_MAP 256.0
+#define DIMENSION_OF_MAP 100.0
 
+
+struct intensityValues {
+    Eigen::Matrix4d transformation;
+    intensityMeasurement intensity;
+};
+
+
+//occupancyMap(256, NUMBER_OF_POINTS_DIMENSION, 70, hilbertMap::HINGED_FEATURES)
 class rosClassEKF {
 public:
     rosClassEKF(ros::NodeHandle n_) : graphSaved(3, INTENSITY_BASED_GRAPH),
-                                      scanRegistrationObject(),
-                                      occupancyMap(256, NUMBER_OF_POINTS_DIMENSION, 70, hilbertMap::HINGED_FEATURES) {
+                                      scanRegistrationObject(NUMBER_OF_POINTS_DIMENSION, NUMBER_OF_POINTS_DIMENSION / 2,
+                                                             NUMBER_OF_POINTS_DIMENSION / 2,
+                                                             NUMBER_OF_POINTS_DIMENSION / 2 - 1) {
 
         subscriberEKF = n_.subscribe("publisherPoseEkf", 1000, &rosClassEKF::stateEstimationCallback, this);
         ros::Duration(1).sleep();
@@ -47,9 +58,9 @@ public:
                              Eigen::Vector3d(0, 0, 0), 0, ros::Time::now().toSec(),
                              FIRST_ENTRY);
 
-        std::deque<double> subgraphs{1, 3};
+        std::deque<double> subgraphs{0.5, 4};
         graphSaved.initiallizeSubGraphs(subgraphs, 10);
-        this->sigmaScaling = 1.0;
+        this->sigmaScaling = 0.2;
 
 //        this->maxTimeOptimization = 1.0;
 
@@ -57,13 +68,28 @@ public:
         this->firstCompleteSonarScan = true;
         this->saveGraphStructure = false;
 
-        this->occupancyMap.createRandomMap();
+//        this->occupancyMap.createRandomMap();
         this->maxTimeOptimization = 1.0;
 
+
+        map.info.height = NUMBER_OF_POINTS_MAP;
+        map.info.width = NUMBER_OF_POINTS_MAP;
+        map.info.resolution = DIMENSION_OF_MAP / NUMBER_OF_POINTS_MAP;
+        map.info.origin.position.x = -DIMENSION_OF_MAP / 2;
+        map.info.origin.position.y = -DIMENSION_OF_MAP / 2;
+        map.info.origin.position.z = +0.5;
+        for (int i = 0; i < NUMBER_OF_POINTS_MAP; i++) {
+            for (int j = 0; j < NUMBER_OF_POINTS_MAP; j++) {
+                //determine color:
+                map.data.push_back(50);
+            }
+        }
     }
 
 
 private:
+    nav_msgs::OccupancyGrid map;
+
 
     ros::Subscriber subscriberEKF, subscriberIntensitySonar;
     ros::Publisher publisherPoseSLAM, publisherOccupancyMap;
@@ -99,7 +125,7 @@ private:
     bool firstSonarInput, firstCompleteSonarScan, saveGraphStructure;
     std::string saveStringGraph;
     double maxTimeOptimization;
-    hilbertMap occupancyMap;
+    //hilbertMap occupancyMap;
 
 
     void scanCallback(const ping360_sonar::SonarEcho::ConstPtr &msg) {
@@ -191,14 +217,15 @@ private:
             this->initialGuessTransformation =
                     this->graphSaved.getVertexList()->at(indexOfLastKeyframe).getTransformation().inverse() *
                     this->graphSaved.getVertexList()->back().getTransformation();
-            std::cout << "start Transformation:" << std::endl;
-            std::cout << this->graphSaved.getVertexList()->at(indexOfLastKeyframe).getTransformation() << std::endl;
-            std::cout << "end Transformation:" << std::endl;
-            std::cout << this->graphSaved.getVertexList()->back().getTransformation() << std::endl;
-            std::cout << "initial Guess Transformation:" << std::endl;
-            std::cout << this->initialGuessTransformation << std::endl;
+//            std::cout << "start Transformation:" << std::endl;
+//            std::cout << this->graphSaved.getVertexList()->at(indexOfLastKeyframe).getTransformation() << std::endl;
+//            std::cout << "end Transformation:" << std::endl;
+//            std::cout << this->graphSaved.getVertexList()->back().getTransformation() << std::endl;
+//            std::cout << "initial Guess Transformation:" << std::endl;
+//            std::cout << this->initialGuessTransformation << std::endl;
 
-            double initialGuessAngle = std::atan2( this->initialGuessTransformation(1, 0),this->initialGuessTransformation(0, 0));
+            double initialGuessAngle = std::atan2(this->initialGuessTransformation(1, 0),
+                                                  this->initialGuessTransformation(0, 0));
             double fitnessScoreX, fitnessScoreY;
 
             // transform from 1 to 2
@@ -206,7 +233,7 @@ private:
                                                                         this->graphSaved.getVertexList()->size() - 1,
                                                                         fitnessScoreX,
                                                                         fitnessScoreY,
-                                                                        initialGuessAngle,
+                                                                        this->initialGuessTransformation, true, true,
                                                                         true);
 //            double xValue = this->currentTransformation(0, 3);
 //            double yValue = this->currentTransformation(1, 3);
@@ -217,17 +244,24 @@ private:
                     std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)),
                     initialGuessAngle);
 
+
+
+
+//            std::cout << "currentTransformation.inverse()" << std::endl;
+//            std::cout << this->currentTransformation.inverse() << std::endl;
+
+            std::cout << "FitnessScore X: " << fitnessScoreX << " FitnessScore Y: " << fitnessScoreY << std::endl;
+
             std::cout << "currentTransformation:" << std::endl;
             std::cout << this->currentTransformation << std::endl;
 
+            std::cout << "initial Guess Transformation:" << std::endl;
+            std::cout << this->initialGuessTransformation << std::endl;
 
-            std::cout << "currentTransformation.inverse()" << std::endl;
-            std::cout << this->currentTransformation.inverse() << std::endl;
+
             std::cout << "Initial guess angle: "
                       << initialGuessAngle
                       << std::endl;
-//            std::cout << "currentTransformation Inverted" << std::endl;
-//            std::cout << this->currentTransformation.inverse() << std::endl;
             std::cout << "Registration angle: "
                       << std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)) << std::endl;
             std::cout << "difference of angle after Registration: " << differenceAngleBeforeAfter * 180 / M_PI
@@ -238,8 +272,8 @@ private:
                 graphSaved.addEdge(getLastIntensityKeyframe(),
                                    graphSaved.getVertexList()->size() - 1,
                                    this->currentTransformation.block<3, 1>(0, 3), qTMP,
-                                   Eigen::Vector3d(fitnessScoreX, fitnessScoreY, 0),
-                                   0.1,
+                                   Eigen::Vector3d(5 * fitnessScoreX, 5 * fitnessScoreY, 0),
+                                   0.2,
                                    LOOP_CLOSURE,
                                    maxTimeOptimization);//@TODO still not sure about size
             } else {
@@ -249,21 +283,17 @@ private:
 
             //add position and optimize/publish everything
 //            std::vector<int> holdStill{0};
-//            graphSaved.optimizeGraphWithSlam(false, holdStill,1.0);
+//            graphSaved.optimizeGraphWithSlam(false, holdStill,5.0);
             graphSaved.optimizeGraphWithSlamTopDown(false, 0.05, 1.0);
             graphSaved.calculateCovarianceInCloseProximity(1.0);
-            //@TODO visualization has to be created anew
-//            slamToolsRos::visualizeCurrentGraph(this->graphSaved, this->publisherPathOverTime,
-//                                                this->publisherKeyFrameClouds,
-//                                                this->publisherMarkerArray, this->sigmaScaling,
-//                                                this->publisherPathOverTimeGT,
-//                                                NULL, this->publisherMarkerArrayLoopClosures,
-//                                                NULL, this->numberOfEdgesBetweenScans);
+            this->resetMap();
+
             std::cout << "next: " << std::endl;
         }
 
 
-        slamToolsRos::visualizeCurrentPoseGraph(this->graphSaved, this->publisherPathOverTime);
+        slamToolsRos::visualizeCurrentPoseGraph(this->graphSaved, this->publisherPathOverTime,
+                                                this->publisherMarkerArray, this->sigmaScaling);
 
 //        this->lastAngle = msg->angle;
 
@@ -457,62 +487,30 @@ private:
         return true;
     }
 
-    bool getDatasetFromGraphForHilbertMap(int numberOfPointsInDataset, std::vector<dataPointStruct> &dataSet,
-                                          int numberOfMultiplyPoints) {
+    double getDatasetFromGraphForMap(std::vector<intensityValues> &dataSet) {
         std::lock_guard<std::mutex> lock(this->graphSlamMutex);
 //        std::vector<dataPointStruct> dataSet;
 
-        std::random_device rd;  // Will be used to obtain a seed for the random number engine
-        std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
-        std::uniform_real_distribution<> dis(0.0, 1.0);
-
-        for (int i = 0; i < numberOfPointsInDataset; i++) {
-
-            //get some random number indexVertex and Random Number of Point
-            int indexVertex = (int) (dis(gen) *
-                                     (double) (this->graphSaved.getVertexList()->size() - 1));
-
+//        std::random_device rd;  // Will be used to obtain a seed for the random number engine
+//        std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
+//        std::uniform_real_distribution<> dis(0.0, 1.0);
+        double maxOverall = 0;
+        for (int i = 0; i < this->graphSaved.getVertexList()->size(); i++) {
+            intensityValues tmpInt;
+            tmpInt.transformation = this->graphSaved.getVertexList()->at(i).getTransformation();
+            tmpInt.intensity = this->graphSaved.getVertexList()->at(i).getIntensities();
 
 
-            //create 5 point with occupancy
-            for (int j = 0; j < numberOfMultiplyPoints; j++) {
-                int indexOfPointInIntensitieList = (int) (dis(gen) *
-                                                          (double) this->graphSaved.getVertexList()->at(
-                                                                  indexVertex).getIntensities().intensities.size() - 1);
-
-
-                Eigen::Matrix4d transformationOfVertex = this->graphSaved.getVertexList()->at(
-                        indexVertex).getTransformation();
-
-                double distanceOfIntensity =
-                        indexOfPointInIntensitieList / ((double) this->graphSaved.getVertexList()->at(
-                                indexVertex).getIntensities().intensities.size()) *
-                        ((double) this->graphSaved.getVertexList()->at(
-                                indexVertex).getIntensities().range);
-
-
-                Eigen::Vector4d pointPos(
-                        distanceOfIntensity,
-                        0,
-                        0,
-                        1);
-
-                //pointPos has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
-                Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
-                                                                                                                 this->graphSaved.getVertexList()->at(
-                                                                                                                         indexVertex).getIntensities().angle);
-
-                pointPos = transformationOfVertex * rotationOfSonarAngleMatrix * pointPos;
-                dataPointStruct tmpDP;
-                tmpDP.x = pointPos.x();
-                tmpDP.y = pointPos.y();
-                tmpDP.z = pointPos.z();
-                tmpDP.occupancy = this->graphSaved.getVertexList()->at(indexVertex).getIntensities().intensities.at(
-                        indexOfPointInIntensitieList);
-                dataSet.push_back(tmpDP);
+            double it = *max_element(std::begin(tmpInt.intensity.intensities),
+                                     std::end(tmpInt.intensity.intensities)); // C++11
+            if (it > maxOverall) {
+                maxOverall = it;
             }
+            dataSet.push_back(tmpInt);
         }
-        return true;
+
+
+        return maxOverall;
     }
 
 
@@ -544,7 +542,7 @@ private:
                     this->graphSaved.getVertexList()->at(i + 1).getIntensities().angle,
                     this->graphSaved.getVertexList()->at(i).getIntensities().angle);
         }
-         if (positiveRotatingDirection) {
+        if (positiveRotatingDirection) {
             return resultingAngleMovement + resultingAngleSonar;
         } else {
             return resultingAngleSonar - resultingAngleMovement;
@@ -643,9 +641,14 @@ private:
 
     Eigen::Matrix4d registrationOfTwoVoxels(int indexVoxel1,
                                             int indexVoxel2,
-                                            double &fitnessX, double &fitnessY, double goodGuessAlpha = -100,
+                                            double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuess,
+                                            bool useInitialAngle, bool useInitialTranslation,
                                             bool debug = false) {
-
+        double goodGuessAlpha=-100;
+        if(useInitialAngle){
+            goodGuessAlpha= std::atan2(initialGuess(1, 0),
+                                       initialGuess(0, 0));
+        }
 
         //create a voxel of current scan (last rotation) and voxel of the rotation before that
         double *voxelData1;
@@ -671,26 +674,34 @@ private:
         rotationMatrixTMP.block<3, 3>(0, 0) = tmpMatrix3d;
         maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity());//get voxel
         maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, rotationMatrixTMP);//get voxel
-//        for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION; i++) {
-//            voxelData1[i] = normalizationValue * voxelData1[i] / maximumVoxel1;
-//            voxelData2[i] = normalizationValue * voxelData2[i] / maximumVoxel2;
-//        }
-//        if (debug) {
-//            std::ofstream myFile3, myFile6;
-//            myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW1.csv");
-//            myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW2.csv");
-//            for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION; i++) {
-//                for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
-//
-//                    myFile3 << voxelData1[j + NUMBER_OF_POINTS_DIMENSION * i]; // imaginary part
-//                    myFile3 << "\n";
-//                    myFile6 << voxelData2[j + NUMBER_OF_POINTS_DIMENSION * i]; // imaginary part
-//                    myFile6 << "\n";
-//                }
-//            }
-//            myFile3.close();
-//            myFile6.close();
-//        }
+
+        if (true) {
+            cv::Mat magTMP1(NUMBER_OF_POINTS_DIMENSION, NUMBER_OF_POINTS_DIMENSION, CV_64F, voxelData1);
+            //add gaussian blur
+            cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+            cv::Mat magTMP2(NUMBER_OF_POINTS_DIMENSION, NUMBER_OF_POINTS_DIMENSION, CV_64F, voxelData2);
+            //add gaussian blur
+            cv::GaussianBlur(magTMP2, magTMP2, cv::Size(9, 9), 0);
+//        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+//        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+        }
+
+        if (debug) {
+            std::ofstream myFile3, myFile6;
+            myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW1.csv");
+            myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW2.csv");
+            for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION; i++) {
+                for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
+
+                    myFile3 << voxelData1[j + NUMBER_OF_POINTS_DIMENSION * i]; // imaginary part
+                    myFile3 << "\n";
+                    myFile6 << voxelData2[j + NUMBER_OF_POINTS_DIMENSION * i]; // imaginary part
+                    myFile6 << "\n";
+                }
+            }
+            myFile3.close();
+            myFile6.close();
+        }
 
         Eigen::Vector2d translation = this->scanRegistrationObject.sofftRegistrationVoxel2DTranslation(voxelData1,
                                                                                                        voxelData2,
@@ -698,6 +709,8 @@ private:
                                                                                                        fitnessY,
                                                                                                        (double) DIMENSION_OF_VOXEL_DATA /
                                                                                                        (double) NUMBER_OF_POINTS_DIMENSION,
+                                                                                                       initialGuessTransformation.block<3, 1>(0, 3),
+                                                                                                       useInitialTranslation,
                                                                                                        debug);
 
         Eigen::Matrix4d estimatedRotationScans;//from second scan to first
@@ -754,31 +767,106 @@ private:
         return estimatedRotationScans;//should be the transformation matrix from 1 to 2
     }
 
-public:
-    void updateHilbertMap() {
-        int numberOfPointsDataset = 5000;
-        std::cout << "started Hilbert Shift:" << std::endl;
-        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-        std::vector<dataPointStruct> dataSet;
-        bool foundDataset = this->getDatasetFromGraphForHilbertMap(numberOfPointsDataset / 5, dataSet, 5);
+    void resetMap(){
+        for (int i = 0; i < NUMBER_OF_POINTS_MAP*NUMBER_OF_POINTS_MAP; i++) {
+            //determine color:
+            map.data.at(i) = 50;
+        }
+    }
 
-        //return if dataset cannot be found
-        if (!foundDataset) {
+public:
+//    void updateHilbertMap() {
+//        int numberOfPointsDataset = 5000;
+//        std::cout << "started Hilbert Shift:" << std::endl;
+//        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+//        std::vector<dataPointStruct> dataSet;
+//        bool foundDataset = this->getDatasetFromGraphForMap(numberOfPointsDataset / 5, dataSet, 5);
+//
+//        //return if dataset cannot be found
+//        if (!foundDataset) {
+//            return;
+//        }
+//        //@TODO normalization of the dataset
+////        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+////        std::cout << "Time it takes to get the dataset = "
+////                  << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
+////                  << "[ms]" << std::endl;
+////
+////        std::chrono::steady_clock::time_point begin2 = std::chrono::steady_clock::now();
+//        this->occupancyMap.trainClassifier(dataSet, (int) (numberOfPointsDataset));
+//        nav_msgs::OccupancyGrid map = this->occupancyMap.createOccupancyMapOfHilbert(0, 0, 70, true);
+////        std::chrono::steady_clock::time_point end2 = std::chrono::steady_clock::now();
+////        std::cout << "Time it takes to train the dataset = "
+////                  << std::chrono::duration_cast<std::chrono::milliseconds>(end2 - begin2).count()
+////                  << "[ms]" << std::endl;
+//
+//        map.header.stamp = ros::Time::now();
+//        map.header.frame_id = "map_ned";
+//        this->publisherOccupancyMap.publish(map);
+//    }
+
+    void updateMap() {
+        //int numberOfPointsDataset = 5000;
+        //std::cout << "started Hilbert Shift:" << std::endl;
+        //std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        if (this->graphSaved.getVertexList()->size() < 10) {
             return;
         }
-        //@TODO normalization of the dataset
-//        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-//        std::cout << "Time it takes to get the dataset = "
-//                  << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
-//                  << "[ms]" << std::endl;
-//
-//        std::chrono::steady_clock::time_point begin2 = std::chrono::steady_clock::now();
-        this->occupancyMap.trainClassifier(dataSet, (int) (numberOfPointsDataset));
-        nav_msgs::OccupancyGrid map = this->occupancyMap.createOccupancyMapOfHilbert(0, 0, 70, true);
-//        std::chrono::steady_clock::time_point end2 = std::chrono::steady_clock::now();
-//        std::cout << "Time it takes to train the dataset = "
-//                  << std::chrono::duration_cast<std::chrono::milliseconds>(end2 - begin2).count()
-//                  << "[ms]" << std::endl;
+        std::vector<intensityValues> dataSet;
+        double maximumIntensity = this->getDatasetFromGraphForMap(dataSet);
+
+
+        //update map
+
+        for (int i = 0; i < dataSet.size(); i++) {
+
+            Eigen::Matrix4d transformationIntensity = dataSet[i].transformation;
+            Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
+                                                                                                             dataSet[i].intensity.angle);
+            double sumIntensity = 0;
+            for (int j = 0; j < dataSet[i].intensity.intensities.size(); j++) {
+                //determine color:
+                double distanceOfIntensity =
+                        j / ((double) dataSet[i].intensity.intensities.size()) *
+                        ((double) dataSet[i].intensity.range);
+                Eigen::Vector4d positionOfIntensity(
+                        distanceOfIntensity,
+                        0,
+                        0,
+                        1);
+
+                positionOfIntensity = transformationIntensity * rotationOfSonarAngleMatrix * positionOfIntensity;
+                //calculate index dependent on  DIMENSION_OF_VOXEL_DATA and NUMBER_OF_POINTS_DIMENSION the middle
+                int indexX =
+                        (int) (positionOfIntensity.x() / (DIMENSION_OF_MAP / 2) * NUMBER_OF_POINTS_MAP /
+                               2) +
+                        (int) NUMBER_OF_POINTS_MAP / 2;
+                int indexY =
+                        (int) (positionOfIntensity.y() / (DIMENSION_OF_MAP / 2) * NUMBER_OF_POINTS_MAP /
+                               2) +
+                        (int) NUMBER_OF_POINTS_MAP / 2;
+
+                if (indexX < NUMBER_OF_POINTS_MAP && indexY < NUMBER_OF_POINTS_MAP && indexY >= 0 &&
+                    indexX >= 0) {
+
+                    double intensityImportance = ((double) (j)) / ((double) dataSet[i].intensity.intensities.size());
+
+                    this->map.data[indexX + NUMBER_OF_POINTS_MAP * indexY] =
+                            this->map.data[indexX + NUMBER_OF_POINTS_MAP * indexY] *
+                            (0.99 - (1.0 - intensityImportance)) +
+                            dataSet[i].intensity.intensities[j] / maximumIntensity * 100 *
+                            (0.01 + (1.0 - intensityImportance));//normalization with /maximumIntensity*100
+                }
+
+
+                sumIntensity = sumIntensity + dataSet[i].intensity.intensities[j] / maximumIntensity * 100 + 1;
+
+                if (sumIntensity > 400) {
+                    break;
+                }
+            }
+            i++;
+        }
 
         map.header.stamp = ros::Time::now();
         map.header.frame_id = "map_ned";
@@ -800,12 +888,14 @@ int main(int argc, char **argv) {
     ros::Rate loop_rate(0.1);
     ros::AsyncSpinner spinner(4); // Use 4 threads
     spinner.start();
-    ros::Duration(15).sleep();
+    ros::Duration(5).sleep();
 
     while (ros::ok()) {
 //        ros::spinOnce();
 
         //rosClassForTests.updateHilbertMap();
+        rosClassForTests.updateMap();
+
         loop_rate.sleep();
 
         //std::cout << ros::Time::now() << std::endl;

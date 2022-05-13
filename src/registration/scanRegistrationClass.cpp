@@ -88,9 +88,9 @@ double scanRegistrationClass::sofftRegistrationVoxel2DRotationOnly(double voxelD
 
 Eigen::Vector2d
 scanRegistrationClass::sofftRegistrationVoxel2DTranslation(double voxelData1Input[], double voxelData2Input[], double &fitnessX, double &fitnessY,double cellSize,
-                                    bool debug){
+                                    Eigen::Vector3d initialGuess,bool useInitialGuess,bool debug){
 
-    return myRegistrationClass.sofftRegistrationVoxel2DTransformation(voxelData1Input,voxelData2Input,fitnessX,fitnessY,cellSize,debug);
+    return myRegistrationClass.sofftRegistrationVoxel2DTransformation(voxelData1Input,voxelData2Input,fitnessX,fitnessY,cellSize,initialGuess,useInitialGuess,debug);
 
 }
 
