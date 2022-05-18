@@ -15,8 +15,8 @@
 
 #define NUMBER_OF_POINTS_DIMENSION 128
 #define DIMENSION_OF_VOXEL_DATA 60
-#define NUMBER_OF_POINTS_MAP 256.0
-#define DIMENSION_OF_MAP 100.0
+#define NUMBER_OF_POINTS_MAP 512.0
+#define DIMENSION_OF_MAP 200.0
 
 
 struct intensityValues {
@@ -49,6 +49,11 @@ public:
         publisherAfterCorrection = n_.advertise<sensor_msgs::PointCloud2>("afterCorrection", 10);
         publisherOccupancyMap = n_.advertise<nav_msgs::OccupancyGrid>("occupancyHilbertMap", 10);
 
+        publisherPoseSLAM = n_.advertise<geometry_msgs::PoseStamped>("slamEndPose", 10);
+
+
+
+
         Eigen::AngleAxisd rotation_vector2(180.0 / 180.0 * 3.14159, Eigen::Vector3d(1, 0, 0));
         Eigen::Matrix3d tmpMatrix3d = rotation_vector2.toRotationMatrix();
         transformationX180Degree.block<3, 3>(0, 0) = tmpMatrix3d;
@@ -58,8 +63,8 @@ public:
                              Eigen::Vector3d(0, 0, 0), 0, ros::Time::now().toSec(),
                              FIRST_ENTRY);
 
-        std::deque<double> subgraphs{0.5, 4};
-        graphSaved.initiallizeSubGraphs(subgraphs, 10);
+//        std::deque<double> subgraphs{0.3, 2};
+//        graphSaved.initiallizeSubGraphs(subgraphs, 10);
         this->sigmaScaling = 0.2;
 
 //        this->maxTimeOptimization = 1.0;
@@ -194,7 +199,7 @@ private:
         //test if a scan matching should be done
 
         int indexOfLastKeyframe;
-        double angleDiff = angleBetweenLastKeyframeAndNow(true);// i think this is always true
+        double angleDiff = angleBetweenLastKeyframeAndNow();// i think this is always true
         //std::cout << angleDiff << std::endl;
 //        std::cout << msg->header.stamp.toSec() << std::endl;
 //        std::cout << ros::Time::now().toSec() << std::endl;
@@ -267,33 +272,41 @@ private:
             std::cout << "difference of angle after Registration: " << differenceAngleBeforeAfter * 180 / M_PI
                       << std::endl;
             //only if angle diff is smaller than 10 degreece its ok
-            if (abs(differenceAngleBeforeAfter) < 30.0 / 180.0 * M_PI) {
+            if (abs(differenceAngleBeforeAfter) < 45.0 / 180.0 * M_PI) {
                 Eigen::Quaterniond qTMP(this->currentTransformation.block<3, 3>(0, 0));
                 graphSaved.addEdge(getLastIntensityKeyframe(),
                                    graphSaved.getVertexList()->size() - 1,
                                    this->currentTransformation.block<3, 1>(0, 3), qTMP,
-                                   Eigen::Vector3d(5 * fitnessScoreX, 5 * fitnessScoreY, 0),
-                                   0.2,
+                                   Eigen::Vector3d(0.05 * fitnessScoreX, 0.05 * fitnessScoreY, 0),
+                                   0.02,
                                    LOOP_CLOSURE,
                                    maxTimeOptimization);//@TODO still not sure about size
             } else {
                 std::cout << "we just skipped that registration" << std::endl;
             }
 
+            std::vector<int> holdStill{0};
+            graphSaved.optimizeGraphWithSlam(false, holdStill,10.0);
+
 
             //add position and optimize/publish everything
-//            std::vector<int> holdStill{0};
-//            graphSaved.optimizeGraphWithSlam(false, holdStill,5.0);
-            graphSaved.optimizeGraphWithSlamTopDown(false, 0.05, 1.0);
-            graphSaved.calculateCovarianceInCloseProximity(1.0);
-            this->resetMap();
+
+//            std::deque<double> subgraphs{0.3, 2};
+//            graphSaved.initiallizeSubGraphs(subgraphs, 10);
+//
+//            graphSaved.optimizeGraphWithSlamTopDown(false, 0.05, 1.0);
+//            graphSaved.calculateCovarianceInCloseProximity(1.0);
+//            graphSaved.resetHierachicalGraph();
+
+
+            //this->resetMap();
 
             std::cout << "next: " << std::endl;
         }
 
 
         slamToolsRos::visualizeCurrentPoseGraph(this->graphSaved, this->publisherPathOverTime,
-                                                this->publisherMarkerArray, this->sigmaScaling);
+                                                this->publisherMarkerArray, this->sigmaScaling,this->publisherPoseSLAM);
 
 //        this->lastAngle = msg->angle;
 
@@ -525,7 +538,7 @@ private:
         return lastKeyframeIndex;
     }
 
-    double angleBetweenLastKeyframeAndNow(bool positiveRotatingDirection) {
+    double angleBetweenLastKeyframeAndNow() {
         double resultingAngleSonar = 0;
         double resultingAngleMovement = 0;
         int lastKeyframeIndex = getLastIntensityKeyframe();
@@ -542,11 +555,9 @@ private:
                     this->graphSaved.getVertexList()->at(i + 1).getIntensities().angle,
                     this->graphSaved.getVertexList()->at(i).getIntensities().angle);
         }
-        if (positiveRotatingDirection) {
-            return resultingAngleMovement + resultingAngleSonar;
-        } else {
-            return resultingAngleSonar - resultingAngleMovement;
-        }
+
+        return resultingAngleMovement + resultingAngleSonar;
+
 
     }
 
@@ -686,22 +697,22 @@ private:
 //        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
         }
 
-        if (debug) {
-            std::ofstream myFile3, myFile6;
-            myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW1.csv");
-            myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW2.csv");
-            for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION; i++) {
-                for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
-
-                    myFile3 << voxelData1[j + NUMBER_OF_POINTS_DIMENSION * i]; // imaginary part
-                    myFile3 << "\n";
-                    myFile6 << voxelData2[j + NUMBER_OF_POINTS_DIMENSION * i]; // imaginary part
-                    myFile6 << "\n";
-                }
-            }
-            myFile3.close();
-            myFile6.close();
-        }
+//        if (debug) {
+//            std::ofstream myFile3, myFile6;
+//            myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW1.csv");
+//            myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW2.csv");
+//            for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION; i++) {
+//                for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
+//
+//                    myFile3 << voxelData1[j + NUMBER_OF_POINTS_DIMENSION * i]; // imaginary part
+//                    myFile3 << "\n";
+//                    myFile6 << voxelData2[j + NUMBER_OF_POINTS_DIMENSION * i]; // imaginary part
+//                    myFile6 << "\n";
+//                }
+//            }
+//            myFile3.close();
+//            myFile6.close();
+//        }
 
         Eigen::Vector2d translation = this->scanRegistrationObject.sofftRegistrationVoxel2DTranslation(voxelData1,
                                                                                                        voxelData2,
@@ -817,8 +828,18 @@ public:
 
 
         //update map
+        std::random_device rd;  // Will be used to obtain a seed for the random number engine
+        std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
+        std::uniform_real_distribution<> dis(0.01, 0.99);
 
-        for (int i = 0; i < dataSet.size(); i++) {
+        int indexTMP = (int)(dis(gen)*dataSet.size());
+
+
+        if(dataSet.size()-indexTMP<201){
+            return;
+        }
+        //for (int i = 0; i < dataSet.size(); i++) {
+        for (int i = indexTMP; i < indexTMP+200; i++) {
 
             Eigen::Matrix4d transformationIntensity = dataSet[i].transformation;
             Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
@@ -853,17 +874,17 @@ public:
 
                     this->map.data[indexX + NUMBER_OF_POINTS_MAP * indexY] =
                             this->map.data[indexX + NUMBER_OF_POINTS_MAP * indexY] *
-                            (0.99 - (1.0 - intensityImportance)) +
+                            (0.5 - (1.0 - intensityImportance)) +
                             dataSet[i].intensity.intensities[j] / maximumIntensity * 100 *
-                            (0.01 + (1.0 - intensityImportance));//normalization with /maximumIntensity*100
+                            (0.5 + (1.0 - intensityImportance));//normalization with /maximumIntensity*100
                 }
 
 
                 sumIntensity = sumIntensity + dataSet[i].intensity.intensities[j] / maximumIntensity * 100 + 1;
 
-                if (sumIntensity > 400) {
-                    break;
-                }
+//                if (sumIntensity > 400) {
+//                    break;
+//                }
             }
             i++;
         }
@@ -888,7 +909,7 @@ int main(int argc, char **argv) {
     ros::Rate loop_rate(0.1);
     ros::AsyncSpinner spinner(4); // Use 4 threads
     spinner.start();
-    ros::Duration(5).sleep();
+    ros::Duration(2).sleep();
 
     while (ros::ok()) {
 //        ros::spinOnce();

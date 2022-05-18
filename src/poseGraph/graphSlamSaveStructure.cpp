@@ -1184,6 +1184,13 @@ void graphSlamSaveStructure::initiallizeSubGraphs(
     }
 }
 
+void graphSlamSaveStructure::resetHierachicalGraph(){
+    this->lookUpTableCell.clear();
+    this->hasHierachicalGraph = false;
+    delete(this->hierachicalGraph);
+
+}
+
 void graphSlamSaveStructure::getListofConnectedVertexAndEdges(std::vector<int> &vertexIndicesofICell,
                                                               std::vector<edge> &listOfContainingEdges,
                                                               std::vector<int> &listOfConnectedVertexes) {//go threw cell I and save edges connected to it

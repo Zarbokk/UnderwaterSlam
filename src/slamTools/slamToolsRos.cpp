@@ -152,7 +152,7 @@
 //
 //}
 
-void slamToolsRos::visualizeCurrentPoseGraph(graphSlamSaveStructure &graphSaved, ros::Publisher &publisherPath,ros::Publisher &publisherMarkerArray, double sigmaScaling) {
+void slamToolsRos::visualizeCurrentPoseGraph(graphSlamSaveStructure &graphSaved, ros::Publisher &publisherPath,ros::Publisher &publisherMarkerArray, double sigmaScaling, ros::Publisher &publisherPoseSlam) {
 
     nav_msgs::Path posOverTime;
     posOverTime.header.frame_id = "map_ned";
@@ -207,6 +207,24 @@ void slamToolsRos::visualizeCurrentPoseGraph(graphSlamSaveStructure &graphSaved,
     }
     publisherMarkerArray.publish(markerArray);
     publisherPath.publish(posOverTime);
+
+
+    geometry_msgs::PoseStamped pos;
+    pos.header.stamp = ros::Time(graphSaved.getVertexList()->back().getTimeStamp());
+    pos.header.frame_id = "map_ned";
+    pos.pose.position.x = graphSaved.getVertexList()->back().getPositionVertex().x();
+    pos.pose.position.y = graphSaved.getVertexList()->back().getPositionVertex().y();
+    pos.pose.position.z = graphSaved.getVertexList()->back().getPositionVertex().z();
+    pos.pose.orientation.x = graphSaved.getVertexList()->back().getRotationVertex().x();
+    pos.pose.orientation.y = graphSaved.getVertexList()->back().getRotationVertex().y();
+    pos.pose.orientation.z = graphSaved.getVertexList()->back().getRotationVertex().z();
+    pos.pose.orientation.w = graphSaved.getVertexList()->back().getRotationVertex().w();
+
+    publisherPoseSlam.publish(pos);
+
+
+
+
 }
 
 std::vector<measurement> slamToolsRos::parseCSVFile(std::istream &stream) {

@@ -57,7 +57,7 @@ public:
 //                                      std::vector<measurement> *groundTruthSorted,
 //                                      ros::Publisher &publisherMarkerArrayLoopClosures,
 //                                      double plotGTToTime,int numberOfEdgesBetweenScans);
-    static void visualizeCurrentPoseGraph(graphSlamSaveStructure &graphSaved,ros::Publisher &publisherPath,ros::Publisher &publisherMarker, double sigmaScaling);
+    static void visualizeCurrentPoseGraph(graphSlamSaveStructure &graphSaved,ros::Publisher &publisherPath,ros::Publisher &publisherMarker, double sigmaScaling,ros::Publisher &publisherPoseSlam);
 
     static std::vector<measurement>
     parseCSVFile(std::istream &stream);//this is first line description then keyframe,x,y,z,timestamp

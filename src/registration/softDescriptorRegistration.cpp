@@ -1200,7 +1200,12 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTransformati
 
 
     //translationCalculated = generalHelpfulTools::getQuaternionFromRPY(0,0,M_PI).toRotationMatrix()*translationCalculated;
-
+    if(!isfinite(fitnessX)){
+        fitnessX = 10;
+    }
+    if(!isfinite(fitnessY)){
+        fitnessY = 10;
+    }
     Eigen::Vector2d returnVector;
     returnVector[0]=translationCalculated[0];
     returnVector[1]=translationCalculated[1];

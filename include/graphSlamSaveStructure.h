@@ -93,6 +93,7 @@ public:
 
     void saveGraphJson(std::string nameSavingFile);
 
+    void resetHierachicalGraph();
 //    static const int POINT_CLOUD_SAVED = 0;
 //    static const int INTEGRATED_POSE =1;
 //    static const int FIRST_ENTRY =2;
