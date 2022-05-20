@@ -6,7 +6,8 @@
 #include "sensor_msgs/Imu.h"
 #include "mavros_msgs/Altitude.h"
 #include "geometry_msgs/TwistStamped.h"
-#include "ping360_sonar/SonarEcho.h"
+//#include "ping360_sonar/SonarEcho.h"
+#include "commonbluerovmsg/SonarEcho2.h"
 #include "../slamTools/generalHelpfulTools.h"
 #include "../slamTools/slamToolsRos.h"
 #include "commonbluerovmsg/saveGraph.h"
@@ -133,7 +134,7 @@ private:
     //hilbertMap occupancyMap;
 
 
-    void scanCallback(const ping360_sonar::SonarEcho::ConstPtr &msg) {
+    void scanCallback(const commonbluerovmsg::SonarEcho2::ConstPtr &msg) {
 
         std::lock_guard<std::mutex> lock(this->graphSlamMutex);
         if (firstSonarInput) {

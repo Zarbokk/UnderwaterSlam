@@ -6,8 +6,8 @@
 #include "sensor_msgs/Imu.h"
 #include "geometry_msgs/TwistStamped.h"
 #include <iostream>
-#include "ping360_sonar/SonarEcho.h"
-
+//#include "ping360_sonar/SonarEcho.h"
+#include "commonbluerovmsg/SonarEcho2.h"
 
 //struct intensityMeasurement {
 //    double timeStamp;
@@ -258,7 +258,7 @@ main(int argc, char **argv) {
     ros::start();
     ros::NodeHandle n_;
     ros::Publisher publisherIntensities, publisherImuData, publisherVelocityBody,publisherMagCourse;
-    publisherIntensities = n_.advertise<ping360_sonar::SonarEcho>("sonar/intensity", 10);
+    publisherIntensities = n_.advertise<commonbluerovmsg::SonarEcho2>("sonar/intensity", 10);
     publisherImuData = n_.advertise<sensor_msgs::Imu>("mavros/imu/data_frd", 10);
     publisherVelocityBody = n_.advertise<geometry_msgs::TwistStamped>("mavros/local_position/velocity_body_frd", 10);
     publisherMagCourse= n_.advertise<geometry_msgs::Vector3Stamped>("magnetic_heading", 10);
@@ -334,7 +334,7 @@ main(int argc, char **argv) {
                     //publish intensity
                     //std::cout << "publish Intensity" << std::endl;
 //                    std::cout << intensitySonarSorted.size() << std::endl;
-                    ping360_sonar::SonarEcho msg;
+                    commonbluerovmsg::SonarEcho2 msg;
                     msg.header.stamp = ros::Time(intensitySonarSorted[0].time);
                     msg.angle = intensitySonarSorted[0].angle*200/M_PI;
                     msg.step_size = 2;

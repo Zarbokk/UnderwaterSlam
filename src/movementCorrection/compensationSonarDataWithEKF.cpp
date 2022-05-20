@@ -3,7 +3,8 @@
 //
 
 #include "ros/ros.h"
-#include "ping360_sonar/SonarEcho.h"
+//#include "ping360_sonar/SonarEcho.h"
+#include "commonbluerovmsg/SonarEcho2.h"
 #include <opencv4/opencv2/core.hpp>
 #include <opencv4/opencv2/opencv.hpp>
 #include "sensor_msgs/Image.h"
@@ -78,7 +79,7 @@ private:
         return linspaced;
     }
 
-    void imageDataGenerationCallback(const ping360_sonar::SonarEcho::ConstPtr &msg) {
+    void imageDataGenerationCallback(const commonbluerovmsg::SonarEcho2::ConstPtr &msg) {
         //only one when the program starts
         if (this->startTimeOfCorrection == 0) {
             this->startTimeOfCorrection = msg->header.stamp.toSec();

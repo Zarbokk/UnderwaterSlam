@@ -6,7 +6,8 @@
 #include "sensor_msgs/Imu.h"
 #include "mavros_msgs/Altitude.h"
 #include "geometry_msgs/TwistStamped.h"
-#include "ping360_sonar/SonarEcho.h"
+//#include "ping360_sonar/SonarEcho.h"
+#include "commonbluerovmsg/SonarEcho2.h"
 #include "../slamTools/generalHelpfulTools.h"
 #include "../slamTools/slamToolsRos.h"
 #include "commonbluerovmsg/saveGraph.h"
@@ -88,7 +89,7 @@ private:
     pcl::PointCloud<pcl::PointXYZ>::Ptr currentScan;
     pcl::PointCloud<pcl::PointXYZ>::Ptr previousScan;
     pcl::PointCloud<pcl::PointXYZ>::Ptr Final;
-    std::vector<ping360_sonar::SonarEcho> sonarIntensityList;
+    std::vector<commonbluerovmsg::SonarEcho2> sonarIntensityList;
     //Matrices:
     Eigen::Matrix4d currentTransformation;
     Eigen::Matrix4d initialGuessTransformation;
@@ -125,7 +126,7 @@ private:
         Eigen::Vector3d orientationRPY = generalHelpfulTools::getRollPitchYaw(tmpRot);
     }
 
-    void scanCallback(const ping360_sonar::SonarEcho::ConstPtr &msg) {
+    void scanCallback(const commonbluerovmsg::SonarEcho2::ConstPtr &msg) {
         std::lock_guard<std::mutex> lock(this->graphSlamMutex);
         if (this->startTimeOfCorrection == 0) {
             this->beginningAngleOfRotation = msg->angle/400.0*M_PI*2.0;
