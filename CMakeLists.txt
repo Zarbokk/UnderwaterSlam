@@ -73,3 +73,6 @@ target_link_libraries(registrationOfTwoPCLICP fftw3 ${PCL_LIBRARIES} ${catkin_LI
 
 add_executable(testGraphOptimization src/testFiles/graphOptimizationTest.cpp ${SOURCE_FILES})
 target_link_libraries(testGraphOptimization fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+add_executable(2DOurMethod src/evaluation/2DOurMethod.cpp ${SOURCE_FILES})
+target_link_libraries(2DOurMethod fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
