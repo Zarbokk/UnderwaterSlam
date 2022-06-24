@@ -865,7 +865,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
         resampledMagnitudeSO3_2TMP[i] = 0;
     }
 
-    int minRNumber = 4;
+    int minRNumber = 10;//was 4
     int maxRNumber = N / 2 - 2;
     int bandwidth = N / 2;
 
@@ -1018,7 +1018,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
         }
     }
     double bestMatchAngle = angleList[out[indexCorrectAngle]];//this angle is from Pos1 to Pos 2
-    std::cout << "best Match Angle : "<< bestMatchAngle <<std::endl;
+//    std::cout << "best Match Angle : "<< bestMatchAngle <<std::endl;
     // for each angle calculate the shift correlation of that angle
     //for( int angleIndex=0; angleIndex<out.size(); ++angleIndex){
 
@@ -1135,8 +1135,9 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTransformati
         indexMaximumCorrelationI = initialIndexX;
         indexMaximumCorrelationJ = initialIndexY;
     }
-
-
+//    std::cout << "estimated indexToStart:" << std::endl;
+//    std::cout << indexMaximumCorrelationI<< std::endl;
+//    std::cout << indexMaximumCorrelationJ << std::endl;
     Eigen::Vector3d translationCalculated((indexMaximumCorrelationI - N / 2.0) * cellSize,(indexMaximumCorrelationJ - N / 2.0) * cellSize,0);
 //    std::cout << "translationCalculated: "<< std::endl;
 //    std::cout << translationCalculated << std::endl;

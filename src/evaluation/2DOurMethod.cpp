@@ -14,7 +14,7 @@
 #include "../slamTools/slamToolsRos.h"
 #include "commonbluerovmsg/saveGraph.h"
 #include <hilbertMap.h>
-
+#include <opencv2/imgcodecs.hpp>
 
 #define NUMBER_OF_POINTS_DIMENSION 128
 #define DIMENSION_OF_VOXEL_DATA 60
@@ -218,8 +218,8 @@ private:
                     this->graphSaved.getVertexList()->at(indexOfLastKeyframe).getTransformation().inverse() *
                     this->graphSaved.getVertexList()->back().getTransformation();
 
-            double initialGuessAngle = std::atan2(this->initialGuessTransformation(1, 0),
-                                                  this->initialGuessTransformation(0, 0));
+//            double initialGuessAngle = std::atan2(this->initialGuessTransformation(1, 0),
+//                                                  this->initialGuessTransformation(0, 0));
             double fitnessScoreX, fitnessScoreY;
             // create a registration of two scans.
 
@@ -232,16 +232,25 @@ private:
                                                                         true);
 
 
-            double differenceAngleBeforeAfter = generalHelpfulTools::angleDiff(
-                    std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)),
-                    initialGuessAngle);
+//            double differenceAngleBeforeAfter = generalHelpfulTools::angleDiff(
+//                    std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)),
+//                    initialGuessAngle);
 
             //maybe print ground truth vs registration difference
-
+//            std::cout << "current Position:" << std::endl;
+//            std::cout << gtToTranformation(currentGTlocalPosition) << std::endl;
+//            std::cout << "last Position:" << std::endl;
+//            std::cout << gtToTranformation(this->lastGTPosition) << std::endl;
+//            std::cout << "GT difference:" << std::endl;
+//            std::cout << (gtToTranformation(this->lastGTPosition).inverse()*gtToTranformation(currentGTlocalPosition)) << std::endl;
+//            std::cout << "Transformation Estimated:" << std::endl;
+//            std::cout<< this->currentTransformation << std::endl;
+            //std::cout << "error:" << std::endl;
+            std::cout << ((gtToTranformation(this->lastGTPosition).inverse()*gtToTranformation(currentGTlocalPosition)).block<3, 1>(0, 3)-this->currentTransformation.block<3, 1>(0, 3)).norm() << std::endl;
 
             this->lastGTPosition = currentGTlocalPosition;
 
-            std::cout << "next: " << std::endl;
+//            std::cout << "next: " << std::endl;
         }
 
 
@@ -591,9 +600,12 @@ private:
             cv::Mat magTMP1(NUMBER_OF_POINTS_DIMENSION, NUMBER_OF_POINTS_DIMENSION, CV_64F, voxelData1);
             //add gaussian blur
             cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+            cv::imwrite("/home/tim-external/Documents/imreg_fmt/firstImage.jpg", magTMP1);
+
             cv::Mat magTMP2(NUMBER_OF_POINTS_DIMENSION, NUMBER_OF_POINTS_DIMENSION, CV_64F, voxelData2);
             //add gaussian blur
             cv::GaussianBlur(magTMP2, magTMP2, cv::Size(9, 9), 0);
+            cv::imwrite("/home/tim-external/Documents/imreg_fmt/secondImage.jpg", magTMP2);
 //        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
 //        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
         }
@@ -688,6 +700,17 @@ private:
         this->currentGTPosition.pitch = msg->pitch;
         this->currentGTPosition.yaw = msg->yaw;
 
+    }
+
+    Eigen::Matrix4d gtToTranformation(groundTruthPositionStruct input){
+        Eigen::Matrix4d output;
+        output = generalHelpfulTools::getTransformationMatrixFromRPY(input.roll,input.pitch,input.yaw);
+
+        output(0, 3) = input.x;
+        output(1, 3) = input.y;
+        output(2, 3) = input.z;
+
+        return output;
     }
 };
 

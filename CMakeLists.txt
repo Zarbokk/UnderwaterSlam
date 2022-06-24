@@ -65,10 +65,10 @@ target_link_libraries(stPereDatasetRosPub ${catkin_LIBRARIES})
 add_executable(graphSlamIntensitiesOnlyTest src/completeSlamRuns/graphSlam_W_E_E_IntensitiesOnly.cpp ${SOURCE_FILES})
 target_link_libraries(graphSlamIntensitiesOnlyTest fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-add_executable(registrationOfTwoPCLs src/registration/registrationOfTwoScans.cpp ${SOURCE_FILES})
+add_executable(registrationOfTwoPCLs src/registration/registrationOfTwoPCLScans.cpp ${SOURCE_FILES})
 target_link_libraries(registrationOfTwoPCLs fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-add_executable(registrationOfTwoPCLICP src/registration/registrationTwoScansIPC.cpp ${SOURCE_FILES})
+add_executable(registrationOfTwoPCLICP src/registration/registrationTwoPCLScansIPC.cpp ${SOURCE_FILES})
 target_link_libraries(registrationOfTwoPCLICP fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(testGraphOptimization src/testFiles/graphOptimizationTest.cpp ${SOURCE_FILES})
@@ -76,3 +76,6 @@ target_link_libraries(testGraphOptimization fftw3 ${PCL_LIBRARIES} ${catkin_LIBR
 
 add_executable(2DOurMethod src/evaluation/2DOurMethod.cpp ${SOURCE_FILES})
 target_link_libraries(2DOurMethod fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+add_executable(registrationOfTwoImages src/registration/registrationOfTwoImageScans.cpp ${SOURCE_FILES})
+target_link_libraries(registrationOfTwoImages fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
