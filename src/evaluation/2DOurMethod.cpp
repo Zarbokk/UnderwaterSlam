@@ -15,6 +15,7 @@
 #include "commonbluerovmsg/saveGraph.h"
 #include <hilbertMap.h>
 #include <opencv2/imgcodecs.hpp>
+#include "std_srvs/SetBool.h"
 
 #define NUMBER_OF_POINTS_DIMENSION 128
 #define DIMENSION_OF_VOXEL_DATA 60
@@ -27,7 +28,7 @@ struct intensityValues {
     intensityMeasurement intensity;
 };
 
-struct groundTruthPositionStruct{
+struct groundTruthPositionStruct {
     double x;
     double y;
     double z;
@@ -40,15 +41,19 @@ struct groundTruthPositionStruct{
 //occupancyMap(256, NUMBER_OF_POINTS_DIMENSION, 70, hilbertMap::HINGED_FEATURES)
 class rosClassEKF {
 public:
-    rosClassEKF(ros::NodeHandle n_) : graphSaved(3, INTENSITY_BASED_GRAPH),
-                                      scanRegistrationObject(NUMBER_OF_POINTS_DIMENSION, NUMBER_OF_POINTS_DIMENSION / 2,
-                                                             NUMBER_OF_POINTS_DIMENSION / 2,
-                                                             NUMBER_OF_POINTS_DIMENSION / 2 - 1) {
+    rosClassEKF(ros::NodeHandle n_, const std::string &nameOfTheServiceCall) : graphSaved(3, INTENSITY_BASED_GRAPH),
+                                                                               scanRegistrationObject(
+                                                                                       NUMBER_OF_POINTS_DIMENSION,
+                                                                                       NUMBER_OF_POINTS_DIMENSION / 2,
+                                                                                       NUMBER_OF_POINTS_DIMENSION / 2,
+                                                                                       NUMBER_OF_POINTS_DIMENSION / 2 -
+                                                                                       1) {
 
         subscriberEKF = n_.subscribe("publisherPoseEkf", 1000, &rosClassEKF::stateEstimationCallback, this);
         ros::Duration(1).sleep();
         subscriberIntensitySonar = n_.subscribe("sonar/intensity", 1000, &rosClassEKF::scanCallback, this);
         subscriberGroundTruth = n_.subscribe("/positionGT", 1000, &rosClassEKF::groundTruthCallback, this);
+        pauseRosbag = n_.serviceClient<std_srvs::SetBoolRequest>(nameOfTheServiceCall);
 
         Eigen::AngleAxisd rotation_vector2(180.0 / 180.0 * 3.14159, Eigen::Vector3d(1, 0, 0));
         Eigen::Matrix3d tmpMatrix3d = rotation_vector2.toRotationMatrix();
@@ -67,7 +72,6 @@ public:
 
         this->firstSonarInput = true;
         this->firstCompleteSonarScan = true;
-
 
 
         map.info.height = NUMBER_OF_POINTS_MAP;
@@ -92,6 +96,7 @@ private:
     ros::Subscriber subscriberEKF, subscriberIntensitySonar, subscriberGroundTruth;
     ros::Publisher publisherPoseSLAM, publisherOccupancyMap;
     ros::ServiceServer serviceSaveGraph;
+    ros::ServiceClient pauseRosbag;
     std::mutex stateEstimationMutex;
     std::mutex intensityMutex;
     std::mutex graphSlamMutex;
@@ -125,10 +130,10 @@ private:
     bool firstSonarInput, firstCompleteSonarScan;
 
 
-
     void scanCallback(const commonbluerovmsg::SonarEcho2::ConstPtr &msg) {
 
-        std::lock_guard<std::mutex> lock(this->graphSlamMutex);
+        std::lock_guard<std::mutex> lock2(this->GTMutex);
+        std::lock_guard<std::mutex> lock1(this->graphSlamMutex);
         if (firstSonarInput) {
 
             intensityMeasurement intensityTMP;
@@ -199,6 +204,8 @@ private:
 
         // best would be scan matching between this angle and transformation based last angle( i think this is currently done)
         if (abs(angleDiff) > 2 * M_PI) {
+
+
             groundTruthPositionStruct currentGTlocalPosition = this->currentGTPosition;
             this->graphSaved.getVertexList()->back().setTypeOfVertex(INTENSITY_SAVED_AND_KEYFRAME);
 
@@ -207,49 +214,106 @@ private:
                 firstCompleteSonarScan = false;
                 return;
             }
+
+
+            std_srvs::SetBool srv;
+            srv.request.data = true;
+            pauseRosbag.call(srv);
+
+
             //angleDiff = angleBetweenLastKeyframeAndNow(false);
             indexOfLastKeyframe = getLastIntensityKeyframe();
             // also get ground trouth transformation
-
-
 
             //match these voxels together
             this->initialGuessTransformation =
                     this->graphSaved.getVertexList()->at(indexOfLastKeyframe).getTransformation().inverse() *
                     this->graphSaved.getVertexList()->back().getTransformation();
-
 //            double initialGuessAngle = std::atan2(this->initialGuessTransformation(1, 0),
 //                                                  this->initialGuessTransformation(0, 0));
+
+/////////////////////////////////////////////////////// start of Registration ////////////////////////////////////////////////////
+
+            pcl::PointCloud<pcl::PointXYZ>::Ptr scan1(new pcl::PointCloud<pcl::PointXYZ>);
+            pcl::PointCloud<pcl::PointXYZ>::Ptr scan2(new pcl::PointCloud<pcl::PointXYZ>);
+            pcl::PointCloud<pcl::PointXYZ>::Ptr final(new pcl::PointCloud<pcl::PointXYZ>);
+
+            Eigen::Matrix4d tmpMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(M_PI, 0,0);
+            *scan1 = createPCLFromGraph(indexOfLastKeyframe,tmpMatrix);
+            *scan2 = createPCLFromGraph(this->graphSaved.getVertexList()->size() - 1,tmpMatrix);
+
+
+
+
+
+            this->initialGuessTransformation.block<3, 1>(0, 3) = this->initialGuessTransformation.block<3, 1>(0, 3)+ Eigen::Vector3d(0,-0,0);
+
+
             double fitnessScoreX, fitnessScoreY;
+            this->currentTransformation  = this->scanRegistrationObject.generalizedIcpRegistration(scan2,scan1,final,fitnessScoreX,initialGuessTransformation);
+
+
+            pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan1.ply",*scan1);
+            pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan2.ply",*scan2);
+            pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/final.ply",*final);
+
             // create a registration of two scans.
 
             // transform from 1 to 2
-            this->currentTransformation = this->registrationOfTwoVoxels(indexOfLastKeyframe,
-                                                                        this->graphSaved.getVertexList()->size() - 1,
-                                                                        fitnessScoreX,
-                                                                        fitnessScoreY,
-                                                                        this->initialGuessTransformation, true, true,
-                                                                        true);
+//            this->currentTransformation = this->registrationOfTwoVoxels(indexOfLastKeyframe,
+//                                                                        this->graphSaved.getVertexList()->size() - 1,
+//                                                                        fitnessScoreX,
+//                                                                        fitnessScoreY,
+//                                                                        this->initialGuessTransformation, true, true,
+//                                                                        true);
+
+/////////////////////////////////////////////////////// end of Registration ////////////////////////////////////////////////////
+
+
+
+
 
 
 //            double differenceAngleBeforeAfter = generalHelpfulTools::angleDiff(
 //                    std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)),
-//                    initialGuessAngle);
+//                    std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)));
+            Eigen::Matrix4d GTTransformation =
+                    gtToTranformation(this->lastGTPosition).inverse() * gtToTranformation(currentGTlocalPosition);
 
             //maybe print ground truth vs registration difference
 //            std::cout << "current Position:" << std::endl;
 //            std::cout << gtToTranformation(currentGTlocalPosition) << std::endl;
 //            std::cout << "last Position:" << std::endl;
 //            std::cout << gtToTranformation(this->lastGTPosition) << std::endl;
-//            std::cout << "GT difference:" << std::endl;
-//            std::cout << (gtToTranformation(this->lastGTPosition).inverse()*gtToTranformation(currentGTlocalPosition)) << std::endl;
-//            std::cout << "Transformation Estimated:" << std::endl;
-//            std::cout<< this->currentTransformation << std::endl;
+            std::cout << "everything in NED:" << std::endl;
+            std::cout << "GT difference:" << std::endl;
+            std::cout << GTTransformation << std::endl;
+            std::cout << "Transformation Estimated:" << std::endl;
+            std::cout<< this->currentTransformation << std::endl;
+            std::cout << "Initial Guess:" << std::endl;
+            std::cout<< this->initialGuessTransformation << std::endl;
             //std::cout << "error:" << std::endl;
-            std::cout << ((gtToTranformation(this->lastGTPosition).inverse()*gtToTranformation(currentGTlocalPosition)).block<3, 1>(0, 3)-this->currentTransformation.block<3, 1>(0, 3)).norm() << std::endl;
+            std::cout << std::fixed;
+            std::cout << std::setprecision(4);
+            std::cout << "Error gt vs Registration: "
+                      << (GTTransformation.block<3, 1>(0, 3) - this->currentTransformation.block<3, 1>(0, 3)).norm();
+            std::cout << " Error gt vs Feed Forward: " << (GTTransformation.block<3, 1>(0, 3) -
+                                                           this->initialGuessTransformation.block<3, 1>(0, 3)).norm()
+                      << std::endl;
+            std::cout << "Angle difference GT and registration: " << generalHelpfulTools::angleDiff(
+                    std::atan2(GTTransformation(1, 0), GTTransformation(0, 0)),
+                    std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)));
+            std::cout << " Angle difference GT and initial Guess: " << generalHelpfulTools::angleDiff(
+                    std::atan2(GTTransformation(1, 0), GTTransformation(0, 0)),
+                    std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)))
+                      << std::endl;
+//            std::cout << "GT Angle: " << std::atan2(GTTransformation(1, 0), GTTransformation(0, 0)) << std::endl;
+//            std::cout << "initialGuessTransformation Angle: " << std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)) << std::endl;
+//            std::cout << "reg Angle: " << std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)) << std::endl;
 
             this->lastGTPosition = currentGTlocalPosition;
-
+            srv.request.data = false;
+            pauseRosbag.call(srv);
 //            std::cout << "next: " << std::endl;
         }
 
@@ -561,10 +625,10 @@ private:
                                             double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuess,
                                             bool useInitialAngle, bool useInitialTranslation,
                                             bool debug = false) {
-        double goodGuessAlpha=-100;
-        if(useInitialAngle){
-            goodGuessAlpha= std::atan2(initialGuess(1, 0),
-                                       initialGuess(0, 0));
+        double goodGuessAlpha = -100;
+        if (useInitialAngle) {
+            goodGuessAlpha = std::atan2(initialGuess(1, 0),
+                                        initialGuess(0, 0));
         }
 
         //create a voxel of current scan (last rotation) and voxel of the rotation before that
@@ -585,8 +649,6 @@ private:
                                                                                                   voxelData2,
                                                                                                   goodGuessAlpha,
                                                                                                   debug);
-
-
 
 
         Eigen::Matrix4d rotationMatrixTMP = Eigen::Matrix4d::Identity();
@@ -633,7 +695,8 @@ private:
                                                                                                        fitnessY,
                                                                                                        (double) DIMENSION_OF_VOXEL_DATA /
                                                                                                        (double) NUMBER_OF_POINTS_DIMENSION,
-                                                                                                       initialGuessTransformation.block<3, 1>(0, 3),
+                                                                                                       initialGuessTransformation.block<3, 1>(
+                                                                                                               0, 3),
                                                                                                        useInitialTranslation,
                                                                                                        debug);
 
@@ -691,7 +754,7 @@ private:
         return estimatedRotationScans;//should be the transformation matrix from 1 to 2
     }
 
-    void groundTruthCallback(const commonbluerovmsg::staterobotforevaluation::ConstPtr &msg){
+    void groundTruthCallback(const commonbluerovmsg::staterobotforevaluation::ConstPtr &msg) {
         std::lock_guard<std::mutex> lock(this->GTMutex);
         this->currentGTPosition.x = msg->xPosition;
         this->currentGTPosition.y = msg->yPosition;
@@ -702,9 +765,9 @@ private:
 
     }
 
-    Eigen::Matrix4d gtToTranformation(groundTruthPositionStruct input){
+    Eigen::Matrix4d gtToTranformation(groundTruthPositionStruct input) {
         Eigen::Matrix4d output;
-        output = generalHelpfulTools::getTransformationMatrixFromRPY(input.roll,input.pitch,input.yaw);
+        output = generalHelpfulTools::getTransformationMatrixFromRPY(input.roll, input.pitch, input.yaw);
 
         output(0, 3) = input.x;
         output(1, 3) = input.y;
@@ -712,14 +775,141 @@ private:
 
         return output;
     }
+
+
+    pcl::PointCloud<pcl::PointXYZ> createPCLFromGraph( int indexStart,
+                              Eigen::Matrix4d transformationInTheEndOfCalculation) {
+        pcl::PointCloud<pcl::PointXYZ> scan;
+        //create array with all intencities.
+        // Calculate maximum of intensities.
+        // only use maximum of 10% of max value as points
+
+        double maximumIntensity = 0;
+        int i = 0;
+        do {
+            for (int j = 0;
+                 j < this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
+                if (this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[j] >
+                    maximumIntensity) {
+                    maximumIntensity = this->graphSaved.getVertexList()->at(
+                            indexStart - i).getIntensities().intensities[j];
+                }
+            }
+            i++;
+        } while (this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
+                 this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
+                 INTENSITY_SAVED_AND_KEYFRAME);
+
+        double thresholdIntensityScan = maximumIntensity*0.3;//maximum intensity of 0.9
+
+
+
+        i = 0;
+        do {
+            //find max Position
+            int maxPosition=0;
+            for (int j = 5;
+                 j < this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
+                if(this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[j]>this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[maxPosition]){
+                    maxPosition=j;
+                }
+            }
+            if(maxPosition>5&&this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[maxPosition]>thresholdIntensityScan){
+                Eigen::Matrix4d transformationOfIntensityRay =
+                        this->graphSaved.getVertexList()->at(indexStart).getTransformation().inverse() *
+                        this->graphSaved.getVertexList()->at(indexStart - i).getTransformation();
+
+                //positionOfIntensity has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
+                Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
+                                                                                                                 this->graphSaved.getVertexList()->at(
+                                                                                                                         indexStart -
+                                                                                                                         i).getIntensities().angle);
+
+                double distanceOfIntensity =
+                        maxPosition / ((double) this->graphSaved.getVertexList()->at(
+                                indexStart - i).getIntensities().intensities.size()) *
+                        ((double) this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().range);
+                Eigen::Vector4d positionOfIntensity(
+                        distanceOfIntensity,
+                        0,
+                        0,
+                        1);
+
+                positionOfIntensity = transformationInTheEndOfCalculation * transformationOfIntensityRay *
+                                      rotationOfSonarAngleMatrix * positionOfIntensity;
+                //create point for PCL
+                pcl::PointXYZ tmpPoint((float)positionOfIntensity[0],
+                                       (float)positionOfIntensity[1],
+                                       (float)positionOfIntensity[2]);
+                scan.push_back(tmpPoint);
+            }
+
+
+            i++;
+        } while (this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
+                 this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
+                 INTENSITY_SAVED_AND_KEYFRAME);
+        return scan;
+    }
 };
 
 
+bool getNodes(ros::V_string &nodes) {
+    XmlRpc::XmlRpcValue args, result, payload;
+    args[0] = ros::this_node::getName();
+
+    if (!ros::master::execute("getSystemState", args, result, payload, true)) {
+        return false;
+    }
+
+    ros::S_string node_set;
+    for (int i = 0; i < payload.size(); ++i) {
+        for (int j = 0; j < payload[i].size(); ++j) {
+            XmlRpc::XmlRpcValue val = payload[i][j][1];
+            for (int k = 0; k < val.size(); ++k) {
+                std::string name = payload[i][j][1][k];
+                node_set.insert(name);
+            }
+        }
+    }
+
+    nodes.insert(nodes.end(), node_set.begin(), node_set.end());
+
+    return true;
+}
+
 int main(int argc, char **argv) {
     ros::init(argc, argv, "ekfwithros");
+    ros::NodeHandle n;
+//
+    ros::V_string nodes;
+
+
+    getNodes(nodes);
+
+
+    int i;
+    for (i = 0; i < nodes.size(); i++) {
+
+        if (nodes[i].substr(1, 4) == "play") {
+//            std::cout << "we found it" << std::endl;
+            break;
+        }
+    }
+//    std::cout << nodes[i]+"/pause_playback" << std::endl;
+    ros::ServiceServer serviceResetEkf;
+
+
+    if (ros::service::exists(nodes[i] + "/pause_playback", true)) {
+
+    } else {
+        exit(-1);
+    }
+
+
     ros::start();
     ros::NodeHandle n_;
-    rosClassEKF rosClassForTests(n_);
+    rosClassEKF rosClassForTests(n_, nodes[i] + "/pause_playback");
 
 
 //    ros::spin();

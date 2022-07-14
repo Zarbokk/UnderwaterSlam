@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
     Eigen::Vector3d initialGuess(0,0,0);
     scanRegistrationObject.sofftRegistrationVoxel2DTranslation(voxelData1, voxelData2, fitnessX,
                                         fitnessY, 1.0,
-                                        initialGuess, true, true);
+                                        initialGuess, false, true);
 
 
 

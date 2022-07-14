@@ -11,6 +11,7 @@
 //#include "slamToolsRos.h"
 
 #include <pcl/io/pcd_io.h>
+#include <pcl/io/ply_io.h>
 #include <pcl/common/transforms.h>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>

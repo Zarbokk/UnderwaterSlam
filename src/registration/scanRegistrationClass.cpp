@@ -15,9 +15,9 @@ scanRegistrationClass::generalizedIcpRegistration(const pcl::PointCloud<pcl::Poi
     gicp.setInputTarget(cloudSecondScan);
     //gicp.setSourceCovariances(source_covariances);
     //gicp.setTargetCovariances(target_covariances);
-    gicp.setMaxCorrespondenceDistance(10);
-    gicp.setRANSACOutlierRejectionThreshold(5);
-    //gicp.setMaximumIterations(1);
+    //gicp.setMaxCorrespondenceDistance(10);
+    //gicp.setRANSACOutlierRejectionThreshold(15);
+    //gicp.setMaximumIterations(0);
 //    gicp.setMaximumOptimizerIterations(100);
 //    gicp.setMaximumIterations(100);
 //    gicp.setRANSACIterations(100);

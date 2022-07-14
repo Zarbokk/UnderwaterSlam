@@ -9,6 +9,8 @@
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/common/projection_matrix.h>
 #include "softDescriptorRegistration.h"
+#include <gr/algorithms/match4pcsBase.h>
+#include <gr/algorithms/FunctorSuper4pcs.h>
 
 #ifndef SIMULATION_BLUEROV_SCANREGISTRATIONCLASS_H
 #define SIMULATION_BLUEROV_SCANREGISTRATIONCLASS_H
