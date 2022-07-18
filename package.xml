@@ -60,10 +60,12 @@
   <build_depend>rostime</build_depend>
   <build_depend>std_msgs</build_depend>
   <build_depend>ping360_sonar</build_depend>
+  <build_depend>opengr</build_depend>
   <depend>soft20</depend>
   <depend>waterlinked_dvl</depend>
   <build_depend>commonbluerovmsg</build_depend>
   <exec_depend>message_runtime</exec_depend>
+  <exec_depend>opengr</exec_depend>
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->

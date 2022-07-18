@@ -238,34 +238,47 @@ private:
             pcl::PointCloud<pcl::PointXYZ>::Ptr scan2(new pcl::PointCloud<pcl::PointXYZ>);
             pcl::PointCloud<pcl::PointXYZ>::Ptr final(new pcl::PointCloud<pcl::PointXYZ>);
 
-            Eigen::Matrix4d tmpMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(M_PI, 0,0);
-            *scan1 = createPCLFromGraph(indexOfLastKeyframe,tmpMatrix);
-            *scan2 = createPCLFromGraph(this->graphSaved.getVertexList()->size() - 1,tmpMatrix);
+            Eigen::Matrix4d tmpMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(M_PI, 0, 0);
+            *scan1 = createPCLFromGraph(indexOfLastKeyframe, tmpMatrix);
+            *scan2 = createPCLFromGraph(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
 
 
+            this->initialGuessTransformation.block<3, 1>(0, 3) =
+                    this->initialGuessTransformation.block<3, 1>(0, 3) + Eigen::Vector3d(0, -0, 0);
 
-
-
-            this->initialGuessTransformation.block<3, 1>(0, 3) = this->initialGuessTransformation.block<3, 1>(0, 3)+ Eigen::Vector3d(0,-0,0);
-
-
+//            this->initialGuessTransformation(0, 1) = -this->initialGuessTransformation(0, 1);
+//            this->initialGuessTransformation(1, 0) = -this->initialGuessTransformation(1, 0);
+//            this->initialGuessTransformation(1, 3) = -this->initialGuessTransformation(1, 3);
             double fitnessScoreX, fitnessScoreY;
             this->currentTransformation  = this->scanRegistrationObject.generalizedIcpRegistration(scan2,scan1,final,fitnessScoreX,initialGuessTransformation);
 
 
-            pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan1.ply",*scan1);
-            pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan2.ply",*scan2);
-            pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/final.ply",*final);
+
+
+            //            this->currentTransformation = this->scanRegistrationObject.super4PCSRegistration(scan1, scan2,
+//                                                                                             this->initialGuessTransformation,
+//                                                                                             true, false);
+//            this->initialGuessTransformation(0, 1) = -this->initialGuessTransformation(0, 1);
+//            this->initialGuessTransformation(1, 0) = -this->initialGuessTransformation(1, 0);
+//            this->initialGuessTransformation(1, 3) = -this->initialGuessTransformation(1, 3);
+            pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan1.ply",
+                                       *scan1);
+            pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan2.ply",
+                                       *scan2);
+//            pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/final.ply",
+//                                       *final);
 
             // create a registration of two scans.
 
             // transform from 1 to 2
-//            this->currentTransformation = this->registrationOfTwoVoxels(indexOfLastKeyframe,
-//                                                                        this->graphSaved.getVertexList()->size() - 1,
-//                                                                        fitnessScoreX,
-//                                                                        fitnessScoreY,
-//                                                                        this->initialGuessTransformation, true, true,
-//                                                                        true);
+//            this->currentTransformation = this->registrationOfTwoVoxelsSOFFT(indexOfLastKeyframe,
+//                                                                             this->graphSaved.getVertexList()->size() -
+//                                                                             1,
+//                                                                             fitnessScoreX,
+//                                                                             fitnessScoreY,
+//                                                                             this->initialGuessTransformation, true,
+//                                                                             true,
+//                                                                             true);
 
 /////////////////////////////////////////////////////// end of Registration ////////////////////////////////////////////////////
 
@@ -289,12 +302,12 @@ private:
             std::cout << "GT difference:" << std::endl;
             std::cout << GTTransformation << std::endl;
             std::cout << "Transformation Estimated:" << std::endl;
-            std::cout<< this->currentTransformation << std::endl;
+            std::cout << this->currentTransformation << std::endl;
             std::cout << "Initial Guess:" << std::endl;
-            std::cout<< this->initialGuessTransformation << std::endl;
-            //std::cout << "error:" << std::endl;
-            std::cout << std::fixed;
-            std::cout << std::setprecision(4);
+            std::cout << this->initialGuessTransformation << std::endl;
+//            //std::cout << "error:" << std::endl;
+//            std::cout << std::fixed;
+//            std::cout << std::setprecision(4);
             std::cout << "Error gt vs Registration: "
                       << (GTTransformation.block<3, 1>(0, 3) - this->currentTransformation.block<3, 1>(0, 3)).norm();
             std::cout << " Error gt vs Feed Forward: " << (GTTransformation.block<3, 1>(0, 3) -
@@ -620,11 +633,11 @@ private:
         return maximumOfVoxelData;
     }
 
-    Eigen::Matrix4d registrationOfTwoVoxels(int indexVoxel1,
-                                            int indexVoxel2,
-                                            double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuess,
-                                            bool useInitialAngle, bool useInitialTranslation,
-                                            bool debug = false) {
+    Eigen::Matrix4d registrationOfTwoVoxelsSOFFT(int indexVoxel1,
+                                                 int indexVoxel2,
+                                                 double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuess,
+                                                 bool useInitialAngle, bool useInitialTranslation,
+                                                 bool debug = false) {
         double goodGuessAlpha = -100;
         if (useInitialAngle) {
             goodGuessAlpha = std::atan2(initialGuess(1, 0),
@@ -777,8 +790,8 @@ private:
     }
 
 
-    pcl::PointCloud<pcl::PointXYZ> createPCLFromGraph( int indexStart,
-                              Eigen::Matrix4d transformationInTheEndOfCalculation) {
+    pcl::PointCloud<pcl::PointXYZ> createPCLFromGraph(int indexStart,
+                                                      Eigen::Matrix4d transformationInTheEndOfCalculation) {
         pcl::PointCloud<pcl::PointXYZ> scan;
         //create array with all intencities.
         // Calculate maximum of intensities.
@@ -800,21 +813,24 @@ private:
                  this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
                  INTENSITY_SAVED_AND_KEYFRAME);
 
-        double thresholdIntensityScan = maximumIntensity*0.3;//maximum intensity of 0.9
+        double thresholdIntensityScan = maximumIntensity * 0.3;//maximum intensity of 0.9
 
 
 
         i = 0;
         do {
             //find max Position
-            int maxPosition=0;
+            int maxPosition = 0;
             for (int j = 5;
                  j < this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
-                if(this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[j]>this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[maxPosition]){
-                    maxPosition=j;
+                if (this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[j] >
+                    this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[maxPosition]) {
+                    maxPosition = j;
                 }
             }
-            if(maxPosition>5&&this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[maxPosition]>thresholdIntensityScan){
+            if (maxPosition > 5 &&
+                this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[maxPosition] >
+                thresholdIntensityScan) {
                 Eigen::Matrix4d transformationOfIntensityRay =
                         this->graphSaved.getVertexList()->at(indexStart).getTransformation().inverse() *
                         this->graphSaved.getVertexList()->at(indexStart - i).getTransformation();
@@ -838,9 +854,9 @@ private:
                 positionOfIntensity = transformationInTheEndOfCalculation * transformationOfIntensityRay *
                                       rotationOfSonarAngleMatrix * positionOfIntensity;
                 //create point for PCL
-                pcl::PointXYZ tmpPoint((float)positionOfIntensity[0],
-                                       (float)positionOfIntensity[1],
-                                       (float)positionOfIntensity[2]);
+                pcl::PointXYZ tmpPoint((float) positionOfIntensity[0],
+                                       (float) positionOfIntensity[1],
+                                       (float) positionOfIntensity[2]);
                 scan.push_back(tmpPoint);
             }
 
@@ -850,6 +866,141 @@ private:
                  this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
                  INTENSITY_SAVED_AND_KEYFRAME);
         return scan;
+    }
+
+    Eigen::Matrix4d registrationOfTwoVoxelsFMSOld(int indexVoxel1,
+                                                 int indexVoxel2,
+                                                 double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuess,
+                                                 bool useInitialAngle, bool useInitialTranslation,
+                                                 bool debug = false) {
+        //we always assume without initial guess for now.
+        double goodGuessAlpha = -100;
+        if (useInitialAngle) {
+            goodGuessAlpha = std::atan2(initialGuess(1, 0),
+                                        initialGuess(0, 0));
+        }
+
+        //create a voxel of current scan (last rotation) and voxel of the rotation before that
+        double *voxelData1;
+        double *voxelData2;
+        voxelData1 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
+        voxelData2 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
+        //still missing
+        double maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity());//get voxel
+        double maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, Eigen::Matrix4d::Identity());//get voxel
+//        double normalizationValue = 1;
+//        for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION; i++) {
+//            voxelData1[i] = normalizationValue * voxelData1[i] / maximumVoxel1;
+//            voxelData2[i] = normalizationValue * voxelData2[i] / maximumVoxel2;
+//        }
+
+        double estimatedAngle = this->scanRegistrationObject.sofftRegistrationVoxel2DRotationOnly(voxelData1,
+                                                                                                  voxelData2,
+                                                                                                  goodGuessAlpha,
+                                                                                                  debug);
+
+
+        Eigen::Matrix4d rotationMatrixTMP = Eigen::Matrix4d::Identity();
+        Eigen::AngleAxisd tmpRotVec(estimatedAngle, Eigen::Vector3d(0, 0, 1));
+        Eigen::Matrix3d tmpMatrix3d = tmpRotVec.toRotationMatrix();
+        rotationMatrixTMP.block<3, 3>(0, 0) = tmpMatrix3d;
+        maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity());//get voxel
+        maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, rotationMatrixTMP);//get voxel
+
+        if (true) {
+            cv::Mat magTMP1(NUMBER_OF_POINTS_DIMENSION, NUMBER_OF_POINTS_DIMENSION, CV_64F, voxelData1);
+            //add gaussian blur
+            cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+            cv::imwrite("/home/tim-external/Documents/imreg_fmt/firstImage.jpg", magTMP1);
+
+            cv::Mat magTMP2(NUMBER_OF_POINTS_DIMENSION, NUMBER_OF_POINTS_DIMENSION, CV_64F, voxelData2);
+            //add gaussian blur
+            cv::GaussianBlur(magTMP2, magTMP2, cv::Size(9, 9), 0);
+            cv::imwrite("/home/tim-external/Documents/imreg_fmt/secondImage.jpg", magTMP2);
+//        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+//        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+        }
+
+//        if (debug) {
+//            std::ofstream myFile3, myFile6;
+//            myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW1.csv");
+//            myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW2.csv");
+//            for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION; i++) {
+//                for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
+//
+//                    myFile3 << voxelData1[j + NUMBER_OF_POINTS_DIMENSION * i]; // imaginary part
+//                    myFile3 << "\n";
+//                    myFile6 << voxelData2[j + NUMBER_OF_POINTS_DIMENSION * i]; // imaginary part
+//                    myFile6 << "\n";
+//                }
+//            }
+//            myFile3.close();
+//            myFile6.close();
+//        }
+
+        Eigen::Vector2d translation = this->scanRegistrationObject.sofftRegistrationVoxel2DTranslation(voxelData1,
+                                                                                                       voxelData2,
+                                                                                                       fitnessX,
+                                                                                                       fitnessY,
+                                                                                                       (double) DIMENSION_OF_VOXEL_DATA /
+                                                                                                       (double) NUMBER_OF_POINTS_DIMENSION,
+                                                                                                       initialGuessTransformation.block<3, 1>(
+                                                                                                               0, 3),
+                                                                                                       useInitialTranslation,
+                                                                                                       debug);
+
+        Eigen::Matrix4d estimatedRotationScans;//from second scan to first
+        //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
+        Eigen::AngleAxisd rotation_vectorTMP(estimatedAngle, Eigen::Vector3d(0, 0, 1));
+        Eigen::Matrix3d tmpRotMatrix3d = rotation_vectorTMP.toRotationMatrix();
+        estimatedRotationScans.block<3, 3>(0, 0) = tmpRotMatrix3d;
+        estimatedRotationScans(0, 3) = translation.x();
+        estimatedRotationScans(1, 3) = translation.y();
+        estimatedRotationScans(2, 3) = 0;
+        estimatedRotationScans(3, 3) = 1;
+
+
+        maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity());//get voxel
+        maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, estimatedRotationScans);//get voxel
+
+        if (debug) {
+            std::ofstream myFile1, myFile2;
+            myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel1.csv");
+            myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel2.csv");
+            for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION; i++) {
+                for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
+                    myFile1 << voxelData1[j + NUMBER_OF_POINTS_DIMENSION * i]; // real part
+                    myFile1 << "\n";
+                    myFile2 << voxelData2[j + NUMBER_OF_POINTS_DIMENSION * i]; // imaginary part
+                    myFile2 << "\n";
+                }
+            }
+            myFile1.close();
+            myFile2.close();
+        }
+
+
+//        maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, estimatedRotationScans.inverse());//get voxel
+//        maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, Eigen::Matrix4d::Identity());//get voxel
+//
+//        if (debug) {
+//            std::ofstream myFile1, myFile2;
+//            myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel1.csv");
+//            myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel2.csv");
+//            for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION; i++) {
+//                for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
+//                    myFile1 << voxelData1[j + NUMBER_OF_POINTS_DIMENSION* i]; // real part
+//                    myFile1 << "\n";
+//                    myFile2 << voxelData2[j + NUMBER_OF_POINTS_DIMENSION * i]; // imaginary part
+//                    myFile2 << "\n";
+//                }
+//            }
+//            myFile1.close();
+//            myFile2.close();
+//        }
+
+
+        return estimatedRotationScans;//should be the transformation matrix from 1 to 2
     }
 };
 

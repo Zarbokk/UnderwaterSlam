@@ -235,12 +235,14 @@ private:
             double fitnessScoreX, fitnessScoreY;
 
             // transform from 1 to 2
-            this->currentTransformation = this->registrationOfTwoVoxels(indexOfLastKeyframe,
-                                                                        this->graphSaved.getVertexList()->size() - 1,
-                                                                        fitnessScoreX,
-                                                                        fitnessScoreY,
-                                                                        this->initialGuessTransformation, true, true,
-                                                                        true);
+            this->currentTransformation = this->registrationOfTwoVoxelsSOFFT(indexOfLastKeyframe,
+                                                                             this->graphSaved.getVertexList()->size() -
+                                                                             1,
+                                                                             fitnessScoreX,
+                                                                             fitnessScoreY,
+                                                                             this->initialGuessTransformation, true,
+                                                                             true,
+                                                                             true);
 //            double xValue = this->currentTransformation(0, 3);
 //            double yValue = this->currentTransformation(1, 3);
 //            this->currentTransformation(0, 3) = yValue;
@@ -651,11 +653,11 @@ private:
         return maximumOfVoxelData;
     }
 
-    Eigen::Matrix4d registrationOfTwoVoxels(int indexVoxel1,
-                                            int indexVoxel2,
-                                            double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuess,
-                                            bool useInitialAngle, bool useInitialTranslation,
-                                            bool debug = false) {
+    Eigen::Matrix4d registrationOfTwoVoxelsSOFFT(int indexVoxel1,
+                                                 int indexVoxel2,
+                                                 double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuess,
+                                                 bool useInitialAngle, bool useInitialTranslation,
+                                                 bool debug = false) {
         double goodGuessAlpha=-100;
         if(useInitialAngle){
             goodGuessAlpha= std::atan2(initialGuess(1, 0),

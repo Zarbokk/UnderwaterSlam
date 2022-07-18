@@ -52,9 +52,11 @@ catkin_package(
 
 include_directories(
         include
+        src/registration/FMSOld
         ${catkin_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIR}
         ${OpenCV_INCLUDE_DIRS}
+        ${OpenGR_INCLUDE_DIR}
 )
 
 
@@ -83,3 +85,8 @@ target_link_libraries(registrationOfTwoImages fftw3 ${PCL_LIBRARIES} ${catkin_LI
 
 add_executable(testGR src/registration/testFileForOPENGR.cpp ${SOURCE_FILES})
 target_link_libraries(testGR gr::algo fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+
+
+add_executable(testFMSOld src/registration/FMSOld/image_main.cpp src/registration/FMSOld/image_registration.cpp src/registration/FMSOld/image_transforms.cpp src/registration/FMSOld/image_dft.cpp ${SOURCE_FILES})
+target_link_libraries(testFMSOld fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})

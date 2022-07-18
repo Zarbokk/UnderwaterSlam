@@ -9,8 +9,13 @@
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/common/projection_matrix.h>
 #include "softDescriptorRegistration.h"
-#include <gr/algorithms/match4pcsBase.h>
-#include <gr/algorithms/FunctorSuper4pcs.h>
+#include "gr/algorithms/match4pcsBase.h"
+#include "gr/algorithms/FunctorSuper4pcs.h"
+#include "gr/utils/geometry.h"
+#include <gr/algorithms/PointPairFilter.h>
+#include "image_registration.h"
+
+#include <Eigen/Dense>
 
 #ifndef SIMULATION_BLUEROV_SCANREGISTRATIONCLASS_H
 #define SIMULATION_BLUEROV_SCANREGISTRATIONCLASS_H
@@ -19,8 +24,8 @@
 class scanRegistrationClass {
 public:
     scanRegistrationClass(int N = 64, int bwOut = 64 / 2, int bwIn = 64 / 2, int degLim = 64 / 2 - 1)
-            : myRegistrationClass(N, bwOut, bwIn, degLim) {
-
+            : mySofftRegistrationClass(N, bwOut, bwIn, degLim) {
+        sizeVoxelData = N;
     }
 
     static Eigen::Matrix4d generalizedIcpRegistrationSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
@@ -60,9 +65,21 @@ public:
                                         double &fitnessY, double cellSize,
                                         Eigen::Vector3d initialGuess, bool useInitialGuess, bool debug = false);
 
+    Eigen::Matrix4d
+    FMSRegistrationOld(double voxelData1Input[], double voxelData2Input[], double cellSize, bool debug = false);
+
+
+
+    Eigen::Matrix4d super4PCSRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
+                                          const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
+                                          Eigen::Matrix4d initialGuess, bool useInitialGuess, bool debug = false);
+
+
 
 private:
-    softDescriptorRegistration myRegistrationClass;
+    softDescriptorRegistration mySofftRegistrationClass;
+
+    int sizeVoxelData;
 
 };
 
