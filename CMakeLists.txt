@@ -37,7 +37,7 @@ set(SOURCE_FILES ${SOURCE_FILES} src/json/jsoncpp.cpp src/slamTools/slamToolsRos
 set(SOURCE_FILES ${SOURCE_FILES} include/edge.h include/graphSlamSaveStructure.h src/hilbertMapssrc/hilbertMap.cpp include/hilbertMap.h include/json.h include/keyFrame.h include/scanRegistrationClass.h src/slamTools/slamToolsRos.h include/vertex.h src/slamTools/generalHelpfulTools.h)
 set(SOURCE_FILES ${SOURCE_FILES} include/PeakFinder.h src/slamTools/PeakFinder.cpp include/softDescriptorRegistration.h src/registration/softDescriptorRegistration.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} include/sofftCorrelationClass.h src/registration/sofftCorrelationClass.cpp include/generalStructs.h)
-
+set(SOURCE_FILES ${SOURCE_FILES} src/registration/FMSOld/image_registration.cpp src/registration/FMSOld/image_transforms.cpp src/registration/FMSOld/image_dft.cpp)
 
 set(SOURCE_FILES_GENERAL_TOOLS src/slamTools/slamToolsRos.h src/slamTools/slamToolsRos.cpp src/slamTools/generalHelpfulTools.h src/slamTools/generalHelpfulTools.cpp)
 # ${SOURCE_FILES_GENERAL_TOOLS}
@@ -88,5 +88,5 @@ target_link_libraries(testGR gr::algo fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES}
 
 
 
-add_executable(testFMSOld src/registration/FMSOld/image_main.cpp src/registration/FMSOld/image_registration.cpp src/registration/FMSOld/image_transforms.cpp src/registration/FMSOld/image_dft.cpp ${SOURCE_FILES})
+add_executable(testFMSOld src/registration/FMSOld/image_main.cpp  ${SOURCE_FILES})
 target_link_libraries(testFMSOld fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})

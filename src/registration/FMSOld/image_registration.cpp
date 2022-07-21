@@ -35,8 +35,8 @@ void ImageRegistration::registerImage(const cv::Mat &im, cv::Mat &registered_ima
     image_transforms_.rotateAndScale(im0_gray_, im0_rotated_, scale, rotation);
 
     transform_params[2] = rotation;
-    //transform_params[3] = scale;
-    transform_params[3] = 1.0;
+    transform_params[3] = scale;
+    //transform_params[3] = 1.0;
 
     if (display_images)
     {
@@ -69,7 +69,7 @@ cv::Mat ImageRegistration::getBorderMask()
 void ImageRegistration::processImage(const cv::Mat &im, cv::Mat &gray, cv::Mat &log_polar)
 {
     im.convertTo(gray, CV_32F, 1.0/255.0);
-    cv::cvtColor(gray, gray, cv::COLOR_BGR2GRAY);
+//    cv::cvtColor(gray, gray, cv::COLOR_BGR2GRAY);
 
     cv::Mat apodized;
     cv::Mat im_dft_cv;

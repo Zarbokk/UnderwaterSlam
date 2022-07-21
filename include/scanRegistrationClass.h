@@ -4,9 +4,10 @@
 #include <iostream>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
-#include <pcl/registration/icp.h>
+//#include <pcl/registration/icp.h>
 #include <pcl/registration/gicp.h>
 #include <pcl/visualization/cloud_viewer.h>
+#include <pcl/registration/ndt_2d.h>
 #include <pcl/common/projection_matrix.h>
 #include "softDescriptorRegistration.h"
 #include "gr/algorithms/match4pcsBase.h"
@@ -69,12 +70,17 @@ public:
     FMSRegistrationOld(double voxelData1Input[], double voxelData2Input[], double cellSize, bool debug = false);
 
 
-
     Eigen::Matrix4d super4PCSRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
                                           const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
                                           Eigen::Matrix4d initialGuess, bool useInitialGuess, bool debug = false);
 
-
+    static Eigen::Matrix4d
+    normalDistributionsTransformRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
+                                             const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
+                                             pcl::PointCloud<pcl::PointXYZ>::Ptr &Final,
+                                             double &fitnessScore,
+                                             Eigen::Matrix4d &initialGuessTransformation, double ndt_resolution = 1.0,
+                                             double ndt_step_size = 0.1, double transform_epsilon = 0.1);
 
 private:
     softDescriptorRegistration mySofftRegistrationClass;

@@ -139,9 +139,19 @@ void ImageDFT::phaseCorrelate(const cv::Mat &im0, const cv::Mat &im1, double &ro
     ComplexMatrix inversefft = ifft(cross_power);
     ComplexMatrix shifted_cps = fftShift(inversefft);
     Eigen::MatrixXd abs = shifted_cps.cwiseAbs();
-
+//    std::cout << abs(59,124) << std::endl;
+//    std::cout << abs(124,59) << std::endl;
     int approx_row, approx_col;
     abs.maxCoeff(&approx_row, &approx_col); // argmax
+
+    int sizeMatrix = sqrt( abs.size());
+    Eigen::VectorXd maxVal = abs.colwise().maxCoeff();
+    Eigen::MatrixXd::Index maxIndex[sizeMatrix];
+    Eigen::VectorXd maxVal2(sizeMatrix);
+    for(int i=0;i<sizeMatrix;++i)
+        maxVal2(i) = abs.col(i).maxCoeff( &maxIndex[i] );
+    approx_row = maxIndex[sizeMatrix/2];
+    approx_col = sizeMatrix/2;
 
     int radius = 2;
     Eigen::MatrixXd subArray = neighbourhood(abs, approx_row, approx_col, radius);

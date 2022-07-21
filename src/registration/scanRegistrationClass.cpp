@@ -69,8 +69,9 @@ Eigen::Matrix4d scanRegistrationClass::icpRegistration(const pcl::PointCloud<pcl
 
 
 Eigen::Matrix4d scanRegistrationClass::sofftRegistration(const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1,
-                                                         const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2, double &fitnessX, double &fitnessY,
-                                                         double goodGuessAlpha,bool debug) {
+                                                         const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2,
+                                                         double &fitnessX, double &fitnessY,
+                                                         double goodGuessAlpha, bool debug) {
 
     const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1New(pointCloudInputData1.makeShared());
     const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2New(pointCloudInputData2.makeShared());
@@ -79,24 +80,31 @@ Eigen::Matrix4d scanRegistrationClass::sofftRegistration(const pcl::PointCloud<p
                                                            fitnessY, goodGuessAlpha, debug);
 }
 
-double scanRegistrationClass::sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[],double voxelData2Input[],double goodGuessAlpha,bool debug){
+double scanRegistrationClass::sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[], double voxelData2Input[],
+                                                                   double goodGuessAlpha, bool debug) {
 
 
-    return mySofftRegistrationClass.sofftRegistrationVoxel2DRotationOnly(voxelData1Input, voxelData2Input, goodGuessAlpha, debug);
+    return mySofftRegistrationClass.sofftRegistrationVoxel2DRotationOnly(voxelData1Input, voxelData2Input,
+                                                                         goodGuessAlpha, debug);
 
 }
 
 Eigen::Vector2d
-scanRegistrationClass::sofftRegistrationVoxel2DTranslation(double voxelData1Input[], double voxelData2Input[], double &fitnessX, double &fitnessY,double cellSize,
-                                    Eigen::Vector3d initialGuess,bool useInitialGuess,bool debug){
+scanRegistrationClass::sofftRegistrationVoxel2DTranslation(double voxelData1Input[], double voxelData2Input[],
+                                                           double &fitnessX, double &fitnessY, double cellSize,
+                                                           Eigen::Vector3d initialGuess, bool useInitialGuess,
+                                                           bool debug) {
 
-    return mySofftRegistrationClass.sofftRegistrationVoxel2DTransformation(voxelData1Input, voxelData2Input, fitnessX, fitnessY, cellSize, initialGuess, useInitialGuess, debug);
+    return mySofftRegistrationClass.sofftRegistrationVoxel2DTransformation(voxelData1Input, voxelData2Input, fitnessX,
+                                                                           fitnessY, cellSize, initialGuess,
+                                                                           useInitialGuess, debug);
 
 }
 
 Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                                      const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
-                                      Eigen::Matrix4d initialGuess, bool useInitialGuess, bool debug) {
+                                                             const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
+                                                             Eigen::Matrix4d initialGuess, bool useInitialGuess,
+                                                             bool debug) {
 
     using TrVisitor = gr::DummyTransformVisitor;
 
@@ -156,9 +164,9 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(const pcl::PointClo
     typename MatcherType::MatrixType mat;
     std::vector<Eigen::Matrix4d> transformationsList;
     std::vector<double> scoreList;
-    for (int i = 2 ; i<8;i++){
+    for (int i = 2; i < 8; i++) {
         // test different Overlap
-        double overlap(0.1+0.1*i);
+        double overlap(0.1 + 0.1 * i);
         options.configureOverlap(overlap);
         options.delta = 0.1;
         options.sample_size = 2000;
@@ -184,21 +192,21 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(const pcl::PointClo
 
         //calculate a score how good that is.
         Eigen::Matrix4d saveMat;
-        for(int j = 0 ; j<4 ;j++){
-            for(int k = 0 ; k<4; k++){
-                saveMat(k,j)=mat(k,j);
+        for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < 4; k++) {
+                saveMat(k, j) = mat(k, j);
             }
         }
 
 
         double initialGuessAngle = std::atan2(initialGuess(1, 0),
-                                    initialGuess(0, 0));
+                                              initialGuess(0, 0));
         double estimatedAngle = std::atan2(saveMat(1, 0),
                                            saveMat(0, 0));
-        double angleDiff = generalHelpfulTools::angleDiff(initialGuessAngle,estimatedAngle);
+        double angleDiff = generalHelpfulTools::angleDiff(initialGuessAngle, estimatedAngle);
         double distanceEuclidDiff = (saveMat.block<3, 1>(0, 3) - initialGuess.block<3, 1>(0, 3)).norm();
 
-        double scoreInitialGuessAndEstimation = distanceEuclidDiff*sqrt(abs(angleDiff));
+        double scoreInitialGuessAndEstimation = distanceEuclidDiff * sqrt(abs(angleDiff));
         transformationsList.push_back(saveMat);
         scoreList.push_back(scoreInitialGuessAndEstimation);
     }
@@ -227,13 +235,32 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(const pcl::PointClo
 }
 
 
-
 Eigen::Matrix4d
-scanRegistrationClass::FMSRegistrationOld(double voxelData1Input[], double voxelData2Input[], double cellSize, bool debug){
+scanRegistrationClass::FMSRegistrationOld(double voxelData1Input[], double voxelData2Input[], double cellSize,
+                                          bool debug) {
 
-    cv::Mat im0(this->sizeVoxelData, this->sizeVoxelData, CV_64F, voxelData1Input);
-    cv::Mat im1(this->sizeVoxelData, this->sizeVoxelData, CV_64F, voxelData2Input);
+    cv::Mat im0(this->sizeVoxelData, this->sizeVoxelData, CV_64F);
+    std::memcpy(im0.data, voxelData1Input, this->sizeVoxelData * this->sizeVoxelData * sizeof(double));
+    cv::Mat im1(this->sizeVoxelData, this->sizeVoxelData, CV_64F);
+    std::memcpy(im1.data, voxelData2Input, this->sizeVoxelData * this->sizeVoxelData * sizeof(double));
 
+
+    for (int i = 0; i < this->sizeVoxelData; i++) {
+        for (int j = 0; j < this->sizeVoxelData; j++) {
+
+            im0.at<double>(i, j) = im0.at<double>(i, j) / 255;
+            im1.at<double>(i, j) = im1.at<double>(i, j) / 255;
+        }
+    }
+
+
+
+
+
+
+//    cv::imshow("im0", im0);
+//    cv::imshow("im1", im1);
+//    cv::waitKey(0);
     ImageRegistration image_registration(im0);
 
     // x, y, rotation, scale
@@ -242,9 +269,9 @@ scanRegistrationClass::FMSRegistrationOld(double voxelData1Input[], double voxel
     image_registration.registerImage(im1, registered_image, transform_params, true);
 
 
-    std::cout << "x: " << transform_params[0]*cellSize << ", y: "
-              << transform_params[1]*cellSize << ", rotation: " << transform_params[2]
-              << ", scale: " << transform_params[3] << std::endl;
+//    std::cout << "x: " << transform_params[0]*cellSize << ", y: "
+//              << transform_params[1]*cellSize << ", rotation: " << transform_params[2]
+//              << ", scale: " << transform_params[3] << std::endl;
 
 //    cv::Mat overlay_image;
 //    cv::addWeighted(image_registration.getCurrentImage(), 0.5, registered_image, 0.5, 0.0, overlay_image);
@@ -252,7 +279,60 @@ scanRegistrationClass::FMSRegistrationOld(double voxelData1Input[], double voxel
 //    cv::imshow("overlay_image", overlay_image);
 
 //    cv::waitKey(0);
-    return Eigen::Matrix4d::Identity();
+
+    Eigen::Matrix4d returnMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0, transform_params[2]);
+    returnMatrix(1, 3) = transform_params[1] * cellSize;
+    returnMatrix(0, 3) = transform_params[0] * cellSize;
+    return returnMatrix;
+}
+
+
+Eigen::Matrix4d scanRegistrationClass::normalDistributionsTransformRegistration(
+        const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
+        const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
+        pcl::PointCloud<pcl::PointXYZ>::Ptr &Final,
+        double &fitnessScore,
+        Eigen::Matrix4d &initialGuessTransformation, double ndt_resolution, double ndt_step_size,
+        double transform_epsilon) {
+
+
+    pcl::VoxelGrid<pcl::PointXYZ> voxel_grid_filter_;
+    voxel_grid_filter_.setLeafSize(0.5,0.5,0.5);
+    pcl::Registration<pcl::PointXYZ, pcl::PointXYZ>::Ptr registration_;
+    pcl::NormalDistributionsTransform2D<pcl::PointXYZ, pcl::PointXYZ>::Ptr ndt(
+            new pcl::NormalDistributionsTransform2D<pcl::PointXYZ, pcl::PointXYZ>());
+    ndt->setStepSize(ndt_step_size);
+//    std::cout << "get Step size: "<< ndt->getStepSize() << std::endl;
+//    std::cout << "get getResolution: "<< ndt->getResolution() << std::endl;
+//    std::cout << "get getTransformationEpsilon: "<< ndt->getTransformationEpsilon() << std::endl;
+    ndt->setResolution(ndt_resolution);
+    ndt->setTransformationEpsilon(transform_epsilon);
+    ndt->setMaximumIterations(100000);
+    registration_ = ndt;
+
+
+
+    //input cloud(has to be copied
+//    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_ptr(new pcl::PointCloud<pcl::PointXYZ>);
+//    *cloud_ptr = *cloudFirstScan;
+//
+    pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud_ptr(new pcl::PointCloud<pcl::PointXYZ>());
+    voxel_grid_filter_.setInputCloud(cloudFirstScan);
+    voxel_grid_filter_.filter(*filtered_cloud_ptr);
+
+
+    registration_->setInputSource(filtered_cloud_ptr);
+    registration_->setInputTarget(cloudSecondScan);
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr output_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+
+    registration_->align(*output_cloud, initialGuessTransformation.cast<float>());
+    std::cout << "has converged?: " << registration_->hasConverged() << std::endl;
+
+
+    Eigen::Matrix4d final_transformation = registration_->getFinalTransformation().cast<double>();
+    return final_transformation;
+
 }
 
 
