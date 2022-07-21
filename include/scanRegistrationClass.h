@@ -7,8 +7,26 @@
 //#include <pcl/registration/icp.h>
 #include <pcl/registration/gicp.h>
 #include <pcl/visualization/cloud_viewer.h>
-#include <pcl/registration/ndt_2d.h>
+#include <pcl/registration/ndt.h>
 #include <pcl/common/projection_matrix.h>
+
+//#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+//#include <pcl/common/time.h>
+//#include <pcl/console/print.h>
+//#include <pcl/features/normal_3d_omp.h>
+//#include <pcl/features/fpfh_omp.h>
+
+#include <pcl/features/normal_3d.h>
+#include <pcl/features/fpfh.h>
+
+#include <pcl/filters/filter.h>
+#include <pcl/filters/voxel_grid.h>
+//#include <pcl/io/pcd_io.h>
+//#include <pcl/registration/icp.h>
+#include <pcl/registration/sample_consensus_prerejective.h>
+//#include <pcl/visualization/pcl_visualizer.h>
+
 #include "softDescriptorRegistration.h"
 #include "gr/algorithms/match4pcsBase.h"
 #include "gr/algorithms/FunctorSuper4pcs.h"
@@ -81,6 +99,13 @@ public:
                                              double &fitnessScore,
                                              Eigen::Matrix4d &initialGuessTransformation, double ndt_resolution = 1.0,
                                              double ndt_step_size = 0.1, double transform_epsilon = 0.1);
+
+
+    Eigen::Matrix4d RANSACRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
+                                          const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
+                                          Eigen::Matrix4d initialGuess, bool useInitialGuess, bool debug = false);
+
+
 
 private:
     softDescriptorRegistration mySofftRegistrationClass;

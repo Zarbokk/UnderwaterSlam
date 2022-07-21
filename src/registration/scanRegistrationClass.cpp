@@ -297,17 +297,17 @@ Eigen::Matrix4d scanRegistrationClass::normalDistributionsTransformRegistration(
 
 
     pcl::VoxelGrid<pcl::PointXYZ> voxel_grid_filter_;
-    voxel_grid_filter_.setLeafSize(0.5,0.5,0.5);
+    voxel_grid_filter_.setLeafSize(0.5, 0.5, 0.5);
     pcl::Registration<pcl::PointXYZ, pcl::PointXYZ>::Ptr registration_;
-    pcl::NormalDistributionsTransform2D<pcl::PointXYZ, pcl::PointXYZ>::Ptr ndt(
-            new pcl::NormalDistributionsTransform2D<pcl::PointXYZ, pcl::PointXYZ>());
+    pcl::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr ndt(
+            new pcl::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
     ndt->setStepSize(ndt_step_size);
 //    std::cout << "get Step size: "<< ndt->getStepSize() << std::endl;
 //    std::cout << "get getResolution: "<< ndt->getResolution() << std::endl;
 //    std::cout << "get getTransformationEpsilon: "<< ndt->getTransformationEpsilon() << std::endl;
     ndt->setResolution(ndt_resolution);
     ndt->setTransformationEpsilon(transform_epsilon);
-    ndt->setMaximumIterations(100000);
+    ndt->setMaximumIterations(1000);
     registration_ = ndt;
 
 
@@ -336,3 +336,81 @@ Eigen::Matrix4d scanRegistrationClass::normalDistributionsTransformRegistration(
 }
 
 
+Eigen::Matrix4d scanRegistrationClass::RANSACRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
+                                                          const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
+                                                          Eigen::Matrix4d initialGuess, bool useInitialGuess,
+                                                          bool debug) {
+//    typedef pcl::PointNormal PointNT;
+//    typedef pcl::PointCloud<PointNT> PointCloudT;
+//    typedef pcl::FPFHSignature33 FeatureT;
+//    typedef pcl::FPFHEstimationOMP<PointNT,PointNT,FeatureT> FeatureEstimationT;
+//    typedef pcl::PointCloud<FeatureT> FeatureCloudT;
+//    typedef pcl::visualization::PointCloudColorHandlerCustom<PointNT> ColorHandlerT;
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr object(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr object_aligned(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr scene(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointNormal>::Ptr sceneNormal(new pcl::PointCloud<pcl::PointNormal>);
+    pcl::PointCloud<pcl::PointNormal>::Ptr objectNormal(new pcl::PointCloud<pcl::PointNormal>);
+
+    pcl::PointCloud<pcl::FPFHSignature33>::Ptr object_features(new pcl::PointCloud<pcl::FPFHSignature33>);
+    pcl::PointCloud<pcl::FPFHSignature33>::Ptr scene_features(new pcl::PointCloud<pcl::FPFHSignature33>);
+    // Get input object and scene
+
+
+    // Load both PCLs
+    *scene = *cloudFirstScan;
+    *object = *cloudSecondScan;
+
+    // Downsample
+//    pcl::console::print_highlight("Downsampling...\n");
+    pcl::VoxelGrid<pcl::PointXYZ> grid;
+    const float leaf = 0.2f;
+    grid.setLeafSize(leaf, leaf, leaf);
+    grid.setInputCloud(object);
+    grid.filter(*object);
+    grid.setInputCloud(scene);
+    grid.filter(*scene);
+
+    // Estimate normals for scene
+//    pcl::console::print_highlight("Estimating scene normals...\n");
+    pcl::NormalEstimation<pcl::PointXYZ, pcl::PointNormal> nest;
+    nest.setRadiusSearch(0.01);
+    nest.setInputCloud(scene);
+    nest.compute(*sceneNormal);
+    nest.setInputCloud(object);
+    nest.compute(*objectNormal);
+
+    // Estimate features
+//    pcl::console::print_highlight("Estimating features...\n");
+    pcl::FPFHEstimation<pcl::PointXYZ, pcl::PointNormal, pcl::FPFHSignature33> fest;
+    fest.setRadiusSearch(1.5);//(0.025);
+    fest.setInputCloud(object);
+    fest.setInputNormals(objectNormal);
+    fest.compute(*object_features);
+    fest.setInputCloud(scene);
+    fest.setInputNormals(sceneNormal);
+    fest.compute(*scene_features);
+    // Perform alignment
+//    pcl::console::print_highlight("Starting alignment...\n");
+    pcl::SampleConsensusPrerejective<pcl::PointXYZ, pcl::PointXYZ, pcl::FPFHSignature33> align;
+
+//    pcl::registration::TransformationEstimation::Ptr te;
+//    pcl::TransformationEstimation::Ptr
+//    align.setTransformationEstimation(initialGuess);
+    align.setInputSource(object);
+    align.setSourceFeatures(object_features);
+    align.setInputTarget(scene);
+    align.setTargetFeatures(scene_features);
+    align.setMaximumIterations(50000); // Number of RANSAC iterations
+    align.setNumberOfSamples(3); // Number of points to sample for generating/prerejecting a pose
+    align.setCorrespondenceRandomness(5); // Number of nearest features to use
+    align.setSimilarityThreshold(0.8f); // Polygonal edge length similarity threshold
+    align.setMaxCorrespondenceDistance(2.0f * leaf); // Inlier threshold
+    align.setInlierFraction(0.35f); // Required inlier fraction for accepting a pose hypothesis
+
+    align.align(*object_aligned,initialGuess.cast<float>());
+    std::cout << "has aligned?: " << align.hasConverged() << std::endl;
+    Eigen::Matrix4d returnMatrix = align.getFinalTransformation().cast<double>();
+    return returnMatrix;
+}

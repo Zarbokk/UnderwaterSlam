@@ -258,14 +258,16 @@ private:
 
             Eigen::Matrix4d tmpMatruc = Eigen::Matrix4d::Identity();
 
-            this->currentTransformation = this->scanRegistrationObject.normalDistributionsTransformRegistration(scan2,
-                                                                                                                scan1,
-                                                                                                                final,
-                                                                                                                fitnessScoreX,
-                                                                                                                initialGuessTransformation,
-                                                                                                                1.0, 0.1,
-                                                                                                                0.01);
-
+//            this->currentTransformation = this->scanRegistrationObject.normalDistributionsTransformRegistration(scan2,
+//                                                                                                                scan1,
+//                                                                                                                final,
+//                                                                                                                fitnessScoreX,
+//                                                                                                                initialGuessTransformation,
+//                                                                                                                1.0, 0.1,
+//                                                                                                                0.01);
+            this->currentTransformation = this->scanRegistrationObject.RANSACRegistration(scan2, scan1,
+                                                                                          initialGuessTransformation,
+                                                                                          false, false);
 
             //            this->currentTransformation = this->scanRegistrationObject.super4PCSRegistration(scan1, scan2,
 //                                                                                             this->initialGuessTransformation,

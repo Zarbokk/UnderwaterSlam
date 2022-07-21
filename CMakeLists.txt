@@ -57,9 +57,10 @@ include_directories(
         ${Boost_INCLUDE_DIR}
         ${OpenCV_INCLUDE_DIRS}
         ${OpenGR_INCLUDE_DIR}
+        ${PCL_INCLUDE_DIRS}
 )
-
-
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 add_executable(stPereDatasetRosPub src/stPereDataset/stPereDatasetPublication.cpp src/slamTools/generalHelpfulTools.h src/slamTools/generalHelpfulTools.cpp)
 target_link_libraries(stPereDatasetRosPub ${catkin_LIBRARIES})
