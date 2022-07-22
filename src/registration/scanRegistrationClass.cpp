@@ -375,7 +375,7 @@ Eigen::Matrix4d scanRegistrationClass::RANSACRegistration(const pcl::PointCloud<
     // Estimate normals for scene
 //    pcl::console::print_highlight("Estimating scene normals...\n");
     pcl::NormalEstimation<pcl::PointXYZ, pcl::PointNormal> nest;
-    nest.setRadiusSearch(0.01);
+    nest.setRadiusSearch(0.1);
     nest.setInputCloud(scene);
     nest.compute(*sceneNormal);
     nest.setInputCloud(object);
@@ -402,14 +402,14 @@ Eigen::Matrix4d scanRegistrationClass::RANSACRegistration(const pcl::PointCloud<
     align.setSourceFeatures(object_features);
     align.setInputTarget(scene);
     align.setTargetFeatures(scene_features);
-    align.setMaximumIterations(50000); // Number of RANSAC iterations
-    align.setNumberOfSamples(3); // Number of points to sample for generating/prerejecting a pose
+    align.setMaximumIterations(1000); // Number of RANSAC iterations
+    align.setNumberOfSamples(4); // Number of points to sample for generating/prerejecting a pose
     align.setCorrespondenceRandomness(5); // Number of nearest features to use
-    align.setSimilarityThreshold(0.8f); // Polygonal edge length similarity threshold
-    align.setMaxCorrespondenceDistance(2.0f * leaf); // Inlier threshold
-    align.setInlierFraction(0.35f); // Required inlier fraction for accepting a pose hypothesis
-
-    align.align(*object_aligned,initialGuess.cast<float>());
+    align.setSimilarityThreshold(0.15f); // Polygonal edge length similarity threshold
+    align.setMaxCorrespondenceDistance(10.0f * leaf); // Inlier threshold
+    align.setInlierFraction(0.55f); // Required inlier fraction for accepting a pose hypothesis
+    Eigen::Matrix4d initGuessTMP = Eigen::Matrix4d::Identity();//initialGuess;
+    align.align(*object_aligned,initGuessTMP.cast<float>());
     std::cout << "has aligned?: " << align.hasConverged() << std::endl;
     Eigen::Matrix4d returnMatrix = align.getFinalTransformation().cast<double>();
     return returnMatrix;
