@@ -62,6 +62,7 @@
   <build_depend>ping360_sonar</build_depend>
   <build_depend>opengr</build_depend>
   <depend>soft20</depend>
+  <depend>perception_oru</depend>
   <depend>waterlinked_dvl</depend>
   <build_depend>commonbluerovmsg</build_depend>
   <exec_depend>message_runtime</exec_depend>

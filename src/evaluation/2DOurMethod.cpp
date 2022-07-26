@@ -239,10 +239,10 @@ private:
             pcl::PointCloud<pcl::PointXYZ>::Ptr final(new pcl::PointCloud<pcl::PointXYZ>);
 
             Eigen::Matrix4d tmpMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(M_PI, 0, 0);
-            *scan1 = createPCLFromGraphOneValue(indexOfLastKeyframe, tmpMatrix);
-            *scan2 = createPCLFromGraphOneValue(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
-//            *scan1 = createPCLFromGraphOnlyThreshold(indexOfLastKeyframe, tmpMatrix);
-//            *scan2 = createPCLFromGraphOnlyThreshold(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
+//            *scan1 = createPCLFromGraphOneValue(indexOfLastKeyframe, tmpMatrix);
+//            *scan2 = createPCLFromGraphOneValue(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
+            *scan1 = createPCLFromGraphOnlyThreshold(indexOfLastKeyframe, tmpMatrix);
+            *scan2 = createPCLFromGraphOnlyThreshold(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
 
             this->initialGuessTransformation.block<3, 1>(0, 3) =
                     this->initialGuessTransformation.block<3, 1>(0, 3) + Eigen::Vector3d(0, -0, 0);
@@ -265,13 +265,19 @@ private:
 //                                                                                                                initialGuessTransformation,
 //                                                                                                                1.0, 0.1,
 //                                                                                                                0.01);
-            this->currentTransformation = this->scanRegistrationObject.RANSACRegistration(scan2, scan1,
-                                                                                          initialGuessTransformation,
-                                                                                          false, false);
+//            this->currentTransformation = this->scanRegistrationObject.RANSACRegistration(scan2, scan1,
+//                                                                                          initialGuessTransformation,
+//                                                                                          false, false);
 
-            //            this->currentTransformation = this->scanRegistrationObject.super4PCSRegistration(scan1, scan2,
+//                        this->currentTransformation = this->scanRegistrationObject.super4PCSRegistration(scan1, scan2,
 //                                                                                             this->initialGuessTransformation,
 //                                                                                             true, false);
+
+            this->currentTransformation = this->scanRegistrationObject.ndt_d2d_2d(scan2, scan1,
+                                                                                  initialGuessTransformation, true);
+
+            this->currentTransformation = this->scanRegistrationObject.ndt_p2d(scan2, scan1,
+                                                                                  initialGuessTransformation, true);
 //            this->initialGuessTransformation(0, 1) = -this->initialGuessTransformation(0, 1);
 //            this->initialGuessTransformation(1, 0) = -this->initialGuessTransformation(1, 0);
 //            this->initialGuessTransformation(1, 3) = -this->initialGuessTransformation(1, 3);

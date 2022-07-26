@@ -12,6 +12,8 @@
 #include "soft20/soft_fftw.h"
 #include <cmath>
 
+
+
 #define NORM(x) ( (x[0])*(x[0]) + (x[1])*(x[1]) )
 
 class sofftCorrelationClass {

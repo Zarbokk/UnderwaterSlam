@@ -11,11 +11,12 @@ project(underwaterslam)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg roscpp pcl_ros soft20 ping360_sonar waterlinked_dvl message_generation cv_bridge commonbluerovmsg dynamic_reconfigure)
+find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg roscpp pcl_ros soft20 ping360_sonar waterlinked_dvl message_generation cv_bridge commonbluerovmsg dynamic_reconfigure perception_oru)
 find_package(Boost REQUIRED COMPONENTS system)
 find_package(OpenCV REQUIRED)
 find_package(PCL 1.10 REQUIRED COMPONENTS common io visualization)
 find_package( OpenGR REQUIRED )
+find_package( OpenMP REQUIRED)
 # add_service_files(
 #   FILES
 #   resetekf.srv
@@ -66,32 +67,33 @@ add_executable(stPereDatasetRosPub src/stPereDataset/stPereDatasetPublication.cp
 target_link_libraries(stPereDatasetRosPub ${catkin_LIBRARIES})
 
 add_executable(graphSlamIntensitiesOnlyTest src/completeSlamRuns/graphSlam_W_E_E_IntensitiesOnly.cpp ${SOURCE_FILES})
-target_link_libraries(graphSlamIntensitiesOnlyTest fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(graphSlamIntensitiesOnlyTest fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(registrationOfTwoPCLs src/registration/registrationOfTwoPCLScans.cpp ${SOURCE_FILES})
-target_link_libraries(registrationOfTwoPCLs fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(registrationOfTwoPCLs fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(registrationOfTwoPCLICP src/registration/registrationTwoPCLScansIPC.cpp ${SOURCE_FILES})
-target_link_libraries(registrationOfTwoPCLICP fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(registrationOfTwoPCLICP fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-add_executable(testGraphOptimization src/testFiles/graphOptimizationTest.cpp ${SOURCE_FILES})
-target_link_libraries(testGraphOptimization fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+#add_executable(testGraphOptimization src/testFiles/graphOptimizationTest.cpp ${SOURCE_FILES})
+#target_link_libraries(testGraphOptimization fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(2DOurMethod src/evaluation/2DOurMethod.cpp ${SOURCE_FILES})
-target_link_libraries(2DOurMethod gr::algo fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
-
-add_executable(registrationOfTwoImages src/registration/registrationOfTwoImageScans.cpp ${SOURCE_FILES})
-target_link_libraries(registrationOfTwoImages fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
-
-
-add_executable(testGR src/registration/testFileForOPENGR.cpp ${SOURCE_FILES})
-target_link_libraries(testGR gr::algo fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(2DOurMethod gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+#
+#add_executable(registrationOfTwoImages src/registration/registrationOfTwoImageScans.cpp ${SOURCE_FILES})
+#target_link_libraries(registrationOfTwoImages fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 
-
-add_executable(testFMSOld src/registration/FMSOld/image_main.cpp  ${SOURCE_FILES})
-target_link_libraries(testFMSOld fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+#add_executable(testGR src/registration/testFileForOPENGR.cpp ${SOURCE_FILES})
+#target_link_libraries(testGR gr::algo fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 
 
+#add_executable(testFMSOld src/registration/FMSOld/image_main.cpp  ${SOURCE_FILES})
+#target_link_libraries(testFMSOld fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+
+#add_executable(ndtTests src/registration/ndtMatching/simple.cc  )
+#target_link_libraries(ndtTests  ${PCL_LIBRARIES} ${catkin_LIBRARIES} )
 

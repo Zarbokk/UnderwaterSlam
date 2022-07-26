@@ -36,6 +36,11 @@
 
 #include <Eigen/Dense>
 
+
+#include <ndt_matcher_p2d.h>
+#include <ndt_matcher_d2d_2d.h>
+
+
 #ifndef SIMULATION_BLUEROV_SCANREGISTRATIONCLASS_H
 #define SIMULATION_BLUEROV_SCANREGISTRATIONCLASS_H
 
@@ -102,10 +107,16 @@ public:
 
 
     Eigen::Matrix4d RANSACRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                                          const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
-                                          Eigen::Matrix4d initialGuess, bool useInitialGuess, bool debug = false);
+                                       const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
+                                       Eigen::Matrix4d initialGuess, bool useInitialGuess, bool debug = false);
 
+    Eigen::Matrix4d ndt_d2d_2d(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
+                               const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan, Eigen::Matrix4d initialGuess,
+                               bool useInitialGuess);
 
+    Eigen::Matrix4d ndt_p2d(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
+                               const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan, Eigen::Matrix4d initialGuess,
+                               bool useInitialGuess);
 
 private:
     softDescriptorRegistration mySofftRegistrationClass;

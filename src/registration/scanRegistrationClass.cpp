@@ -414,3 +414,65 @@ Eigen::Matrix4d scanRegistrationClass::RANSACRegistration(const pcl::PointCloud<
     Eigen::Matrix4d returnMatrix = align.getFinalTransformation().cast<double>();
     return returnMatrix;
 }
+
+
+
+Eigen::Matrix4d scanRegistrationClass::ndt_d2d_2d(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
+                           const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan, Eigen::Matrix4d initialGuess,
+                           bool useInitialGuess){
+
+    initialGuess(0, 1) = -initialGuess(0, 1);
+    initialGuess(1, 0) = -initialGuess(1, 0);
+    initialGuess(1, 3) = -initialGuess(1, 3);
+
+
+    double __res[] = {0.5, 1, 2, 4};
+    std::vector<double> resolutions (__res, __res+sizeof(__res)/sizeof(double));
+
+
+    Eigen::Transform<double,3,Eigen::Affine,Eigen::ColMajor> Tout(initialGuess);
+//    Tout.setIdentity();
+
+
+//    std::cout<<"Transform Before: \n"<<Tout.matrix()<<std::endl;
+    lslgeneric::NDTMatcherD2D_2D<pcl::PointXYZ,pcl::PointXYZ> matcherD2D(false, false, resolutions);
+        bool ret = matcherD2D.match(*cloudSecondScan,*cloudFirstScan,Tout,true);
+
+    Tout(0, 1) = -Tout(0, 1);
+    Tout(1, 0) = -Tout(1, 0);
+    Tout(1, 3) = -Tout(1, 3);
+
+//    std::cout<<"Transform: \n"<<Tout.matrix()<<std::endl;
+    return Tout.matrix();
+}
+
+Eigen::Matrix4d scanRegistrationClass::ndt_p2d(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
+                        const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan, Eigen::Matrix4d initialGuess,
+                        bool useInitialGuess){
+
+    initialGuess(0, 1) = -initialGuess(0, 1);
+    initialGuess(1, 0) = -initialGuess(1, 0);
+    initialGuess(1, 3) = -initialGuess(1, 3);
+//
+//    printf("X %f Y %f Z %f Roll %f Pitch %f Yaw %f \n",xoffset,yoffset,zoffset,roll,pitch,yaw);
+
+
+    Eigen::Transform<double,3,Eigen::Affine,Eigen::ColMajor> Tout(initialGuess);
+
+//    std::cout<<"Transform Before: \n"<<Tout.matrix()<<std::endl;
+
+    lslgeneric::NDTMatcherP2D<pcl::PointXYZ,pcl::PointXYZ> matcherP2D;
+
+    bool ret = matcherP2D.match(*cloudSecondScan,*cloudFirstScan,Tout);
+
+    Tout(0, 1) = -Tout(0, 1);
+    Tout(1, 0) = -Tout(1, 0);
+    Tout(1, 3) = -Tout(1, 3);
+
+//    std::cout<<"Transform: \n"<<Tout.matrix()<<std::endl;
+
+
+    return Tout.matrix();
+}
+
+
