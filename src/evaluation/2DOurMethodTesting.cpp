@@ -302,14 +302,14 @@ private:
 //                                                                             this->initialGuessTransformation, true,
 //                                                                             true,
 //                                                                             true);
-//            this->currentTransformation = this->registrationOfTwoVoxelsSOFFT(indexOfLastKeyframe,
-//                                                                             this->graphSaved.getVertexList()->size() -
-//                                                                             1,
-//                                                                             fitnessScoreX,
-//                                                                             fitnessScoreY,
-//                                                                             this->initialGuessTransformation, true,
-//                                                                             true,
-//                                                                             true);
+            this->currentTransformation = this->registrationOfTwoVoxelsSOFFT(indexOfLastKeyframe,
+                                                                             this->graphSaved.getVertexList()->size() -
+                                                                             1,
+                                                                             fitnessScoreX,
+                                                                             fitnessScoreY,
+                                                                             this->initialGuessTransformation, true,
+                                                                             true,
+                                                                             true);
 /////////////////////////////////////////////////////// end of Registration ////////////////////////////////////////////////////
 
 
