@@ -7,8 +7,8 @@
 //
 
 
-#include "../slamTools/generalHelpfulTools.h"
-#include "../slamTools/slamToolsRos.h"
+#include "generalHelpfulTools.h"
+#include "slamToolsRos.h"
 
 
 int main(int argc, char **argv) {
@@ -68,7 +68,8 @@ int main(int argc, char **argv) {
 //            *scan2);
     double fitnessX,fitnessY;
 //    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    Eigen::Matrix4d estimatedTransformation = scanRegistrationObject.sofftRegistration(*scan1,*scan2,fitnessX,fitnessY,-100,true);
+    Eigen::Matrix4d estimatedTransformation = scanRegistrationObject.sofftRegistration2D(*scan1, *scan2, fitnessX,
+                                                                                         fitnessY, -100, true);
 //    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 //
 //

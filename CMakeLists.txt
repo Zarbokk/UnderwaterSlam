@@ -35,12 +35,12 @@ generate_messages(
 set(SOURCE_FILES src/registration/scanRegistrationClass.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} src/poseGraph/graphSlamSaveStructure.cpp src/poseGraph/edge.cpp src/poseGraph/vertex.cpp)
 set(SOURCE_FILES ${SOURCE_FILES} src/json/jsoncpp.cpp src/slamTools/slamToolsRos.cpp src/slamTools/generalHelpfulTools.cpp)
-set(SOURCE_FILES ${SOURCE_FILES} include/edge.h include/graphSlamSaveStructure.h src/hilbertMapssrc/hilbertMap.cpp include/hilbertMap.h include/json.h include/keyFrame.h include/scanRegistrationClass.h src/slamTools/slamToolsRos.h include/vertex.h src/slamTools/generalHelpfulTools.h)
-set(SOURCE_FILES ${SOURCE_FILES} include/PeakFinder.h src/slamTools/PeakFinder.cpp include/softDescriptorRegistration.h src/registration/softDescriptorRegistration.cpp)
-set(SOURCE_FILES ${SOURCE_FILES} include/sofftCorrelationClass.h src/registration/sofftCorrelationClass.cpp include/generalStructs.h)
+set(SOURCE_FILES ${SOURCE_FILES}   src/hilbertMapssrc/hilbertMap.cpp )
+set(SOURCE_FILES ${SOURCE_FILES}  src/slamTools/PeakFinder.cpp  src/registration/softDescriptorRegistration.cpp)
+set(SOURCE_FILES ${SOURCE_FILES}  src/registration/sofftCorrelationClass.cpp )
 set(SOURCE_FILES ${SOURCE_FILES} src/registration/FMSOld/image_registration.cpp src/registration/FMSOld/image_transforms.cpp src/registration/FMSOld/image_dft.cpp)
 
-set(SOURCE_FILES_GENERAL_TOOLS src/slamTools/slamToolsRos.h src/slamTools/slamToolsRos.cpp src/slamTools/generalHelpfulTools.h src/slamTools/generalHelpfulTools.cpp)
+set(SOURCE_FILES_GENERAL_TOOLS  src/slamTools/slamToolsRos.cpp  src/slamTools/generalHelpfulTools.cpp)
 # ${SOURCE_FILES_GENERAL_TOOLS}
 
 catkin_package(
@@ -48,7 +48,7 @@ catkin_package(
         LIBRARIES
         CATKIN_DEPENDS message_runtime
         #image_sonar_ros_plugin
-        #  DEPENDS system_lib
+        #DEPENDS system_lib
 )
 
 include_directories(
@@ -63,7 +63,7 @@ include_directories(
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-add_executable(stPereDatasetRosPub src/stPereDataset/stPereDatasetPublication.cpp src/slamTools/generalHelpfulTools.h src/slamTools/generalHelpfulTools.cpp)
+add_executable(stPereDatasetRosPub src/stPereDataset/stPereDatasetPublication.cpp  src/slamTools/generalHelpfulTools.cpp)
 target_link_libraries(stPereDatasetRosPub ${catkin_LIBRARIES})
 
 add_executable(graphSlamIntensitiesOnlyTest src/completeSlamRuns/graphSlam_W_E_E_IntensitiesOnly.cpp ${SOURCE_FILES})
@@ -78,7 +78,7 @@ target_link_libraries(registrationOfTwoPCLICP fftw3 OpenMP::OpenMP_CXX ${PCL_LIB
 #add_executable(testGraphOptimization src/testFiles/graphOptimizationTest.cpp ${SOURCE_FILES})
 #target_link_libraries(testGraphOptimization fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-add_executable(2DOurMethod src/evaluation/2DOurMethod.cpp ${SOURCE_FILES})
+add_executable(2DOurMethod src/evaluation/2DOurMethodTesting.cpp ${SOURCE_FILES})
 target_link_libraries(2DOurMethod gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 #
 #add_executable(registrationOfTwoImages src/registration/registrationOfTwoImageScans.cpp ${SOURCE_FILES})
@@ -96,4 +96,7 @@ target_link_libraries(2DOurMethod gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRAR
 
 #add_executable(ndtTests src/registration/ndtMatching/simple.cc  )
 #target_link_libraries(ndtTests  ${PCL_LIBRARIES} ${catkin_LIBRARIES} )
+
+add_executable(comparisonMatching src/evaluation/comparisonEveryMatchingMethod.cpp ${SOURCE_FILES})
+target_link_libraries(comparisonMatching gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 

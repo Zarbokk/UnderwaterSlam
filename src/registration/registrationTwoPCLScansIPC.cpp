@@ -7,8 +7,8 @@
 //
 
 
-#include "../slamTools/generalHelpfulTools.h"
-#include "../slamTools/slamToolsRos.h"
+#include "generalHelpfulTools.h"
+#include "slamToolsRos.h"
 
 
 int main(int argc, char **argv) {

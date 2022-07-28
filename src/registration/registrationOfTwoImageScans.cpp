@@ -7,8 +7,8 @@
 //
 
 
-#include "../slamTools/generalHelpfulTools.h"
-#include "../slamTools/slamToolsRos.h"
+#include "generalHelpfulTools.h"
+#include "slamToolsRos.h"
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>

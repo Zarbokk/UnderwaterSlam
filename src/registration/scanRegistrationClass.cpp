@@ -68,10 +68,9 @@ Eigen::Matrix4d scanRegistrationClass::icpRegistration(const pcl::PointCloud<pcl
 }
 
 
-Eigen::Matrix4d scanRegistrationClass::sofftRegistration(const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1,
-                                                         const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2,
-                                                         double &fitnessX, double &fitnessY,
-                                                         double goodGuessAlpha, bool debug) {
+Eigen::Matrix4d scanRegistrationClass::sofftRegistration2D(const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1,
+                                                           const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2,
+                                                           double &fitnessX, double &fitnessY, double goodGuessAlpha, bool debug) {
 
     const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1New(pointCloudInputData1.makeShared());
     const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2New(pointCloudInputData2.makeShared());
@@ -79,6 +78,20 @@ Eigen::Matrix4d scanRegistrationClass::sofftRegistration(const pcl::PointCloud<p
     return mySofftRegistrationClass.registrationOfTwoPCL2D(pointCloudInputData1New, pointCloudInputData2New, fitnessX,
                                                            fitnessY, goodGuessAlpha, debug);
 }
+
+Eigen::Matrix4d scanRegistrationClass::sofftRegistration2D(const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1,
+                                                           const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2,
+                                                           double &fitnessX, double &fitnessY,
+                                                           Eigen::Matrix4d initialGuess,bool useInitialGuess,
+                                                           bool debug) {
+
+    const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1New(pointCloudInputData1.makeShared());
+    const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2New(pointCloudInputData2.makeShared());
+
+    return mySofftRegistrationClass.registrationOfTwoPCL2D(pointCloudInputData1New, pointCloudInputData2New, fitnessX,
+                                                           fitnessY, initialGuess,useInitialGuess, debug);
+}
+
 
 double scanRegistrationClass::sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[], double voxelData2Input[],
                                                                    double goodGuessAlpha, bool debug) {
@@ -164,6 +177,8 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(const pcl::PointClo
     typename MatcherType::MatrixType mat;
     std::vector<Eigen::Matrix4d> transformationsList;
     std::vector<double> scoreList;
+//    std::cout << "we are here1" << std::endl;
+
     for (int i = 2; i < 8; i++) {
         // test different Overlap
         double overlap(0.1 + 0.1 * i);
@@ -178,10 +193,10 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(const pcl::PointClo
         gr::Utils::Logger logger(loglvl);
         SamplerType sampler;
         TrVisitor visitor;
-
+//        std::cout << "we are here2" << std::endl;
         MatcherType matcher(options, logger);
         score = matcher.ComputeTransformation(set1, set2, mat, sampler, visitor);
-
+//        std::cout << "we are here3" << std::endl;
         logger.Log<gr::Utils::Verbose>("Score: ", score);
 
         //change to NED

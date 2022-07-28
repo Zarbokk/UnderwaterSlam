@@ -66,11 +66,14 @@ public:
                                                       double &fitnessScore,
                                                       Eigen::Matrix4d &initialGuessTransformation);
 
-    Eigen::Matrix4d sofftRegistration(const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1,
-                                      const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2,
-                                      double &fitnessX, double &fitnessY, double goodGuessAlpha = -100,
-                                      bool debug = false);
+    Eigen::Matrix4d sofftRegistration2D(const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1,
+                                        const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2,
+                                        double &fitnessX, double &fitnessY, double goodGuessAlpha, bool debug);
 
+    Eigen::Matrix4d sofftRegistration2D(const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1,
+                                        const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2,
+                                        double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuess,bool useInitialGuess,
+                                        bool debug = false);
 
     static Eigen::Matrix4d icpRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
                                            const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,

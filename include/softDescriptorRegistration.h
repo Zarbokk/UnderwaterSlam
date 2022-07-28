@@ -7,7 +7,7 @@
 
 #include "sofftCorrelationClass.h"
 #include "PeakFinder.h"
-#include "../src/slamTools/generalHelpfulTools.h"
+#include "generalHelpfulTools.h"
 //#include "slamToolsRos.h"
 
 #include <pcl/io/pcd_io.h>
@@ -74,6 +74,14 @@ public:
                                            pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2, double &fitnessX,
                                            double &fitnessY, double goodGuessAlpha = -100,
                                            bool debug = false);//gives TFMatrix from 1 to 2
+
+
+    Eigen::Matrix4d registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1,
+                                           pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2,
+                                           double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuessTransformation,
+                                           bool useInitialGuess,
+                                           bool debug);
+
     //-100 only for "no good guess given"
     //initial guess has to be very good, else dont use it.
     double getSpectrumFromPCL3D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, double voxelData[],
@@ -95,11 +103,14 @@ public:
 
 
     double
-    sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[], double voxelData2Input[], double goodGuessAlpha, bool debug = false);
+    sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[], double voxelData2Input[], double goodGuessAlpha,
+                                         bool debug = false);
 
     Eigen::Vector2d sofftRegistrationVoxel2DTransformation(double voxelData1Input[],
                                                            double voxelData2Input[],
-                                                           double &fitnessX, double &fitnessY,double cellSize, Eigen::Vector3d &initialGuess,bool useInitialGuess,bool debug = false);
+                                                           double &fitnessX, double &fitnessY, double cellSize,
+                                                           Eigen::Vector3d &initialGuess, bool useInitialGuess,
+                                                           bool debug = false);
 
 
 private://here everything is created. malloc is done in the constructor

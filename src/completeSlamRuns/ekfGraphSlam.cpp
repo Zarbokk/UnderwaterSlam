@@ -6,8 +6,8 @@
 #include "sensor_msgs/Imu.h"
 #include "mavros_msgs/Altitude.h"
 #include "geometry_msgs/TwistStamped.h"
-#include "../slamTools/generalHelpfulTools.h"
-#include "../slamTools/slamToolsRos.h"
+#include "generalHelpfulTools.h"
+#include "slamToolsRos.h"
 
 class rosClassEKF {
 public:

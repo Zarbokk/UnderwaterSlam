@@ -6,9 +6,9 @@
 #define UNDERWATERSLAM_EKFDVL_H
 
 #include <deque>
-#include "../src/slamTools/generalHelpfulTools.h"
+#include "generalHelpfulTools.h"
 #include "pose.h"
-#include "../src/slamTools/slamToolsRos.h"
+#include "slamToolsRos.h"
 //asynchronous EKF with reset of POS correction
 
 

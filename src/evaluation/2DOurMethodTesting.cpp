@@ -10,8 +10,8 @@
 //#include "ping360_sonar/SonarEcho.h"
 #include "commonbluerovmsg/SonarEcho2.h"
 #include "commonbluerovmsg/staterobotforevaluation.h"
-#include "../slamTools/generalHelpfulTools.h"
-#include "../slamTools/slamToolsRos.h"
+#include "generalHelpfulTools.h"
+#include "slamToolsRos.h"
 #include "commonbluerovmsg/saveGraph.h"
 #include <hilbertMap.h>
 #include <opencv2/imgcodecs.hpp>

@@ -133,12 +133,12 @@ softDescriptorRegistration::PCL2Voxel(pcl::PointCloud<pcl::PointXYZ>::Ptr pointC
         }
     }
     for (int i = 0; i < pointCloudInputData->points.size(); i++) {
-        int numberOfPoints = 40;
-        std::vector<double> vectorForSettingZeroX = linspace(0, pointCloudInputData->points[i].x, numberOfPoints);
-        std::vector<double> vectorForSettingZeroY = linspace(0, pointCloudInputData->points[i].y, numberOfPoints);
+
+        std::vector<double> vectorForSettingZeroX = linspace(0, pointCloudInputData->points[i].x, this->N);
+        std::vector<double> vectorForSettingZeroY = linspace(0, pointCloudInputData->points[i].y, this->N);
 
 
-        for (int j = 0; j < numberOfPoints - 1; j++) {
+        for (int j = 0; j < this->N - 1; j++) {
             double positionPointX = vectorForSettingZeroX[j];
             double positionPointY = vectorForSettingZeroY[j];
             double positionPointZ = 0;
@@ -788,7 +788,103 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
     return transformationPCL2.inverse()*estimatedRotationScans.inverse()*transformationPCL1;//makes out of transform from 2 to 1, transform 1 to 2 and added initial movement
 }
 
+Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1,
+                                                                   pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2,
+                                                                   double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuessTransformation, bool useInitialGuess,
+                                                                   bool debug){
+    double goodGuessAlpha = -100;
+    if (useInitialGuess) {
+        goodGuessAlpha = std::atan2(initialGuessTransformation(1, 0),
+                                    initialGuessTransformation(0, 0));
+    }
 
+    Eigen::Matrix4d transformationPCL1,transformationPCL2;
+    //calc min circle for PCL2
+    double radius1 = this->movePCLtoMiddle(pointCloudInputData1,transformationPCL1);
+
+    double radius2 = this->movePCLtoMiddle(pointCloudInputData2,transformationPCL2);
+    //transforms the point clouds to a different position dependent on minimum circle
+    //get max radius
+    double maxDistance=radius2;
+    if(radius1>maxDistance){
+        maxDistance=radius1;
+    }
+    double cellSize = std::round(maxDistance * 2.0 * 1.1 / N * 100.0) / 100.0;//make 10% bigger area
+
+
+    double maximumScan1 = this->getSpectrumFromPCL2D(pointCloudInputData1, this->voxelData1, this->magnitude1,
+                                                     this->phase1, cellSize * this->N / 2,false);
+    double maximumScan2 = this->getSpectrumFromPCL2D(pointCloudInputData2, this->voxelData2, this->magnitude2,
+                                                     this->phase2, cellSize * this->N / 2,false);
+
+//    double maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity(),
+//                                              this->N);//get voxel
+//    double maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, Eigen::Matrix4d::Identity(),
+//                                              this->N);//get voxel
+//        double normalizationValue = 1;
+//        for (int i = 0; i < this->N * this->N; i++) {
+//            voxelData1[i] = normalizationValue * voxelData1[i] / maximumVoxel1;
+//            voxelData2[i] = normalizationValue * voxelData2[i] / maximumVoxel2;
+//        }
+    double estimatedAngle = this->sofftRegistrationVoxel2DRotationOnly(voxelData1,
+                                                                                             voxelData2,
+                                                                                             goodGuessAlpha, debug);
+
+
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputDataTMP2(new pcl::PointCloud<pcl::PointXYZ>);
+    Eigen::Matrix4d rotationMatrixTMP = Eigen::Matrix4d::Identity();
+    Eigen::AngleAxisd tmpRotVec(estimatedAngle, Eigen::Vector3d(0, 0, 1));
+    Eigen::Matrix3d tmpMatrix3d = tmpRotVec.toRotationMatrix();
+    rotationMatrixTMP.block<3, 3>(0, 0) = tmpMatrix3d;
+    pcl::transformPointCloud(*pointCloudInputData2, *pointCloudInputDataTMP2, rotationMatrixTMP);
+
+    maximumScan1 = getSpectrumFromPCL2D(pointCloudInputData1, voxelData1, magnitude1, phase1,
+                                        cellSize * this->N / 2, N);
+
+    maximumScan2 = getSpectrumFromPCL2D(pointCloudInputDataTMP2, voxelData2, magnitude2, phase2,
+                                        cellSize * this->N / 2, N);
+
+    if (true) {
+        cv::Mat magTMP1(this->N, this->N, CV_64F, voxelData1);
+        //add gaussian blur
+        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+//        cv::imwrite("/home/tim-external/Documents/imreg_fmt/firstImage.jpg", magTMP1);
+
+        cv::Mat magTMP2(this->N, this->N, CV_64F, voxelData2);
+        //add gaussian blur
+        cv::GaussianBlur(magTMP2, magTMP2, cv::Size(9, 9), 0);
+//        cv::imwrite("/home/tim-external/Documents/imreg_fmt/secondImage.jpg", magTMP2);
+//        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+//        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+    }
+    Eigen::Vector3d initialTranslation = initialGuessTransformation.block<3, 1>(0, 3);
+
+    Eigen::Vector2d translation = this->sofftRegistrationVoxel2DTransformation(voxelData1,
+                                                 voxelData2,
+                                                 fitnessX,
+                                                 fitnessY,
+                                                 cellSize,
+                                                 initialTranslation,
+                                                 true,
+                                                 debug);
+
+    Eigen::Matrix4d estimatedRotationScans;//from second scan to first
+    //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
+    Eigen::AngleAxisd rotation_vectorTMP(estimatedAngle, Eigen::Vector3d(0, 0, 1));
+    Eigen::Matrix3d tmpRotMatrix3d = rotation_vectorTMP.toRotationMatrix();
+    estimatedRotationScans.block<3, 3>(0, 0) = tmpRotMatrix3d;
+    estimatedRotationScans(0, 3) = translation.x();
+    estimatedRotationScans(1, 3) = translation.y();
+    estimatedRotationScans(2, 3) = 0;
+    estimatedRotationScans(3, 3) = 1;
+
+
+
+
+
+    return estimatedRotationScans;//should be the transformation matrix from 1 to 2
+}
 
 
 
@@ -1135,6 +1231,11 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTransformati
         indexMaximumCorrelationI = initialIndexX;
         indexMaximumCorrelationJ = initialIndexY;
     }
+
+    // @TODO find SubPixel accuracy
+
+
+
 //    std::cout << "estimated indexToStart:" << std::endl;
 //    std::cout << indexMaximumCorrelationI<< std::endl;
 //    std::cout << indexMaximumCorrelationJ << std::endl;
