@@ -11,12 +11,12 @@ project(underwaterslam)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg roscpp pcl_ros soft20 ping360_sonar waterlinked_dvl message_generation cv_bridge commonbluerovmsg dynamic_reconfigure perception_oru)
-find_package(Boost REQUIRED COMPONENTS system)
-find_package(OpenCV REQUIRED)
-find_package(PCL 1.10 REQUIRED COMPONENTS common io visualization)
+find_package( catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg roscpp pcl_ros soft20 ping360_sonar waterlinked_dvl message_generation cv_bridge commonbluerovmsg dynamic_reconfigure perception_oru)
+find_package( Boost REQUIRED COMPONENTS system)
+find_package( OpenCV REQUIRED )
+find_package( PCL 1.10 REQUIRED COMPONENTS common io visualization )
 find_package( OpenGR REQUIRED )
-find_package( OpenMP REQUIRED)
+find_package( OpenMP REQUIRED )
 # add_service_files(
 #   FILES
 #   resetekf.srv
