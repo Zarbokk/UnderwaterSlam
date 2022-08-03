@@ -1090,7 +1090,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
 
     std::vector<int> out;
 
-    PeakFinder::findPeaks(correlationAveraged, out, true);
+    PeakFinder::findPeaks(correlationAveraged, out, true,10.0);
 
     std::rotate(correlationAveraged.begin(),
                 correlationAveraged.begin() + correlationAveraged.size() - distanceToMinElement,

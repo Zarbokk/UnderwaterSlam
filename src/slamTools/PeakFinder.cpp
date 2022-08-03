@@ -56,11 +56,11 @@ void scalarProduct(float scalar, std::vector<float> in, std::vector<float> &out)
         out[i] = scalar * in[i];
 }
 
-void PeakFinder::findPeaks(std::vector<float> x0, std::vector<int> &peakInds, bool includeEndpoints, float extrema) {
+void PeakFinder::findPeaks(std::vector<float> x0, std::vector<int> &peakInds, bool includeEndpoints, float impactOfNoise, float extrema) {
     int minIdx = distance(x0.begin(), min_element(x0.begin(), x0.end()));
     int maxIdx = distance(x0.begin(), max_element(x0.begin(), x0.end()));
 
-    float sel = (x0[maxIdx] - x0[minIdx]) / 4.0;
+    float sel = (x0[maxIdx] - x0[minIdx]) / impactOfNoise;
     int len0 = x0.size();
 
     scalarProduct(extrema, x0, x0);

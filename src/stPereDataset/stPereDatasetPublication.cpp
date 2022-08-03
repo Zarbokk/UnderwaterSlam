@@ -18,8 +18,8 @@
 //};
 
 struct groundTruthData {
-    double x;
-    double y;
+    double lat;
+    double lng;
     double z;
     double course;
     double timeStamp;
@@ -44,8 +44,22 @@ std::deque<groundTruthData> parseCSVFileGT(std::istream &stream,double removeLin
         }
         if(removeLinesUntil<std::stod(result[0])){
             groundTruthData tmpMeas{};
-            tmpMeas.x = std::stod(result[1]);
-            tmpMeas.y = std::stod(result[2]);
+
+
+            double degrees = (double)(((int)std::stod(result[1]))/100);
+            double minutes = (int)std::stod(result[1])-degrees*100;
+            double seconds = 60.0*std::fmod(std::stod(result[1]),1);
+
+            tmpMeas.lat = degrees + (minutes/60.0) + (seconds/3600.0);
+
+            degrees = (double)(((int)std::stod(result[2]))/100);
+            minutes = (int)std::stod(result[2])-degrees*100;
+            seconds = 60.0*std::fmod(std::stod(result[2]),1);
+
+            tmpMeas.lng = degrees + (minutes/60.0) + (seconds/3600.0);
+
+
+
             tmpMeas.z =0;
             tmpMeas.course = std::stod(result[7]);
             tmpMeas.timeStamp = std::stod(result[0]);
@@ -244,6 +258,11 @@ void loadCSVFiles(std::deque<groundTruthData> &groundTruthSorted,
     intensitySonarSorted = parseCSVFileIntensityTimeStamps(fileKeyIntensityDefined, removeLinesUntil);
 }
 
+void latlongToGlobalXY(const groundTruthData &gtData, double &x, double &y,groundTruthData &startingPosition){
+    double radius = 6371000;
+    x = radius*gtData.lat* cos(startingPosition.lat);
+    y = radius*gtData.lng;
+}
 
 int
 main(int argc, char **argv) {
@@ -285,8 +304,9 @@ main(int argc, char **argv) {
     transformationImu2PCL(3, 3) = 1;
 
     //pcl::transformPointCloud(*currentScan, *currentScan, transformation90Degree);
-
-
+    groundTruthData startingPoint = groundTruthSorted[0];
+    std::cout << "starting everything:" << std::endl;
+    ros::Duration(10).sleep();
     while (ros::ok()) {
         //find lowest Timestamp
         //publish that thing
@@ -354,6 +374,12 @@ main(int argc, char **argv) {
                     msg.header.stamp = ros::Time(groundTruthSorted[0].timeStamp);
                     //in z is the heading in rad
                     msg.vector.z = groundTruthSorted[0].course/180*M_PI;
+
+                    double x,y;
+                    //lets see if this looks good
+                    latlongToGlobalXY(groundTruthSorted[0],x,y,startingPoint);
+                    msg.vector.x=x;
+                    msg.vector.y=y;
                     publisherMagCourse.publish(msg);
                     groundTruthSorted.pop_front();
                 }

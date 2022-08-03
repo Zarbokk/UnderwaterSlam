@@ -20,6 +20,11 @@
 #define DIMENSION_OF_VOXEL_DATA 60
 #define NUMBER_OF_POINTS_MAP 512.0
 #define DIMENSION_OF_MAP 200.0
+#define FACTOR_OF_THREASHOLD 0.7
+
+
+#define SHOULD_USE_ROSBAG true
+
 
 
 struct intensityValues {
@@ -82,8 +87,15 @@ public:
         subscriberEKF = n_.subscribe("publisherPoseEkf", 1000, &rosClassEKF::stateEstimationCallback, this);
         ros::Duration(1).sleep();
         subscriberIntensitySonar = n_.subscribe("sonar/intensity", 1000, &rosClassEKF::scanCallback, this);
-        subscriberGroundTruth = n_.subscribe("/positionGT", 1000, &rosClassEKF::groundTruthCallback, this);
-        pauseRosbag = n_.serviceClient<std_srvs::SetBoolRequest>(nameOfTheServiceCall);
+
+        subscriberGroundTruth = n_.subscribe("/magnetic_heading", 1000, &rosClassEKF::groundTruthCallbackStPere, this);
+//        subscriberGroundTruth = n_.subscribe("/positionGT", 1000, &rosClassEKF::groundTruthCallbackGazebo, this);
+
+
+        if(SHOULD_USE_ROSBAG){
+//            std::cout <<"doesnt work" << std::endl;
+            pauseRosbag = n_.serviceClient<std_srvs::SetBoolRequest>(nameOfTheServiceCall);
+        }
 
         Eigen::AngleAxisd rotation_vector2(180.0 / 180.0 * 3.14159, Eigen::Vector3d(1, 0, 0));
         Eigen::Matrix3d tmpMatrix3d = rotation_vector2.toRotationMatrix();
@@ -247,11 +259,12 @@ private:
                 return;
             }
 
+            if(SHOULD_USE_ROSBAG){
 
             std_srvs::SetBool srv;
             srv.request.data = true;
             pauseRosbag.call(srv);
-
+            }
 
             //angleDiff = angleBetweenLastKeyframeAndNow(false);
             indexOfLastKeyframe = getLastIntensityKeyframe();
@@ -288,10 +301,11 @@ private:
             
 
             pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan1.ply",
-                                       *scan1OneValue);
+                                       *scan1Threashold);
             pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan2.ply",
-                                       *scan2OneValue);
-
+                                       *scan2Threashold);
+            std::cout << "GT to compare with:" << std::endl;
+            std::cout << GTTransformation << std::endl;
             std::cout << "Initial Guess:" << std::endl;
             std::cout << this->initialGuessTransformation << std::endl;
 /////////////////////////////////////////////////////// start of Registration ////////////////////////////////////////////////////
@@ -583,11 +597,17 @@ private:
 //            std::cout << "GT Angle: " << std::atan2(GTTransformation(1, 0), GTTransformation(0, 0)) << std::endl;
 //            std::cout << "initialGuessTransformation Angle: " << std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)) << std::endl;
 //            std::cout << "reg Angle: " << std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)) << std::endl;
-
+            std::cout << "########################################################## NEW SCAN ##########################################################"<< std::endl;
             this->lastGTPosition = currentGTlocalPosition;
 //            exit(-1);
-            srv.request.data = false;
-            pauseRosbag.call(srv);
+
+            if(SHOULD_USE_ROSBAG){
+
+                std_srvs::SetBool srv;
+                srv.request.data = false;
+                pauseRosbag.call(srv);
+            }
+
 
 //            std::cout << "next: " << std::endl;
         }
@@ -1380,7 +1400,7 @@ private:
         return estimatedRotationScans;//should be the transformation matrix from 1 to 2
     }
 
-    void groundTruthCallback(const commonbluerovmsg::staterobotforevaluation::ConstPtr &msg) {
+    void groundTruthCallbackGazebo(const commonbluerovmsg::staterobotforevaluation::ConstPtr &msg) {
         std::lock_guard<std::mutex> lock(this->GTMutex);
         this->currentGTPosition.x = msg->xPosition;
         this->currentGTPosition.y = msg->yPosition;
@@ -1388,6 +1408,17 @@ private:
         this->currentGTPosition.roll = msg->roll;
         this->currentGTPosition.pitch = msg->pitch;
         this->currentGTPosition.yaw = msg->yaw;
+
+    }
+
+    void groundTruthCallbackStPere(const geometry_msgs::Vector3Stamped::ConstPtr &msg) {
+        std::lock_guard<std::mutex> lock(this->GTMutex);
+        this->currentGTPosition.x = msg->vector.x;
+        this->currentGTPosition.y = msg->vector.y;
+        this->currentGTPosition.z = 0;
+        this->currentGTPosition.roll = 0;
+        this->currentGTPosition.pitch = 0;
+        this->currentGTPosition.yaw = msg->vector.z;
 
     }
 
@@ -1588,7 +1619,7 @@ private:
                  this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
                  INTENSITY_SAVED_AND_KEYFRAME);
 
-        double thresholdIntensityScan = maximumIntensity * 0.3;//maximum intensity of 0.9
+        double thresholdIntensityScan = maximumIntensity * FACTOR_OF_THREASHOLD;//maximum intensity of 0.9
 
 
 
@@ -1664,33 +1695,37 @@ int main(int argc, char **argv) {
     ros::NodeHandle n;
 //
     ros::V_string nodes;
+    int i=0;
+    std::string stringForRosClass;
+    if(SHOULD_USE_ROSBAG){
+        getNodes(nodes);
 
 
-    getNodes(nodes);
 
 
-    int i;
-    for (i = 0; i < nodes.size(); i++) {
+        for (i = 0; i < nodes.size(); i++) {
 
-        if (nodes[i].substr(1, 4) == "play") {
-//            std::cout << "we found it" << std::endl;
-            break;
+            if (nodes[i].substr(1, 4) == "play") {
+    //            std::cout << "we found it" << std::endl;
+                break;
+            }
         }
+    //    std::cout << nodes[i]+"/pause_playback" << std::endl;
+        ros::ServiceServer serviceResetEkf;
+
+
+        if (ros::service::exists(nodes[i] + "/pause_playback", true)) {
+
+        } else {
+            exit(-1);
+        }
+
+        stringForRosClass = nodes[i] + "/pause_playback";
     }
-//    std::cout << nodes[i]+"/pause_playback" << std::endl;
-    ros::ServiceServer serviceResetEkf;
-
-
-    if (ros::service::exists(nodes[i] + "/pause_playback", true)) {
-
-    } else {
-        exit(-1);
-    }
-
 
     ros::start();
     ros::NodeHandle n_;
-    rosClassEKF rosClassForTests(n_, nodes[i] + "/pause_playback");
+    rosClassEKF rosClassForTests(n_, stringForRosClass);
 
 
 //    ros::spin();

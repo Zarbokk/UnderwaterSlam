@@ -48,8 +48,8 @@ int main(int argc, char **argv) {
 //        exit(-1);
 //    }
 
-    cv::Mat img1 = cv::imread("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/FMT/lena.bmp", cv::IMREAD_GRAYSCALE);
-    cv::Mat img2 = cv::imread("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/FMT/lena_cropped_rotated_shifted.bmp", cv::IMREAD_GRAYSCALE);
+    cv::Mat img1 = cv::imread("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/FMT/lena_cropped.bmp", cv::IMREAD_GRAYSCALE);
+    cv::Mat img2 = cv::imread("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/FMT/lena_cropped_rotated.bmp", cv::IMREAD_GRAYSCALE);
 //    cv::Mat img1 = cv::imread("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/FMT/firstImage.jpg", cv::IMREAD_GRAYSCALE);
 //    cv::Mat img2 = cv::imread("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/FMT/secondImage.jpg", cv::IMREAD_GRAYSCALE);
 
@@ -65,12 +65,12 @@ int main(int argc, char **argv) {
     scanRegistrationClass scanRegistrationObject(img1.rows, img1.rows / 2, img1.rows / 2, img1.rows / 2 - 1);
 
 
-    scanRegistrationObject.sofftRegistrationVoxel2DRotationOnly(voxelData1, voxelData2, M_PI/2,true);
+    double rotationTest = scanRegistrationObject.sofftRegistrationVoxel2DRotationOnly(voxelData1, voxelData2, 4.5,true);
 
     double fitnessX;
     double fitnessY;
     Eigen::Vector3d initialGuess(0,0,0);
-    scanRegistrationObject.sofftRegistrationVoxel2DTranslation(voxelData1, voxelData2, fitnessX,
+    Eigen::Vector2d resultTranslation = scanRegistrationObject.sofftRegistrationVoxel2DTranslation(voxelData1, voxelData2, fitnessX,
                                         fitnessY, 1.0,
                                         initialGuess, false, true);
 
