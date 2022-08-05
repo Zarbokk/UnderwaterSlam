@@ -477,11 +477,11 @@ private:
 //        }
 //        averageIntensity = averageIntensity / (double) this->sonarIntensityList.size();
 //
-//        double threashHoldIntensity = averageIntensity * 4;
+//        double threshHoldIntensity = averageIntensity * 4;
 //        pcl::PointCloud<pcl::PointXYZ> returnCloud;
 //        for (int i = 0; i < this->sonarIntensityList.size(); i++) {
 //            for (int j = 0; j < this->sonarIntensityList[i].intensities.size(); j++) {
-//                if (this->sonarIntensityList[i].intensities[j] > threashHoldIntensity && j > 4) {
+//                if (this->sonarIntensityList[i].intensities[j] > threshHoldIntensity && j > 4) {
 //                    //calculate position of the point in xy coordinates
 //                    double distanceFromRobot = (double) j * this->sonarIntensityList[i].range /
 //                                               this->sonarIntensityList[i].number_of_samples;

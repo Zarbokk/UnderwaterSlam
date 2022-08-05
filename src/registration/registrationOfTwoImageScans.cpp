@@ -12,6 +12,10 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
+#include <filesystem>
+
+
+
 
 void convertMatToDoubleArray(cv::Mat inputImg, double voxelData[]){
 
@@ -35,6 +39,9 @@ void convertMatToDoubleArray(cv::Mat inputImg, double voxelData[]){
 
 
 int main(int argc, char **argv) {
+
+
+
 
 //    std::string current_exec_name = argv[0]; // Name of the current exec program
 //    std::vector<std::string> all_args;

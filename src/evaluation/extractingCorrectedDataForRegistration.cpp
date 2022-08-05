@@ -15,18 +15,24 @@
 #include <hilbertMap.h>
 #include <opencv2/imgcodecs.hpp>
 #include "std_srvs/SetBool.h"
+#include <filesystem>
 
 //#define numberOfPoints 128
-#define DIMENSION_OF_VOXEL_DATA 50
+#define DIMENSION_OF_VOXEL_DATA 60
 #define NUMBER_OF_POINTS_MAP 512.0
 #define DIMENSION_OF_MAP 200.0
-#define FACTOR_OF_THREASHOLD 0.3
+#define FACTOR_OF_THRESHOLD 0.3
 #define IGNORE_DISTANCE_TO_ROBOT 0.8
 
 #define SHOULD_USE_ROSBAG true
 
-#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
-#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_30_5/"
+//#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
+#define HOME_LOCATION "/home/tim-external/dataFolder/StPereDataset/"
+
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_30_5/"
+#define WHICH_FOLDER_SHOULD_BE_SAVED "randomShifts/"
+
+
 
 struct intensityValues {
     Eigen::Matrix4d transformation;
@@ -77,6 +83,8 @@ public:
 
         this->firstSonarInput = true;
         this->firstCompleteSonarScan = true;
+
+        std::filesystem::create_directory(std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED));
 
     }
 
@@ -227,15 +235,24 @@ private:
 //                                                  this->initialGuessTransformation(0, 0));
 
 
+            std::string directoryOfInterest = std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) + std::string("scanNumber_") + std::to_string(numberOfScan) + std::string("/");
+            std::filesystem::create_directory(directoryOfInterest);
 
-            pcl::PointCloud<pcl::PointXYZ>::Ptr scan1Threashold(new pcl::PointCloud<pcl::PointXYZ>);
+
+            std::ofstream outVoxelSize(directoryOfInterest + "dimensionVoxelData.csv");
+           outVoxelSize << DIMENSION_OF_VOXEL_DATA;
+           outVoxelSize << '\n';
+           outVoxelSize.close();
+
+
+            pcl::PointCloud<pcl::PointXYZ>::Ptr scan1Threshold(new pcl::PointCloud<pcl::PointXYZ>);
 
             pcl::PointCloud<pcl::PointXYZ>::Ptr scan1OneValue(new pcl::PointCloud<pcl::PointXYZ>);
 
 
             Eigen::Matrix4d tmpMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(M_PI, 0, 0);
             *scan1OneValue = createPCLFromGraphOneValue(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
-            *scan1Threashold = createPCLFromGraphOnlyThreshold(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
+            *scan1Threshold = createPCLFromGraphOnlyThreshold(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
 
             this->initialGuessTransformation.block<3, 1>(0, 3) =
                     this->initialGuessTransformation.block<3, 1>(0, 3) + Eigen::Vector3d(0, -0, 0);
@@ -243,37 +260,112 @@ private:
             Eigen::Matrix4d GTTransformation =
                     gtToTranformation(this->lastGTPosition).inverse() * gtToTranformation(currentGTlocalPosition);
 
+            std::random_device rd;  // Will be used to obtain a seed for the random number engine
+            std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
+            std::uniform_real_distribution<> dis(-1.0, 1.0);
+            double angleScaling = 15.0/180.0*M_PI;
 
-            pcl::io::savePLYFileBinary(std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) +std::string(std::to_string(numberOfScan)) + std::string("OneValue.ply"),
-                                       *scan1OneValue);
+            double xScaling = 10;
+            double yScaling = 10;
 
-            pcl::io::savePLYFileBinary(std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) +std::string(std::to_string(numberOfScan)) + std::string("Threashold.ply"),
-                                       *scan1Threashold);
+            for (int numberOfTransformation = 0 ; numberOfTransformation<10; numberOfTransformation++){
+                //create random tranformation;
 
+                double randomYaw = dis(gen)*angleScaling;
+                double randomX = dis(gen)*xScaling;
+                double randomY = dis(gen)*yScaling;
 
+                Eigen::Matrix4d randomTransformation = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0, randomYaw);
+                randomTransformation(0, 3) = randomX;
+                randomTransformation(1, 3) = randomY;
 
+                std::ofstream outMatrix(directoryOfInterest + std::to_string(numberOfTransformation) + std::string("_transformation") + std::string(".csv") );
 
-            for (int i = 32; i <= 256; i = i * 2) {//save for different points
-                int numberOfPoints = i;
-                double *voxelData2;
-                voxelData2 = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
-                //still missing
-
-
-
-                std::ofstream out(std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) +std::string(std::to_string(numberOfScan))+std::string("_")+std::string(std::to_string(i)) + std::string("intensity.csv"));
-                double maximumVoxel2 = createVoxelOfGraph(voxelData2,
-                                                          this->graphSaved.getVertexList()->size() - 1,
-                                                          Eigen::Matrix4d::Identity(),
-                                                          numberOfPoints);//get voxel
-                for (int j = 0 ; j<numberOfPoints;j++) {
-                    for (int k = 0 ; k<numberOfPoints;k++)
-                        out << voxelData2[j + numberOfPoints * k] <<',';
-                    out << '\n';
+                for (int j = 0 ; j<4;j++) {
+                    for (int k = 0 ; k<4;k++)
+                        outMatrix << randomTransformation(j,k) <<',';
+                    outMatrix << '\n';
                 }
-                out.close();
-                std::free(voxelData2);
+                outMatrix.close();
+
+
+
+//                std::cout << randomTransformation << std::endl;
+
+                pcl::io::savePLYFileBinary(directoryOfInterest + std::to_string(numberOfTransformation) +std::string("_OneValue.ply"),
+                                           *scan1OneValue);
+
+                pcl::transformPointCloud(*scan1OneValue, *scan1OneValue, randomTransformation);
+
+                pcl::io::savePLYFileBinary(directoryOfInterest + std::to_string(numberOfTransformation) + std::string("_OneValueShifted.ply"),
+                                           *scan1OneValue);
+
+
+                pcl::io::savePLYFileBinary(directoryOfInterest + std::to_string(numberOfTransformation) + std::string("_Threshold.ply"),
+                                           *scan1Threshold);
+                pcl::transformPointCloud(*scan1Threshold, *scan1Threshold, randomTransformation);
+
+                pcl::io::savePLYFileBinary(directoryOfInterest + std::to_string(numberOfTransformation) + std::string("_ThresholdShifted.ply"),
+                                           *scan1Threshold);
+
+
+
+                for (int numberOfPoints = 32; numberOfPoints <= 256; numberOfPoints = numberOfPoints * 2) {//save for different points
+
+                    double *voxelData;
+                    voxelData = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
+                    double *voxelDataShifted;
+                    voxelDataShifted = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
+                    //still missing
+
+
+
+                    std::ofstream out(directoryOfInterest + std::to_string(numberOfTransformation) + std::string("intensity")+std::string(std::to_string(numberOfPoints)) + std::string(".csv") );
+
+                    double maximumVoxel2 = createVoxelOfGraph(voxelData,
+                                                              this->graphSaved.getVertexList()->size() - 1,
+                                                              Eigen::Matrix4d::Identity(),
+                                                              numberOfPoints);//get voxel
+                    for (int j = 0 ; j<numberOfPoints;j++) {
+                        for (int k = 0 ; k<numberOfPoints;k++)
+                            out << voxelData[j + numberOfPoints * k] <<',';
+                        out << '\n';
+                    }
+                    out.close();
+
+                    std::ofstream outShifted(directoryOfInterest + std::to_string(numberOfTransformation) + std::string("intensityShifted")+std::string(std::to_string(numberOfPoints)) + std::string(".csv") );
+
+                    double maximumVoxel1 = createVoxelOfGraph(voxelDataShifted,
+                                                              this->graphSaved.getVertexList()->size() - 1,
+                                                              randomTransformation,
+                                                              numberOfPoints);//get voxel
+                    for (int j = 0 ; j<numberOfPoints;j++) {
+                        for (int k = 0 ; k<numberOfPoints;k++)
+                            outShifted << voxelDataShifted[j + numberOfPoints * k] <<',';
+                        outShifted << '\n';
+                    }
+                    outShifted.close();
+
+                    std::free(voxelData);
+                    std::free(voxelDataShifted);
+                }
             }
+
+            double *voxelData;
+            voxelData = (double *) malloc(sizeof(double) * 256 * 256);
+
+            double maximumVoxel2 = createVoxelOfGraph(voxelData,
+                                                      this->graphSaved.getVertexList()->size() - 1,
+                                                      Eigen::Matrix4d::Identity(),
+                                                      256);//get voxel
+
+            cv::Mat magTMP1(256,256, CV_64F, voxelData);
+
+            cv::imwrite(directoryOfInterest + "00_ForShow.jpg",magTMP1);
+
+            free(voxelData);
+
+
             std::cout << "########################################################## NEW SCAN ##########################################################"<< std::endl;
             this->lastGTPosition = currentGTlocalPosition;
             this->numberOfScan++;
@@ -658,7 +750,7 @@ private:
                  this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
                  INTENSITY_SAVED_AND_KEYFRAME);
 
-        double thresholdIntensityScan = maximumIntensity * FACTOR_OF_THREASHOLD;//maximum intensity of 0.9
+        double thresholdIntensityScan = maximumIntensity * FACTOR_OF_THRESHOLD;//maximum intensity of 0.9
 
 
 
@@ -743,7 +835,7 @@ private:
                  this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
                  INTENSITY_SAVED_AND_KEYFRAME);
 
-        double thresholdIntensityScan = maximumIntensity * FACTOR_OF_THREASHOLD;//maximum intensity of 0.9
+        double thresholdIntensityScan = maximumIntensity * FACTOR_OF_THRESHOLD;//maximum intensity of 0.9
 
 
 
@@ -787,6 +879,15 @@ private:
         return scan;
     }
 
+    std::vector<std::string> get_directories(const std::string& s)
+    {
+        std::vector<std::string> r;
+        for(auto& p : std::filesystem::directory_iterator(s))
+            if (p.is_directory())
+                r.push_back(p.path().string());
+        return r;
+    }
+
 };
 
 
@@ -813,6 +914,11 @@ bool getNodes(ros::V_string &nodes) {
 
     return true;
 }
+
+
+
+
+
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "ekfwithros");

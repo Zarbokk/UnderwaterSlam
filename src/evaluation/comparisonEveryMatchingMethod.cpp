@@ -20,7 +20,7 @@
 #define DIMENSION_OF_VOXEL_DATA 60
 #define NUMBER_OF_POINTS_MAP 512.0
 #define DIMENSION_OF_MAP 200.0
-#define FACTOR_OF_THREASHOLD 0.7
+#define FACTOR_OF_THRESHOLD 0.7
 
 
 #define SHOULD_USE_ROSBAG true
@@ -279,9 +279,9 @@ private:
 
 
 
-            pcl::PointCloud<pcl::PointXYZ>::Ptr scan1Threashold(new pcl::PointCloud<pcl::PointXYZ>);
-            pcl::PointCloud<pcl::PointXYZ>::Ptr scan2Threashold(new pcl::PointCloud<pcl::PointXYZ>);
-            pcl::PointCloud<pcl::PointXYZ>::Ptr finalThreashold(new pcl::PointCloud<pcl::PointXYZ>);
+            pcl::PointCloud<pcl::PointXYZ>::Ptr scan1Threshold(new pcl::PointCloud<pcl::PointXYZ>);
+            pcl::PointCloud<pcl::PointXYZ>::Ptr scan2Threshold(new pcl::PointCloud<pcl::PointXYZ>);
+            pcl::PointCloud<pcl::PointXYZ>::Ptr finalThreshold(new pcl::PointCloud<pcl::PointXYZ>);
             pcl::PointCloud<pcl::PointXYZ>::Ptr scan1OneValue(new pcl::PointCloud<pcl::PointXYZ>);
             pcl::PointCloud<pcl::PointXYZ>::Ptr scan2OneValue(new pcl::PointCloud<pcl::PointXYZ>);
             pcl::PointCloud<pcl::PointXYZ>::Ptr finalOneValue(new pcl::PointCloud<pcl::PointXYZ>);
@@ -289,8 +289,8 @@ private:
             Eigen::Matrix4d tmpMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(M_PI, 0, 0);
             *scan1OneValue = createPCLFromGraphOneValue(indexOfLastKeyframe, tmpMatrix);
             *scan2OneValue = createPCLFromGraphOneValue(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
-            *scan1Threashold = createPCLFromGraphOnlyThreshold(indexOfLastKeyframe, tmpMatrix);
-            *scan2Threashold = createPCLFromGraphOnlyThreshold(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
+            *scan1Threshold = createPCLFromGraphOnlyThreshold(indexOfLastKeyframe, tmpMatrix);
+            *scan2Threshold = createPCLFromGraphOnlyThreshold(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
 
             this->initialGuessTransformation.block<3, 1>(0, 3) =
                     this->initialGuessTransformation.block<3, 1>(0, 3) + Eigen::Vector3d(0, -0, 0);
@@ -301,9 +301,9 @@ private:
             
 
             pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan1.ply",
-                                       *scan1Threashold);
+                                       *scan1Threshold);
             pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan2.ply",
-                                       *scan2Threashold);
+                                       *scan2Threshold);
             std::cout << "GT to compare with:" << std::endl;
             std::cout << GTTransformation << std::endl;
             std::cout << "Initial Guess:" << std::endl;
@@ -381,7 +381,7 @@ private:
                     std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0))))<<",";//error
             comparisonFile << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()<<",";//time
             begin = std::chrono::steady_clock::now();
-            this->currentTransformation = this->scanRegistrationObject64.ndt_d2d_2d(scan2OneValue, scan1Threashold,
+            this->currentTransformation = this->scanRegistrationObject64.ndt_d2d_2d(scan2OneValue, scan1Threshold,
                                                                                     initialGuessTransformation, true);
             end = std::chrono::steady_clock::now();
             std::cout << "NDT D2D 2D: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
@@ -392,7 +392,7 @@ private:
                     std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0))))<<",";//error
             comparisonFile << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()<<",";//time
             begin = std::chrono::steady_clock::now();
-            this->currentTransformation = this->scanRegistrationObject64.ndt_p2d(scan2Threashold, scan1Threashold,
+            this->currentTransformation = this->scanRegistrationObject64.ndt_p2d(scan2Threshold, scan1Threshold,
                                                                                  initialGuessTransformation, true);
             end = std::chrono::steady_clock::now();
             std::cout << "NDT P2D:" << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
@@ -1619,7 +1619,7 @@ private:
                  this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
                  INTENSITY_SAVED_AND_KEYFRAME);
 
-        double thresholdIntensityScan = maximumIntensity * FACTOR_OF_THREASHOLD;//maximum intensity of 0.9
+        double thresholdIntensityScan = maximumIntensity * FACTOR_OF_THRESHOLD;//maximum intensity of 0.9
 
 
 

@@ -103,5 +103,6 @@ target_link_libraries(comparisonMatching gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL
 add_executable(extractingCorrectedDataForRegistration src/evaluation/extractingCorrectedDataForRegistration.cpp ${SOURCE_FILES})
 target_link_libraries(extractingCorrectedDataForRegistration gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-
+add_executable(compareEveryMatchingMethodBasedOnFolder src/evaluation/compareEveryMatchingMethodBasedOnFolder.cpp ${SOURCE_FILES})
+target_link_libraries(compareEveryMatchingMethodBasedOnFolder gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
