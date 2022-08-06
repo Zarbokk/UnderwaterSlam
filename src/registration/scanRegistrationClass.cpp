@@ -5,14 +5,14 @@
 #include "scanRegistrationClass.h"
 
 Eigen::Matrix4d
-scanRegistrationClass::generalizedIcpRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                                                  const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
-                                                  pcl::PointCloud<pcl::PointXYZ>::Ptr &Final,
+scanRegistrationClass::generalizedIcpRegistration(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                                                  pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
+                                                  pcl::PointCloud<pcl::PointXYZ> &Final,
                                                   double &fitnessScore, Eigen::Matrix4d &initialGuessTransformation) {
 
     pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> gicp;
-    gicp.setInputSource(cloudFirstScan);
-    gicp.setInputTarget(cloudSecondScan);
+    gicp.setInputSource(cloudFirstScan.makeShared());
+    gicp.setInputTarget(cloudSecondScan.makeShared());
 //    gicp.setSourceCovariances(source_covariances);
 //    gicp.setTargetCovariances(target_covariances);
     gicp.setMaxCorrespondenceDistance(1.0);
@@ -22,7 +22,7 @@ scanRegistrationClass::generalizedIcpRegistration(const pcl::PointCloud<pcl::Poi
 //    gicp.setMaximumIterations(100);
 //    gicp.setRANSACIterations(100);
 
-    gicp.align(*Final, initialGuessTransformation.cast<float>());
+    gicp.align(Final, initialGuessTransformation.cast<float>());
     //std::cout << "has converged:" << gicp.hasConverged() << " score: " <<
     //          gicp.getFitnessScore() << std::endl;
     fitnessScore = gicp.getFitnessScore();
@@ -30,65 +30,73 @@ scanRegistrationClass::generalizedIcpRegistration(const pcl::PointCloud<pcl::Poi
 }
 
 Eigen::Matrix4d
-scanRegistrationClass::generalizedIcpRegistrationSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                                                        const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
+scanRegistrationClass::generalizedIcpRegistrationSimple(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                                                        pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                                         double &fitnessScore) {
     Eigen::Matrix4d guess;
     guess << 1, 0, 0, 0,
             0, 1, 0, 0,
             0, 0, 1, 0,
             0, 0, 0, 1;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr Final(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ> Final;
     return scanRegistrationClass::generalizedIcpRegistration(cloudFirstScan, cloudSecondScan, Final,
                                                              fitnessScore, guess);
 }
 
 Eigen::Matrix4d
-scanRegistrationClass::generalizedIcpRegistrationSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                                                        const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
+scanRegistrationClass::generalizedIcpRegistrationSimple(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                                                        pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                                         double &fitnessScore, Eigen::Matrix4d &guess) {
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr Final(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ> Final;
     return scanRegistrationClass::generalizedIcpRegistration(cloudFirstScan, cloudSecondScan, Final,
                                                              fitnessScore, guess);
 }
 
 
-Eigen::Matrix4d scanRegistrationClass::icpRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                                                       const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
+Eigen::Matrix4d scanRegistrationClass::icpRegistration(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                                                       pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                                        pcl::PointCloud<pcl::PointXYZ> &Final) {
     pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
-    icp.setInputSource(cloudFirstScan);
-    icp.setInputTarget(cloudSecondScan);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr tmpPCL1 = cloudFirstScan.makeShared();
+    pcl::PointCloud<pcl::PointXYZ>::Ptr tmpPCL2 = cloudSecondScan.makeShared();
+
+    icp.setInputSource(tmpPCL1);
+    icp.setInputTarget(tmpPCL2);
+
     icp.align(Final);
     std::cout << "has converged:" << icp.hasConverged() << " score: " <<
               icp.getFitnessScore() << std::endl;
     std::cout << icp.getFinalTransformation() << std::endl;
+
+
+
+
     return icp.getFinalTransformation().cast<double>();
 }
 
 
-Eigen::Matrix4d scanRegistrationClass::sofftRegistration2D(const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1,
-                                                           const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2,
+Eigen::Matrix4d scanRegistrationClass::sofftRegistration2D(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData1,
+                                                           pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData2,
                                                            double &fitnessX, double &fitnessY, double goodGuessAlpha, bool debug) {
 
-    const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1New(pointCloudInputData1.makeShared());
-    const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2New(pointCloudInputData2.makeShared());
+//    const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1New(pointCloudInputData1.makeShared());
+//    const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2New(pointCloudInputData2.makeShared());
 
-    return mySofftRegistrationClass.registrationOfTwoPCL2D(pointCloudInputData1New, pointCloudInputData2New, fitnessX,
+    return mySofftRegistrationClass.registrationOfTwoPCL2D(pointCloudInputData1, pointCloudInputData2, fitnessX,
                                                            fitnessY, goodGuessAlpha, debug);
 }
 
-Eigen::Matrix4d scanRegistrationClass::sofftRegistration2D(const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1,
-                                                           const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2,
+Eigen::Matrix4d scanRegistrationClass::sofftRegistration2D(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData1,
+                                                           pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData2,
                                                            double &fitnessX, double &fitnessY,
                                                            Eigen::Matrix4d initialGuess,bool useInitialGuess,
                                                            bool debug) {
 
-    const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1New(pointCloudInputData1.makeShared());
-    const pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2New(pointCloudInputData2.makeShared());
+//    const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1New(pointCloudInputData1.makeShared());
+//    const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2New(pointCloudInputData2.makeShared());
 
-    return mySofftRegistrationClass.registrationOfTwoPCL2D(pointCloudInputData1New, pointCloudInputData2New, fitnessX,
+    return mySofftRegistrationClass.registrationOfTwoPCL2D(pointCloudInputData1, pointCloudInputData2, fitnessX,
                                                            fitnessY, initialGuess,useInitialGuess, debug);
 }
 
@@ -114,8 +122,8 @@ scanRegistrationClass::sofftRegistrationVoxel2DTranslation(double voxelData1Inpu
 
 }
 
-Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                                                             const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
+Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                                                             pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                                              Eigen::Matrix4d initialGuess, bool useInitialGuess,
                                                              bool debug) {
 
@@ -132,8 +140,8 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(const pcl::PointClo
 
     //fill in set1 and set2
 
-//    pcl::PointCloud<pcl::PointXYZ>::Ptr scan1(new pcl::PointCloud<pcl::PointXYZ>);
-//    pcl::PointCloud<pcl::PointXYZ>::Ptr scan2(new pcl::PointCloud<pcl::PointXYZ>);
+//    pcl::PointCloud<pcl::PointXYZ> scan1(new pcl::PointCloud<pcl::PointXYZ>);
+//    pcl::PointCloud<pcl::PointXYZ> scan2(new pcl::PointCloud<pcl::PointXYZ>);
 //    pcl::io::loadPLYFile("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan1.ply",*scan1);
 //    pcl::io::loadPLYFile("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan2.ply",*scan2);
 
@@ -150,18 +158,18 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(const pcl::PointClo
 
 
 
-    for (int i = 0; i < cloudFirstScan->points.size(); i++) {
+    for (int i = 0; i < cloudFirstScan.points.size(); i++) {
         gr::Point3D<float> tmpPoint;
-        tmpPoint.x() = cloudFirstScan->points.at(i).x;
-        tmpPoint.y() = cloudFirstScan->points.at(i).y;
-        tmpPoint.z() = cloudFirstScan->points.at(i).z;
+        tmpPoint.x() = cloudFirstScan.points.at(i).x;
+        tmpPoint.y() = cloudFirstScan.points.at(i).y;
+        tmpPoint.z() = cloudFirstScan.points.at(i).z;
         set1.push_back(tmpPoint);
     }
-    for (int i = 0; i < cloudSecondScan->points.size(); i++) {
+    for (int i = 0; i < cloudSecondScan.points.size(); i++) {
         gr::Point3D<float> tmpPoint;
-        tmpPoint.x() = cloudSecondScan->points.at(i).x;
-        tmpPoint.y() = cloudSecondScan->points.at(i).y;
-        tmpPoint.z() = cloudSecondScan->points.at(i).z;
+        tmpPoint.x() = cloudSecondScan.points.at(i).x;
+        tmpPoint.y() = cloudSecondScan.points.at(i).y;
+        tmpPoint.z() = cloudSecondScan.points.at(i).z;
         set2.push_back(tmpPoint);
     }
 
@@ -301,139 +309,8 @@ scanRegistrationClass::FMSRegistrationOld(double voxelData1Input[], double voxel
     return returnMatrix;
 }
 
-
-Eigen::Matrix4d scanRegistrationClass::normalDistributionsTransformRegistration(
-        const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-        const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
-        pcl::PointCloud<pcl::PointXYZ>::Ptr &Final,
-        double &fitnessScore,
-        Eigen::Matrix4d &initialGuessTransformation, double ndt_resolution, double ndt_step_size,
-        double transform_epsilon) {
-
-
-    pcl::VoxelGrid<pcl::PointXYZ> voxel_grid_filter_;
-    voxel_grid_filter_.setLeafSize(0.5, 0.5, 0.5);
-    pcl::Registration<pcl::PointXYZ, pcl::PointXYZ>::Ptr registration_;
-    pcl::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>::Ptr ndt(
-            new pcl::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ>());
-    ndt->setStepSize(ndt_step_size);
-//    std::cout << "get Step size: "<< ndt->getStepSize() << std::endl;
-//    std::cout << "get getResolution: "<< ndt->getResolution() << std::endl;
-//    std::cout << "get getTransformationEpsilon: "<< ndt->getTransformationEpsilon() << std::endl;
-    ndt->setResolution(ndt_resolution);
-    ndt->setTransformationEpsilon(transform_epsilon);
-    ndt->setMaximumIterations(1000);
-    registration_ = ndt;
-
-
-
-    //input cloud(has to be copied
-//    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_ptr(new pcl::PointCloud<pcl::PointXYZ>);
-//    *cloud_ptr = *cloudFirstScan;
-//
-    pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_cloud_ptr(new pcl::PointCloud<pcl::PointXYZ>());
-    voxel_grid_filter_.setInputCloud(cloudFirstScan);
-    voxel_grid_filter_.filter(*filtered_cloud_ptr);
-
-
-    registration_->setInputSource(filtered_cloud_ptr);
-    registration_->setInputTarget(cloudSecondScan);
-
-    pcl::PointCloud<pcl::PointXYZ>::Ptr output_cloud(new pcl::PointCloud<pcl::PointXYZ>);
-
-    registration_->align(*output_cloud, initialGuessTransformation.cast<float>());
-    std::cout << "has converged?: " << registration_->hasConverged() << std::endl;
-
-
-    Eigen::Matrix4d final_transformation = registration_->getFinalTransformation().cast<double>();
-    return final_transformation;
-
-}
-
-
-Eigen::Matrix4d scanRegistrationClass::RANSACRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                                                          const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
-                                                          Eigen::Matrix4d initialGuess, bool useInitialGuess,
-                                                          bool debug) {
-//    typedef pcl::PointNormal PointNT;
-//    typedef pcl::PointCloud<PointNT> PointCloudT;
-//    typedef pcl::FPFHSignature33 FeatureT;
-//    typedef pcl::FPFHEstimationOMP<PointNT,PointNT,FeatureT> FeatureEstimationT;
-//    typedef pcl::PointCloud<FeatureT> FeatureCloudT;
-//    typedef pcl::visualization::PointCloudColorHandlerCustom<PointNT> ColorHandlerT;
-
-    pcl::PointCloud<pcl::PointXYZ>::Ptr object(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr object_aligned(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr scene(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::PointCloud<pcl::PointNormal>::Ptr sceneNormal(new pcl::PointCloud<pcl::PointNormal>);
-    pcl::PointCloud<pcl::PointNormal>::Ptr objectNormal(new pcl::PointCloud<pcl::PointNormal>);
-
-    pcl::PointCloud<pcl::FPFHSignature33>::Ptr object_features(new pcl::PointCloud<pcl::FPFHSignature33>);
-    pcl::PointCloud<pcl::FPFHSignature33>::Ptr scene_features(new pcl::PointCloud<pcl::FPFHSignature33>);
-    // Get input object and scene
-
-
-    // Load both PCLs
-    *scene = *cloudFirstScan;
-    *object = *cloudSecondScan;
-
-    // Downsample
-//    pcl::console::print_highlight("Downsampling...\n");
-    pcl::VoxelGrid<pcl::PointXYZ> grid;
-    const float leaf = 0.2f;
-    grid.setLeafSize(leaf, leaf, leaf);
-    grid.setInputCloud(object);
-    grid.filter(*object);
-    grid.setInputCloud(scene);
-    grid.filter(*scene);
-
-    // Estimate normals for scene
-//    pcl::console::print_highlight("Estimating scene normals...\n");
-    pcl::NormalEstimation<pcl::PointXYZ, pcl::PointNormal> nest;
-    nest.setRadiusSearch(0.1);
-    nest.setInputCloud(scene);
-    nest.compute(*sceneNormal);
-    nest.setInputCloud(object);
-    nest.compute(*objectNormal);
-
-    // Estimate features
-//    pcl::console::print_highlight("Estimating features...\n");
-    pcl::FPFHEstimation<pcl::PointXYZ, pcl::PointNormal, pcl::FPFHSignature33> fest;
-    fest.setRadiusSearch(1.5);//(0.025);
-    fest.setInputCloud(object);
-    fest.setInputNormals(objectNormal);
-    fest.compute(*object_features);
-    fest.setInputCloud(scene);
-    fest.setInputNormals(sceneNormal);
-    fest.compute(*scene_features);
-    // Perform alignment
-//    pcl::console::print_highlight("Starting alignment...\n");
-    pcl::SampleConsensusPrerejective<pcl::PointXYZ, pcl::PointXYZ, pcl::FPFHSignature33> align;
-
-//    pcl::registration::TransformationEstimation::Ptr te;
-//    pcl::TransformationEstimation::Ptr
-//    align.setTransformationEstimation(initialGuess);
-    align.setInputSource(object);
-    align.setSourceFeatures(object_features);
-    align.setInputTarget(scene);
-    align.setTargetFeatures(scene_features);
-    align.setMaximumIterations(1000); // Number of RANSAC iterations
-    align.setNumberOfSamples(4); // Number of points to sample for generating/prerejecting a pose
-    align.setCorrespondenceRandomness(5); // Number of nearest features to use
-    align.setSimilarityThreshold(0.15f); // Polygonal edge length similarity threshold
-    align.setMaxCorrespondenceDistance(10.0f * leaf); // Inlier threshold
-    align.setInlierFraction(0.55f); // Required inlier fraction for accepting a pose hypothesis
-    Eigen::Matrix4d initGuessTMP = Eigen::Matrix4d::Identity();//initialGuess;
-    align.align(*object_aligned,initGuessTMP.cast<float>());
-    std::cout << "has aligned?: " << align.hasConverged() << std::endl;
-    Eigen::Matrix4d returnMatrix = align.getFinalTransformation().cast<double>();
-    return returnMatrix;
-}
-
-
-
-Eigen::Matrix4d scanRegistrationClass::ndt_d2d_2d(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                           const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan, Eigen::Matrix4d initialGuess,
+Eigen::Matrix4d scanRegistrationClass::ndt_d2d_2d(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                           pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan, Eigen::Matrix4d initialGuess,
                            bool useInitialGuess){
 
     initialGuess(0, 1) = -initialGuess(0, 1);
@@ -451,7 +328,7 @@ Eigen::Matrix4d scanRegistrationClass::ndt_d2d_2d(const pcl::PointCloud<pcl::Poi
 
 //    std::cout<<"Transform Before: \n"<<Tout.matrix()<<std::endl;
     lslgeneric::NDTMatcherD2D_2D<pcl::PointXYZ,pcl::PointXYZ> matcherD2D(false, false, resolutions);
-        bool ret = matcherD2D.match(*cloudSecondScan,*cloudFirstScan,Tout,true);
+        bool ret = matcherD2D.match(cloudSecondScan,cloudFirstScan,Tout,true);
 
     Tout(0, 1) = -Tout(0, 1);
     Tout(1, 0) = -Tout(1, 0);
@@ -461,8 +338,8 @@ Eigen::Matrix4d scanRegistrationClass::ndt_d2d_2d(const pcl::PointCloud<pcl::Poi
     return Tout.matrix();
 }
 
-Eigen::Matrix4d scanRegistrationClass::ndt_p2d(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                        const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan, Eigen::Matrix4d initialGuess,
+Eigen::Matrix4d scanRegistrationClass::ndt_p2d(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                        pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan, Eigen::Matrix4d initialGuess,
                         bool useInitialGuess){
 
     initialGuess(0, 1) = -initialGuess(0, 1);
@@ -478,7 +355,7 @@ Eigen::Matrix4d scanRegistrationClass::ndt_p2d(const pcl::PointCloud<pcl::PointX
 
     lslgeneric::NDTMatcherP2D<pcl::PointXYZ,pcl::PointXYZ> matcherP2D;
 
-    bool ret = matcherP2D.match(*cloudSecondScan,*cloudFirstScan,Tout);
+    bool ret = matcherP2D.match(cloudSecondScan,cloudFirstScan,Tout);
 
     Tout(0, 1) = -Tout(0, 1);
     Tout(1, 0) = -Tout(1, 0);

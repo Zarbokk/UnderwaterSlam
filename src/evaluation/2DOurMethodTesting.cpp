@@ -237,15 +237,15 @@ private:
 
 /////////////////////////////////////////////////////// start of Registration ////////////////////////////////////////////////////
 
-            pcl::PointCloud<pcl::PointXYZ>::Ptr scan1(new pcl::PointCloud<pcl::PointXYZ>);
-            pcl::PointCloud<pcl::PointXYZ>::Ptr scan2(new pcl::PointCloud<pcl::PointXYZ>);
-            pcl::PointCloud<pcl::PointXYZ>::Ptr final(new pcl::PointCloud<pcl::PointXYZ>);
+            pcl::PointCloud<pcl::PointXYZ> scan1;
+            pcl::PointCloud<pcl::PointXYZ> scan2;
+            pcl::PointCloud<pcl::PointXYZ> final;
 
             Eigen::Matrix4d tmpMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(M_PI, 0, 0);
 //            *scan1 = createPCLFromGraphOneValue(indexOfLastKeyframe, tmpMatrix);
 //            *scan2 = createPCLFromGraphOneValue(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
-            *scan1 = createPCLFromGraphOnlyThreshold(indexOfLastKeyframe, tmpMatrix);
-            *scan2 = createPCLFromGraphOnlyThreshold(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
+            scan1 = createPCLFromGraphOnlyThreshold(indexOfLastKeyframe, tmpMatrix);
+            scan2 = createPCLFromGraphOnlyThreshold(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
 
             this->initialGuessTransformation.block<3, 1>(0, 3) =
                     this->initialGuessTransformation.block<3, 1>(0, 3) + Eigen::Vector3d(0, -0, 0);
@@ -285,9 +285,9 @@ private:
 //            this->initialGuessTransformation(1, 0) = -this->initialGuessTransformation(1, 0);
 //            this->initialGuessTransformation(1, 3) = -this->initialGuessTransformation(1, 3);
             pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan1.ply",
-                                       *scan1);
+                                       scan1);
             pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan2.ply",
-                                       *scan2);
+                                       scan2);
 //            pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/final.ply",
 //                                       *final);
 

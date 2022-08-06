@@ -96,32 +96,32 @@ public:
 
     }
 
-    Eigen::Matrix4d registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1,
-                                           pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2, double &fitnessX,
+    Eigen::Matrix4d registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData1,
+                                           pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData2, double &fitnessX,
                                            double &fitnessY, double goodGuessAlpha = -100,
                                            bool debug = false);//gives TFMatrix from 1 to 2
 
 
-    Eigen::Matrix4d registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1,
-                                           pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2,
+    Eigen::Matrix4d registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData1,
+                                           pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData2,
                                            double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuessTransformation,
                                            bool useInitialGuess,
                                            bool debug);
 
     //-100 only for "no good guess given"
     //initial guess has to be very good, else dont use it.
-    double getSpectrumFromPCL3D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, double voxelData[],
+    double getSpectrumFromPCL3D(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData, double voxelData[],
                                 double magnitude[], double phase[], double fromTo, int N);
 
-    double getSpectrumFromPCL2D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, double voxelData[],
+    double getSpectrumFromPCL2D(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData, double voxelData[],
                                 double magnitude[], double phase[], double fromTo, bool gaussianBlur = false);
 
     double
     getSpectrumFromVoxelData2D(double voxelData[], double magnitude[], double phase[], bool gaussianBlur = false);
 
-    void PCL2Voxel(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, double voxelData[], double fromTo);
+    void PCL2Voxel(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData, double voxelData[], double fromTo);
 
-    double movePCLtoMiddle(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData, Eigen::Matrix4d &transformationPCL);
+    double movePCLtoMiddle(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData, Eigen::Matrix4d &transformationPCL);
 
 //    Eigen::Matrix4d
 //    registrationOfTwoVoxel2D(double voxelData1[], double voxelData2[], double &fitnessX, double &fitnessY,

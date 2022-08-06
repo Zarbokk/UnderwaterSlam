@@ -45,15 +45,15 @@ int main(int argc, char **argv) {
 
 //    for (int numberOfScan = 15; numberOfScan < 100; numberOfScan++) {
 //        std::cout << "current KeyFrame: " << numberOfScan << std::endl;
-    pcl::PointCloud<pcl::PointXYZ>::Ptr scan1(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr scan2(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr final(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ> scan1;
+    pcl::PointCloud<pcl::PointXYZ> scan2;
+    pcl::PointCloud<pcl::PointXYZ> final;
     pcl::io::loadPCDFile(
             all_args[0],
-            *scan1);
+            scan1);
     pcl::io::loadPCDFile(
             all_args[1],
-            *scan2);
+            scan2);
     double fitnessX,fitnessY;
     Eigen::Matrix4d initialGuess = Eigen::Matrix4d::Identity();
     Eigen::Matrix3d m(generalHelpfulTools::getQuaternionFromRPY(0,0,initialGuessAngleYaw));
@@ -85,9 +85,9 @@ int main(int argc, char **argv) {
 //    }
     //saving resulting PCL
     pcl::io::savePCDFileASCII("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resulting0PCL1.pcd",
-                              *scan2);
+                              scan2);
     pcl::io::savePCDFileASCII("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resulting0PCL2.pcd",
-                              *final);
+                              final);
 
     std::cout << "registration with ICP done" << std::endl;
     std::cout << estimatedTransformation << std::endl;

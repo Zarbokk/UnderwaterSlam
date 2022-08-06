@@ -52,7 +52,7 @@ double angleDifference(double angle1, double angle2) {//gives angle 1 - angle 2
 }
 
 double
-softDescriptorRegistration::getSpectrumFromPCL3D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData,
+softDescriptorRegistration::getSpectrumFromPCL3D(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData,
                                                  double voxelData[],
                                                  double magnitude[], double phase[], double fromTo, int N) {
 
@@ -65,10 +65,10 @@ softDescriptorRegistration::getSpectrumFromPCL3D(pcl::PointCloud<pcl::PointXYZ>:
         }
     }
 
-    for (int i = 0; i < pointCloudInputData->points.size(); i++) {
-        double positionPointX = pointCloudInputData->points[i].x;
-        double positionPointY = pointCloudInputData->points[i].y;
-        double positionPointZ = pointCloudInputData->points[i].z;
+    for (int i = 0; i < pointCloudInputData.points.size(); i++) {
+        double positionPointX = pointCloudInputData.points[i].x;
+        double positionPointY = pointCloudInputData.points[i].y;
+        double positionPointZ = pointCloudInputData.points[i].z;
         int indexX = (int) std::round((positionPointX + fromTo) / (fromTo * 2) * N) - 1;
         int indexY = (int) std::round((positionPointY + fromTo) / (fromTo * 2) * N) - 1;
         int indexZ = (int) std::round((positionPointZ + fromTo) / (fromTo * 2) * N) - 1;//set to zero
@@ -125,17 +125,17 @@ softDescriptorRegistration::getSpectrumFromPCL3D(pcl::PointCloud<pcl::PointXYZ>:
 }
 
 void
-softDescriptorRegistration::PCL2Voxel(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData,
-                                                 double voxelData[],double fromTo) {
+softDescriptorRegistration::PCL2Voxel(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData,
+                                      double voxelData[], double fromTo) {
     for (int i = 0; i < this->N; i++) {
         for (int j = 0; j < this->N; j++) {
             voxelData[j + this->N * i] = 0.0;
         }
     }
-    for (int i = 0; i < pointCloudInputData->points.size(); i++) {
+    for (int i = 0; i < pointCloudInputData.points.size(); i++) {
 
-        std::vector<double> vectorForSettingZeroX = linspace(0, pointCloudInputData->points[i].x, this->N);
-        std::vector<double> vectorForSettingZeroY = linspace(0, pointCloudInputData->points[i].y, this->N);
+        std::vector<double> vectorForSettingZeroX = linspace(0, pointCloudInputData.points[i].x, this->N);
+        std::vector<double> vectorForSettingZeroY = linspace(0, pointCloudInputData.points[i].y, this->N);
 
 
         for (int j = 0; j < this->N - 1; j++) {
@@ -149,10 +149,10 @@ softDescriptorRegistration::PCL2Voxel(pcl::PointCloud<pcl::PointXYZ>::Ptr pointC
         }
 
     }
-    for (int i = 0; i < pointCloudInputData->points.size(); i++) {
+    for (int i = 0; i < pointCloudInputData.points.size(); i++) {
 
-        double positionPointX = pointCloudInputData->points[i].x;
-        double positionPointY = pointCloudInputData->points[i].y;
+        double positionPointX = pointCloudInputData.points[i].x;
+        double positionPointY = pointCloudInputData.points[i].y;
         double positionPointZ = 0;
         int indexX = (int) std::round((positionPointX + fromTo) / (fromTo * 2) * this->N) - 1;
         int indexY = (int) std::round((positionPointY + fromTo) / (fromTo * 2) * this->N) - 1;
@@ -162,18 +162,19 @@ softDescriptorRegistration::PCL2Voxel(pcl::PointCloud<pcl::PointXYZ>::Ptr pointC
 
 
 double
-softDescriptorRegistration::getSpectrumFromPCL2D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData,
+softDescriptorRegistration::getSpectrumFromPCL2D(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData,
                                                  double voxelData[],
                                                  double magnitude[], double phase[], double fromTo,
                                                  bool gaussianBlur) {
 
-    this->PCL2Voxel(pointCloudInputData,voxelData,fromTo);
+    this->PCL2Voxel(pointCloudInputData, voxelData, fromTo);
 
     return this->getSpectrumFromVoxelData2D(voxelData, magnitude, phase, gaussianBlur);
 }
 
 double
-softDescriptorRegistration::getSpectrumFromVoxelData2D(double voxelData[], double magnitude[], double phase[], bool gaussianBlur) {
+softDescriptorRegistration::getSpectrumFromVoxelData2D(double voxelData[], double magnitude[], double phase[],
+                                                       bool gaussianBlur) {
 
 
     if (gaussianBlur) {
@@ -218,41 +219,46 @@ softDescriptorRegistration::getSpectrumFromVoxelData2D(double voxelData[], doubl
     return maximumMagnitude;
 }
 
-double softDescriptorRegistration::movePCLtoMiddle(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData,Eigen::Matrix4d &transformationPCL){
+double softDescriptorRegistration::movePCLtoMiddle(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData,
+                                                   Eigen::Matrix4d &transformationPCL) {
     //calc min circle for PCL1
-    CGAL::Simple_cartesian<double>::Point_2 P1[pointCloudInputData->points.size()];
-    for ( int i = 0; i < pointCloudInputData->points.size(); ++i){
-        P1[i] = CGAL::Simple_cartesian<double>::Point_2(pointCloudInputData->points[i].x, pointCloudInputData->points[i].y);
+    CGAL::Simple_cartesian<double>::Point_2 P1[pointCloudInputData.points.size()];
+    for (int i = 0; i < pointCloudInputData.points.size(); ++i) {
+        P1[i] = CGAL::Simple_cartesian<double>::Point_2(pointCloudInputData.points[i].x,
+                                                        pointCloudInputData.points[i].y);
     }
-    CGAL::Min_sphere_of_spheres_d<CGAL::Min_sphere_of_points_d_traits_2<CGAL::Simple_cartesian<double>,double>>  mc1( P1, P1+pointCloudInputData->points.size());
-    CGAL::Min_sphere_of_spheres_d<CGAL::Min_sphere_of_points_d_traits_2<CGAL::Simple_cartesian<double>,double>>::Cartesian_const_iterator ccib1 = mc1.center_cartesian_begin(), ccie1 = mc1.center_cartesian_end();
+    CGAL::Min_sphere_of_spheres_d<CGAL::Min_sphere_of_points_d_traits_2<CGAL::Simple_cartesian<double>, double>> mc1(P1,
+                                                                                                                     P1 +
+                                                                                                                     pointCloudInputData.points.size());
+    CGAL::Min_sphere_of_spheres_d<CGAL::Min_sphere_of_points_d_traits_2<CGAL::Simple_cartesian<double>, double>>::Cartesian_const_iterator ccib1 = mc1.center_cartesian_begin(), ccie1 = mc1.center_cartesian_end();
 
     transformationPCL = Eigen::Matrix4d::Identity();
     transformationPCL(0, 3) = -*ccib1;//x change
     ccib1++;
     transformationPCL(1, 3) = -*ccib1;//y change
 
-    pcl::transformPointCloud(*pointCloudInputData, *pointCloudInputData, transformationPCL);
+    pcl::transformPointCloud(pointCloudInputData, pointCloudInputData, transformationPCL);
     return mc1.radius();
 }
 
 //gives TFMatrix from 1 to 2
 Eigen::Matrix4d
-softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1,
-                                                   pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2,
-                                                   double &fitnessX, double &fitnessY, double goodGuessAlpha, bool debug) {
+softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData1,
+                                                   pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData2,
+                                                   double &fitnessX, double &fitnessY, double goodGuessAlpha,
+                                                   bool debug) {
 
 
-    Eigen::Matrix4d transformationPCL1,transformationPCL2;
+    Eigen::Matrix4d transformationPCL1, transformationPCL2;
     //calc min circle for PCL2
-    double radius1 = this->movePCLtoMiddle(pointCloudInputData1,transformationPCL1);
+    double radius1 = this->movePCLtoMiddle(pointCloudInputData1, transformationPCL1);
 
-    double radius2 = this->movePCLtoMiddle(pointCloudInputData2,transformationPCL2);
+    double radius2 = this->movePCLtoMiddle(pointCloudInputData2, transformationPCL2);
     //transforms the point clouds to a different position dependent on minimum circle
     //get max radius
-    double maxDistance=radius2;
-    if(radius1>maxDistance){
-        maxDistance=radius1;
+    double maxDistance = radius2;
+    if (radius1 > maxDistance) {
+        maxDistance = radius1;
     }
     double cellSize = std::round(maxDistance * 2.0 * 1.1 / N * 100.0) / 100.0;//make 10% bigger area
 
@@ -262,18 +268,22 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
 
 
     double maximumScan1 = this->getSpectrumFromPCL2D(pointCloudInputData1, this->voxelData1, this->magnitude1,
-                                                     this->phase1, cellSize * this->N / 2,false);
+                                                     this->phase1, cellSize * this->N / 2, false);
     double maximumScan2 = this->getSpectrumFromPCL2D(pointCloudInputData2, this->voxelData2, this->magnitude2,
-                                                     this->phase2, cellSize * this->N / 2,false);
+                                                     this->phase2, cellSize * this->N / 2, false);
 
     if (debug) {
         std::ofstream myFile1, myFile2, myFile3, myFile4, myFile5, myFile6;
-        myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW1.csv");
+        myFile1.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW1.csv");
         myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/phaseFFTW1.csv");
-        myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW1.csv");
-        myFile4.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW2.csv");
+        myFile3.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW1.csv");
+        myFile4.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW2.csv");
         myFile5.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/phaseFFTW2.csv");
-        myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW2.csv");
+        myFile6.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW2.csv");
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
                 myFile1 << magnitude1[j + N * i]; // real part
@@ -370,8 +380,10 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
     }
     if (debug) {
         std::ofstream myFile7, myFile8;
-        myFile7.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resampledVoxel1.csv");
-        myFile8.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resampledVoxel2.csv");
+        myFile7.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resampledVoxel1.csv");
+        myFile8.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resampledVoxel2.csv");
 
         for (int j = 0; j < N; j++) {
             for (int k = 0; k < N; k++) {
@@ -390,7 +402,9 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
                                                               resultingCorrelationComplex);
     if (debug) {
         FILE *fp;
-        fp = fopen("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultCorrelation3D.csv", "w");
+        fp = fopen(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultCorrelation3D.csv",
+                "w");
         for (int i = 0; i < 8 * bwOut * bwOut * bwOut; i++)
             fprintf(fp, "%.16f\n", resultingCorrelationComplex[i][0]);
         fclose(fp);
@@ -443,7 +457,8 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
     angleList.push_back((float) currentAverageAngle);
     if (debug) {
         std::ofstream myFile9;
-        myFile9.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultingCorrelation1D.csv");
+        myFile9.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultingCorrelation1D.csv");
 
         for (int i = 0; i < correlationAveraged.size(); i++) {
             myFile9 << correlationAveraged[i]; // real part
@@ -505,8 +520,8 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
 
         double currentAngle = -angleList[out[angleIndex]];//describes angle from A to B, therefore we have to reverse the angle
         double currentPeakAngle = correlationAveraged[out[angleIndex]];
-        std::cout << "we try to fit following angle: "<< currentAngle << std::endl;
-        pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputDataTMP2(new pcl::PointCloud<pcl::PointXYZ>);
+        std::cout << "we try to fit following angle: " << currentAngle << std::endl;
+        pcl::PointCloud<pcl::PointXYZ> pointCloudInputDataTMP2;
         Eigen::Matrix4d rotationMatrixTMP;
         //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
         Eigen::AngleAxisd tmpRotVec(currentAngle, Eigen::Vector3d(0, 0, 1));
@@ -517,7 +532,7 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
         rotationMatrixTMP(2, 3) = 0;//z
         rotationMatrixTMP(3, 3) = 1;//1
         //copy the rotated PCL from PCL1 to PCL2
-        pcl::transformPointCloud(*pointCloudInputData2, *pointCloudInputDataTMP2, rotationMatrixTMP);
+        pcl::transformPointCloud(pointCloudInputData2, pointCloudInputDataTMP2, rotationMatrixTMP);
 
 
         maximumScan1 = getSpectrumFromPCL2D(pointCloudInputData1, voxelData1, magnitude1, phase1,
@@ -533,8 +548,10 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
                 int indexX = (N / 2 + i) % N;
                 int indexY = (N / 2 + j) % N;
                 //calculate the spectrum back
-                std::complex<double> tmpComplex1 = magnitude1[indexY + N * indexX] *std::exp(std::complex<double>(0, phase1[indexY + N * indexX]));
-                std::complex<double> tmpComplex2 = magnitude2[indexY + N * indexX] *std::exp(std::complex<double>(0, phase2[indexY + N * indexX]));
+                std::complex<double> tmpComplex1 = magnitude1[indexY + N * indexX] *
+                                                   std::exp(std::complex<double>(0, phase1[indexY + N * indexX]));
+                std::complex<double> tmpComplex2 = magnitude2[indexY + N * indexX] *
+                                                   std::exp(std::complex<double>(0, phase2[indexY + N * indexX]));
 //                std::complex<double> tmpComplex1 = std::exp(std::complex<double>(0, phase1[indexY + N * indexX]));
 //                std::complex<double> tmpComplex2 = std::exp(std::complex<double>(0, phase2[indexY + N * indexX]));
 //                std::complex<double> tmpComplex;
@@ -658,7 +675,8 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
         if (debug) {
             std::ofstream myFile10;
             myFile10.open(
-                    "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultingCorrelationShift"+std::to_string(angleIndex)+".csv");
+                    "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultingCorrelationShift" +
+                    std::to_string(angleIndex) + ".csv");
 
             for (int i = 0; i < N; i++) {
                 for (int j = 0; j < N; j++) {
@@ -680,24 +698,30 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
 
             Eigen::Matrix4d estimatedRotationScans1To2 = estimatedRotationScans.inverse();
 
-            pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1Rotated(pointCloudInputData1->makeShared());
+            pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1Rotated = pointCloudInputData1;
 
             //*pointCloudInputData1Rotated = *pointCloudInputData1;
-            pcl::transformPointCloud(*pointCloudInputData1Rotated, *pointCloudInputData1Rotated, estimatedRotationScans1To2);
+            pcl::transformPointCloud(pointCloudInputData1Rotated, pointCloudInputData1Rotated,
+                                     estimatedRotationScans1To2);
 
             //saving resulting PCL
-            pcl::io::savePCDFileASCII("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resulting"+std::to_string(angleIndex)+"PCL1.pcd",
-                                      *pointCloudInputData1Rotated);
-            pcl::io::savePCDFileASCII("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resulting"+std::to_string(angleIndex)+"PCL2.pcd",
-                                      *pointCloudInputData2);
+            pcl::io::savePCDFileASCII(
+                    "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resulting" +
+                    std::to_string(angleIndex) + "PCL1.pcd",
+                    pointCloudInputData1Rotated);
+            pcl::io::savePCDFileASCII(
+                    "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resulting" +
+                    std::to_string(angleIndex) + "PCL2.pcd",
+                    pointCloudInputData2);
 
 
-
-            Eigen::Matrix4d finalTransformation = transformationPCL2.inverse()*estimatedRotationScans.inverse()*transformationPCL1;
+            Eigen::Matrix4d finalTransformation =
+                    transformationPCL2.inverse() * estimatedRotationScans.inverse() * transformationPCL1;
             //std::cout << finalTransformation << std::endl;
             std::ofstream myFile11;
             myFile11.open(
-                    "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultingTransformation"+std::to_string(angleIndex)+".csv");
+                    "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultingTransformation" +
+                    std::to_string(angleIndex) + ".csv");
 
             Eigen::Quaterniond quatTMP(finalTransformation.block<3, 3>(0, 0));
             Eigen::Vector3d rpyTMP = generalHelpfulTools::getRollPitchYaw(quatTMP);
@@ -716,7 +740,6 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
             myFile11 << rpyTMP.z();
             myFile11 << "\n";
             myFile11.close();
-
 
 
         }
@@ -751,7 +774,7 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
 
     //std::cout << estimatedRotationScans << std::endl;
 
-//    pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2RotatedTo1(new pcl::PointCloud<pcl::PointXYZ>);
+//    pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2RotatedTo1(new pcl::PointCloud<pcl::PointXYZ>);
 //    pcl::transformPointCloud(*pointCloudInputData2, *pointCloudInputData2RotatedTo1, estimatedRotationScans);
 
 
@@ -766,7 +789,7 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
     //std::cout << finalTransformation << std::endl;
 
 
-    if(debug){
+    if (debug) {
 
         std::ofstream myFile12;
         myFile12.open(
@@ -782,40 +805,40 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
     }
 
 
-
-
-
-    return transformationPCL2.inverse()*estimatedRotationScans.inverse()*transformationPCL1;//makes out of transform from 2 to 1, transform 1 to 2 and added initial movement
+    return transformationPCL2.inverse() * estimatedRotationScans.inverse() *
+           transformationPCL1;//makes out of transform from 2 to 1, transform 1 to 2 and added initial movement
 }
 
-Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1,
-                                                                   pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2,
-                                                                   double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuessTransformation, bool useInitialGuess,
-                                                                   bool debug){
+Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData1,
+                                                                   pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData2,
+                                                                   double &fitnessX, double &fitnessY,
+                                                                   Eigen::Matrix4d initialGuessTransformation,
+                                                                   bool useInitialGuess,
+                                                                   bool debug) {
     double goodGuessAlpha = -100;
     if (useInitialGuess) {
         goodGuessAlpha = std::atan2(initialGuessTransformation(1, 0),
                                     initialGuessTransformation(0, 0));
     }
 
-    Eigen::Matrix4d transformationPCL1,transformationPCL2;
+    Eigen::Matrix4d transformationPCL1, transformationPCL2;
     //calc min circle for PCL2
-    double radius1 = this->movePCLtoMiddle(pointCloudInputData1,transformationPCL1);
+    double radius1 = this->movePCLtoMiddle(pointCloudInputData1, transformationPCL1);
 
-    double radius2 = this->movePCLtoMiddle(pointCloudInputData2,transformationPCL2);
+    double radius2 = this->movePCLtoMiddle(pointCloudInputData2, transformationPCL2);
     //transforms the point clouds to a different position dependent on minimum circle
     //get max radius
-    double maxDistance=radius2;
-    if(radius1>maxDistance){
-        maxDistance=radius1;
+    double maxDistance = radius2;
+    if (radius1 > maxDistance) {
+        maxDistance = radius1;
     }
     double cellSize = std::round(maxDistance * 2.0 * 1.1 / N * 100.0) / 100.0;//make 10% bigger area
 
 
     double maximumScan1 = this->getSpectrumFromPCL2D(pointCloudInputData1, this->voxelData1, this->magnitude1,
-                                                     this->phase1, cellSize * this->N / 2,false);
+                                                     this->phase1, cellSize * this->N / 2, false);
     double maximumScan2 = this->getSpectrumFromPCL2D(pointCloudInputData2, this->voxelData2, this->magnitude2,
-                                                     this->phase2, cellSize * this->N / 2,false);
+                                                     this->phase2, cellSize * this->N / 2, false);
 
 //    double maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity(),
 //                                              this->N);//get voxel
@@ -827,17 +850,16 @@ Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointClo
 //            voxelData2[i] = normalizationValue * voxelData2[i] / maximumVoxel2;
 //        }
     double estimatedAngle = this->sofftRegistrationVoxel2DRotationOnly(voxelData1,
-                                                                                             voxelData2,
-                                                                                             goodGuessAlpha, debug);
+                                                                       voxelData2,
+                                                                       goodGuessAlpha, debug);
 
 
-
-    pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputDataTMP2(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ> pointCloudInputDataTMP2;
     Eigen::Matrix4d rotationMatrixTMP = Eigen::Matrix4d::Identity();
     Eigen::AngleAxisd tmpRotVec(estimatedAngle, Eigen::Vector3d(0, 0, 1));
     Eigen::Matrix3d tmpMatrix3d = tmpRotVec.toRotationMatrix();
     rotationMatrixTMP.block<3, 3>(0, 0) = tmpMatrix3d;
-    pcl::transformPointCloud(*pointCloudInputData2, *pointCloudInputDataTMP2, rotationMatrixTMP);
+    pcl::transformPointCloud(pointCloudInputData2, pointCloudInputDataTMP2, rotationMatrixTMP);
 
     maximumScan1 = getSpectrumFromPCL2D(pointCloudInputData1, voxelData1, magnitude1, phase1,
                                         cellSize * this->N / 2, N);
@@ -861,13 +883,13 @@ Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointClo
     Eigen::Vector3d initialTranslation = initialGuessTransformation.block<3, 1>(0, 3);
 
     Eigen::Vector2d translation = this->sofftRegistrationVoxel2DTransformation(voxelData1,
-                                                 voxelData2,
-                                                 fitnessX,
-                                                 fitnessY,
-                                                 cellSize,
-                                                 initialTranslation,
-                                                 true,
-                                                 debug);
+                                                                               voxelData2,
+                                                                               fitnessX,
+                                                                               fitnessY,
+                                                                               cellSize,
+                                                                               initialTranslation,
+                                                                               true,
+                                                                               debug);
 
     Eigen::Matrix4d estimatedRotationScans;//from second scan to first
     //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
@@ -880,21 +902,18 @@ Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointClo
     estimatedRotationScans(3, 3) = 1;
 
 
-
-
-
     return estimatedRotationScans;//should be the transformation matrix from 1 to 2
 }
 
 
-
 double
-softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[], double voxelData2Input[], double goodGuessAlpha, bool debug){
+softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[], double voxelData2Input[],
+                                                                 double goodGuessAlpha, bool debug) {
 
     double maximumScan1 = this->getSpectrumFromVoxelData2D(voxelData1Input, this->magnitude1,
-                                                           this->phase1,false);
+                                                           this->phase1, false);
     double maximumScan2 = this->getSpectrumFromVoxelData2D(voxelData2Input, this->magnitude2,
-                                                           this->phase2,false);
+                                                           this->phase2, false);
 
     if (debug) {
         std::ofstream myFile1, myFile2, myFile3, myFile4, myFile5, myFile6;
@@ -940,15 +959,15 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
             //for (int k = 0; k < N; k++) {
-                int indexX = (N / 2 + i) % N;
-                int indexY = (N / 2 + j) % N;
+            int indexX = (N / 2 + i) % N;
+            int indexY = (N / 2 + j) % N;
 //                int indexZ = (N / 2 + k) % N;
 
-                magnitude1Shifted[indexY + N * indexX] =
-                        magnitude1[j + N * i] / globalMaximumMagnitude;
-                magnitude2Shifted[indexY + N * indexX] =
-                        magnitude2[j + N * i] / globalMaximumMagnitude;
-           // }
+            magnitude1Shifted[indexY + N * indexX] =
+                    magnitude1[j + N * i] / globalMaximumMagnitude;
+            magnitude2Shifted[indexY + N * indexX] =
+                    magnitude2[j + N * i] / globalMaximumMagnitude;
+            // }
         }
     }
 
@@ -1020,7 +1039,8 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
                                                               resultingCorrelationComplex);
     if (debug) {
         FILE *fp;
-        fp = fopen("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultCorrelation3D.csv", "w");
+        fp = fopen("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultCorrelation3D.csv",
+                   "w");
         for (int i = 0; i < 8 * bwOut * bwOut * bwOut; i++)
             fprintf(fp, "%.16f\n", resultingCorrelationComplex[i][0]);
         fclose(fp);
@@ -1073,7 +1093,8 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
     angleList.push_back((float) currentAverageAngle);
     if (debug) {
         std::ofstream myFile9;
-        myFile9.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultingCorrelation1D.csv");
+        myFile9.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultingCorrelation1D.csv");
 
         for (int i = 0; i < correlationAveraged.size(); i++) {
             myFile9 << correlationAveraged[i]; // real part
@@ -1090,7 +1111,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
 
     std::vector<int> out;
 
-    PeakFinder::findPeaks(correlationAveraged, out, true,4.0);
+    PeakFinder::findPeaks(correlationAveraged, out, true, 4.0);
 
     std::rotate(correlationAveraged.begin(),
                 correlationAveraged.begin() + correlationAveraged.size() - distanceToMinElement,
@@ -1140,15 +1161,18 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
 }
 
 Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTransformation(double voxelData1Input[],
-                                                       double voxelData2Input[],
-                                                       double &fitnessX, double &fitnessY, double cellSize, Eigen::Vector3d &initialGuess,bool useInitialGuess,bool debug){
+                                                                                   double voxelData2Input[],
+                                                                                   double &fitnessX, double &fitnessY,
+                                                                                   double cellSize,
+                                                                                   Eigen::Vector3d &initialGuess,
+                                                                                   bool useInitialGuess, bool debug) {
 
     //std::vector<double> xShiftList, yShiftList, heightPeakList, estimatedAngleList, heightPeakAngleList;
 
     double maximumScan1 = this->getSpectrumFromVoxelData2D(voxelData1Input, this->magnitude1,
-                                                           this->phase1,false);
+                                                           this->phase1, false);
     double maximumScan2 = this->getSpectrumFromVoxelData2D(voxelData2Input, this->magnitude2,
-                                                           this->phase2,false);
+                                                           this->phase2, false);
 
     //fftshift and calculate convolution of spectrums
     for (int i = 0; i < N; i++) {
@@ -1157,8 +1181,10 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTransformati
             int indexX = (N / 2 + i) % N;
             int indexY = (N / 2 + j) % N;
             //calculate the spectrum back
-            std::complex<double> tmpComplex1 = magnitude1[indexY + N * indexX] *std::exp(std::complex<double>(0, phase1[indexY + N * indexX]));
-            std::complex<double> tmpComplex2 = magnitude2[indexY + N * indexX] *std::exp(std::complex<double>(0, phase2[indexY + N * indexX]));
+            std::complex<double> tmpComplex1 =
+                    magnitude1[indexY + N * indexX] * std::exp(std::complex<double>(0, phase1[indexY + N * indexX]));
+            std::complex<double> tmpComplex2 =
+                    magnitude2[indexY + N * indexX] * std::exp(std::complex<double>(0, phase2[indexY + N * indexX]));
 //                std::complex<double> tmpComplex1 = std::exp(std::complex<double>(0, phase1[indexY + N * indexX]));
 //                std::complex<double> tmpComplex2 = std::exp(std::complex<double>(0, phase2[indexY + N * indexX]));
 //                std::complex<double> tmpComplex;
@@ -1204,11 +1230,10 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTransformati
     }
 
 
-
-    if(useInitialGuess){
+    if (useInitialGuess) {
         //find local maximum in 2d array
-        int initialIndexX = (int)(initialGuess[0]/cellSize+N/2);
-        int initialIndexY = (int)(initialGuess[1]/cellSize+N/2);
+        int initialIndexX = (int) (initialGuess[0] / cellSize + N / 2);
+        int initialIndexY = (int) (initialGuess[1] / cellSize + N / 2);
         int localMaxDiffX = 0;
         int localMaxDiffY = 0;
         do {
@@ -1225,9 +1250,9 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTransformati
                     }
                 }
             }
-            initialIndexY+=localMaxDiffY;
-            initialIndexX+=localMaxDiffX;
-        }while(localMaxDiffX!=0 || localMaxDiffY!=0);
+            initialIndexY += localMaxDiffY;
+            initialIndexX += localMaxDiffX;
+        } while (localMaxDiffX != 0 || localMaxDiffY != 0);
         indexMaximumCorrelationI = initialIndexX;
         indexMaximumCorrelationJ = initialIndexY;
     }
@@ -1239,7 +1264,8 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTransformati
 //    std::cout << "estimated indexToStart:" << std::endl;
 //    std::cout << indexMaximumCorrelationI<< std::endl;
 //    std::cout << indexMaximumCorrelationJ << std::endl;
-    Eigen::Vector3d translationCalculated((indexMaximumCorrelationI - N / 2.0) * cellSize,(indexMaximumCorrelationJ - N / 2.0) * cellSize,0);
+    Eigen::Vector3d translationCalculated((indexMaximumCorrelationI - N / 2.0) * cellSize,
+                                          (indexMaximumCorrelationJ - N / 2.0) * cellSize, 0);
 //    std::cout << "translationCalculated: "<< std::endl;
 //    std::cout << translationCalculated << std::endl;
 
@@ -1302,15 +1328,15 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTransformati
 
 
     //translationCalculated = generalHelpfulTools::getQuaternionFromRPY(0,0,M_PI).toRotationMatrix()*translationCalculated;
-    if(!isfinite(fitnessX)){
+    if (!isfinite(fitnessX)) {
         fitnessX = 10;
     }
-    if(!isfinite(fitnessY)){
+    if (!isfinite(fitnessY)) {
         fitnessY = 10;
     }
     Eigen::Vector2d returnVector;
-    returnVector[0]=translationCalculated[0];
-    returnVector[1]=translationCalculated[1];
+    returnVector[0] = translationCalculated[0];
+    returnVector[1] = translationCalculated[1];
     return returnVector;
 }
 
@@ -1416,7 +1442,7 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTransformati
 //        cv::Mat magTMP2(N, N, CV_64FC1, resampledMagnitudeSO3_2TMP);
 //        magTMP1.convertTo(magTMP1, CV_8UC1);
 //        magTMP2.convertTo(magTMP2, CV_8UC1);
-//        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+//        cv<cv::CLAHE> clahe = cv::createCLAHE();
 //        clahe->setClipLimit(3);
 //        clahe->apply(magTMP1, magTMP1);
 //        clahe->apply(magTMP2, magTMP2);
@@ -1564,7 +1590,7 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTransformati
 //
 //        double currentAngle = -angleList[out[angleIndex]];//describes angle from A to B, therefore we have to reverse the angle
 //        double currentPeakAngle = correlationAveraged[out[angleIndex]];
-//        pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputDataTMP2(new pcl::PointCloud<pcl::PointXYZ>);
+//        pcl::PointCloud<pcl::PointXYZ> pointCloudInputDataTMP2(new pcl::PointCloud<pcl::PointXYZ>);
 //        Eigen::Matrix4d rotationMatrixTMP;
 //        //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
 //        Eigen::AngleAxisd tmpRotVec(currentAngle, Eigen::Vector3d(0, 0, 1));
@@ -1748,7 +1774,7 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTransformati
 //    Eigen::Matrix4d estimatedRotationScans1To2 = estimatedRotationScans.inverse();
 //    //std::cout << estimatedRotationScans << std::endl;
 //
-////    pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2RotatedTo1(new pcl::PointCloud<pcl::PointXYZ>);
+////    pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2RotatedTo1(new pcl::PointCloud<pcl::PointXYZ>);
 ////    pcl::transformPointCloud(*pointCloudInputData2, *pointCloudInputData2RotatedTo1, estimatedRotationScans);
 //
 //

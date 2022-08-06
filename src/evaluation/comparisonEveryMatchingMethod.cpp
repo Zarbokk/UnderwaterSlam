@@ -279,18 +279,18 @@ private:
 
 
 
-            pcl::PointCloud<pcl::PointXYZ>::Ptr scan1Threshold(new pcl::PointCloud<pcl::PointXYZ>);
-            pcl::PointCloud<pcl::PointXYZ>::Ptr scan2Threshold(new pcl::PointCloud<pcl::PointXYZ>);
-            pcl::PointCloud<pcl::PointXYZ>::Ptr finalThreshold(new pcl::PointCloud<pcl::PointXYZ>);
-            pcl::PointCloud<pcl::PointXYZ>::Ptr scan1OneValue(new pcl::PointCloud<pcl::PointXYZ>);
-            pcl::PointCloud<pcl::PointXYZ>::Ptr scan2OneValue(new pcl::PointCloud<pcl::PointXYZ>);
-            pcl::PointCloud<pcl::PointXYZ>::Ptr finalOneValue(new pcl::PointCloud<pcl::PointXYZ>);
+            pcl::PointCloud<pcl::PointXYZ> scan1Threshold;
+            pcl::PointCloud<pcl::PointXYZ> scan2Threshold;
+            pcl::PointCloud<pcl::PointXYZ> finalThreshold;
+            pcl::PointCloud<pcl::PointXYZ> scan1OneValue;
+            pcl::PointCloud<pcl::PointXYZ> scan2OneValue;
+            pcl::PointCloud<pcl::PointXYZ> finalOneValue;
 
             Eigen::Matrix4d tmpMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(M_PI, 0, 0);
-            *scan1OneValue = createPCLFromGraphOneValue(indexOfLastKeyframe, tmpMatrix);
-            *scan2OneValue = createPCLFromGraphOneValue(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
-            *scan1Threshold = createPCLFromGraphOnlyThreshold(indexOfLastKeyframe, tmpMatrix);
-            *scan2Threshold = createPCLFromGraphOnlyThreshold(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
+            scan1OneValue = createPCLFromGraphOneValue(indexOfLastKeyframe, tmpMatrix);
+            scan2OneValue = createPCLFromGraphOneValue(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
+            scan1Threshold = createPCLFromGraphOnlyThreshold(indexOfLastKeyframe, tmpMatrix);
+            scan2Threshold = createPCLFromGraphOnlyThreshold(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
 
             this->initialGuessTransformation.block<3, 1>(0, 3) =
                     this->initialGuessTransformation.block<3, 1>(0, 3) + Eigen::Vector3d(0, -0, 0);
@@ -301,9 +301,9 @@ private:
             
 
             pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan1.ply",
-                                       *scan1Threshold);
+                                       scan1Threshold);
             pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan2.ply",
-                                       *scan2Threshold);
+                                       scan2Threshold);
             std::cout << "GT to compare with:" << std::endl;
             std::cout << GTTransformation << std::endl;
             std::cout << "Initial Guess:" << std::endl;

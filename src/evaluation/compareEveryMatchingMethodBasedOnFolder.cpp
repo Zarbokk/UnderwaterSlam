@@ -48,7 +48,7 @@ Eigen::Matrix4d registrationOfTwoVoxelsSOFFTFasterTest(double voxelData1[],
                                                        double voxelData2[],
                                                        Eigen::Matrix4d initialGuess,
                                                        bool useInitialAngle, bool useInitialTranslation,
-                                                       int numberOfPoints, scanRegistrationClass scanRegistrationObject,
+                                                       int numberOfPoints, scanRegistrationClass &scanRegistrationObject,
                                                        const int dimensionOfVoxelData,
                                                        bool debug = false) {
     double goodGuessAlpha = -100;
@@ -171,10 +171,10 @@ std::vector<std::string> getNextLineAndSplitIntoTokens(std::istream &str) {
 
 
 std::vector<measurementResults>
-handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass scanRegistrationObject32,
-                               scanRegistrationClass scanRegistrationObject64,
-                               scanRegistrationClass scanRegistrationObject128,
-                               scanRegistrationClass scanRegistrationObject256) {
+handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scanRegistrationObject32,
+                               scanRegistrationClass &scanRegistrationObject64,
+                               scanRegistrationClass &scanRegistrationObject128,
+                               scanRegistrationClass &scanRegistrationObject256) {
     //load all the data
     std::vector<measurementResults> returnMeasurementsList;
 
@@ -203,22 +203,22 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass scanR
             }
         }
         std::cout << gtTransformation << std::endl;
-        pcl::PointCloud<pcl::PointXYZ>::Ptr final(new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::PointCloud<pcl::PointXYZ> final;
 
-        pcl::PointCloud<pcl::PointXYZ>::Ptr oneValuePCL(new pcl::PointCloud<pcl::PointXYZ>);
-        pcl::PointCloud<pcl::PointXYZ>::Ptr oneValuePCLShifted(new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::PointCloud<pcl::PointXYZ> oneValuePCL;
+        pcl::PointCloud<pcl::PointXYZ> oneValuePCLShifted;
 
-        pcl::io::loadPLYFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_OneValue.ply", *oneValuePCL);
+        pcl::io::loadPLYFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_OneValue.ply", oneValuePCL);
         pcl::io::loadPLYFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_OneValueShifted.ply",
-                             *oneValuePCLShifted);
+                             oneValuePCLShifted);
 
-        pcl::PointCloud<pcl::PointXYZ>::Ptr ThresholdPCL(new pcl::PointCloud<pcl::PointXYZ>);
-        pcl::PointCloud<pcl::PointXYZ>::Ptr ThresholdPCLShifted(new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::PointCloud<pcl::PointXYZ> ThresholdPCL;
+        pcl::PointCloud<pcl::PointXYZ> ThresholdPCLShifted;
 
         pcl::io::loadPLYFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_Threshold.ply",
-                             *ThresholdPCL);
+                             ThresholdPCL);
         pcl::io::loadPLYFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_ThresholdShifted.ply",
-                             *ThresholdPCLShifted);
+                             ThresholdPCLShifted);
 
 
         std::chrono::steady_clock::time_point begin;

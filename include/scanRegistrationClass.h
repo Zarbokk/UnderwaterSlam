@@ -55,31 +55,31 @@ public:
         mySofftRegistrationClass.~softDescriptorRegistration();
     }
 
-    static Eigen::Matrix4d generalizedIcpRegistrationSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                                                            const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
+    static Eigen::Matrix4d generalizedIcpRegistrationSimple(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                                                            pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                                             double &fitnessScore);
 
-    static Eigen::Matrix4d generalizedIcpRegistrationSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                                                            const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
+    static Eigen::Matrix4d generalizedIcpRegistrationSimple(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                                                            pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                                             double &fitnessScore, Eigen::Matrix4d &guess);
 
-    static Eigen::Matrix4d generalizedIcpRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                                                      const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
-                                                      pcl::PointCloud<pcl::PointXYZ>::Ptr &Final,
+    static Eigen::Matrix4d generalizedIcpRegistration(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                                                      pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
+                                                      pcl::PointCloud<pcl::PointXYZ> &Final,
                                                       double &fitnessScore,
                                                       Eigen::Matrix4d &initialGuessTransformation);
 
-    Eigen::Matrix4d sofftRegistration2D(const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1,
-                                        const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2,
+    Eigen::Matrix4d sofftRegistration2D(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData1,
+                                        pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData2,
                                         double &fitnessX, double &fitnessY, double goodGuessAlpha, bool debug);
 
-    Eigen::Matrix4d sofftRegistration2D(const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1,
-                                        const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2,
+    Eigen::Matrix4d sofftRegistration2D(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData1,
+                                        pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData2,
                                         double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuess,bool useInitialGuess,
                                         bool debug = false);
 
-    static Eigen::Matrix4d icpRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                                           const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
+    static Eigen::Matrix4d icpRegistration(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                                           pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                            pcl::PointCloud<pcl::PointXYZ> &Final);
 
 //    Eigen::Matrix4d sofftRegistrationVoxel2D(double voxelData1[],
@@ -99,29 +99,16 @@ public:
     FMSRegistrationOld(double voxelData1Input[], double voxelData2Input[], double cellSize, bool debug = false);
 
 
-    Eigen::Matrix4d super4PCSRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                                          const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
+    Eigen::Matrix4d super4PCSRegistration(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                                          pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                           Eigen::Matrix4d initialGuess, bool useInitialGuess, bool debug = false);
 
-    static Eigen::Matrix4d
-    normalDistributionsTransformRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                                             const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
-                                             pcl::PointCloud<pcl::PointXYZ>::Ptr &Final,
-                                             double &fitnessScore,
-                                             Eigen::Matrix4d &initialGuessTransformation, double ndt_resolution = 1.0,
-                                             double ndt_step_size = 0.1, double transform_epsilon = 0.1);
-
-
-    Eigen::Matrix4d RANSACRegistration(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                                       const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
-                                       Eigen::Matrix4d initialGuess, bool useInitialGuess, bool debug = false);
-
-    Eigen::Matrix4d ndt_d2d_2d(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                               const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan, Eigen::Matrix4d initialGuess,
+    Eigen::Matrix4d ndt_d2d_2d(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                               pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan, Eigen::Matrix4d initialGuess,
                                bool useInitialGuess);
 
-    Eigen::Matrix4d ndt_p2d(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
-                               const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan, Eigen::Matrix4d initialGuess,
+    Eigen::Matrix4d ndt_p2d(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                               pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan, Eigen::Matrix4d initialGuess,
                                bool useInitialGuess);
 
 private:
