@@ -70,6 +70,32 @@ public:
                                                 spectrumOut, FFTW_FORWARD, FFTW_ESTIMATE);
     }
 
+    ~softDescriptorRegistration(){
+        sofftCorrelationObject.~sofftCorrelationClass();
+//        free(this->resultingCorrelationDouble);
+//        free(this->resultingCorrelationComplex);
+//        free(this->resultingPhaseDiff2D );
+//        free(this->resultingShiftPeaks2D);
+//        free(this->magnitude1Shifted );
+//        free(this->magnitude2Shifted );
+//        free(this->voxelData1 );
+//        free(this->voxelData2 );
+//        free(this->spectrumOut );
+//        free(this->phase1);
+//        free(this->phase2);
+//        free(this->magnitude1 );
+//        free(this->magnitude2 );
+//        free(resampledMagnitudeSO3_1 );
+//        free(resampledMagnitudeSO3_2);
+//        free(resampledMagnitudeSO3_1TMP);
+//        free(resampledMagnitudeSO3_2TMP );
+//        free(inputSpacialData);
+//        free(planFourierToVoxel2D);
+//        free(planVoxelToFourier3D);
+//        free(planVoxelToFourier2D);
+
+    }
+
     Eigen::Matrix4d registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData1,
                                            pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloudInputData2, double &fitnessX,
                                            double &fitnessY, double goodGuessAlpha = -100,

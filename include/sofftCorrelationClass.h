@@ -130,6 +130,25 @@ public:
 
 
     }
+    ~sofftCorrelationClass (){
+//        free(sigR);
+//        free(sigI);
+//        free(so3Sig);
+//        free(workspace1);
+//        free(workspace2);
+//        free(workspace3);
+//        free(sigCoefR);
+//        free(sigCoefI);
+//        free(patCoefR);
+//        free(patCoefI);
+//        free(so3Coef);
+//
+//        free(seminaive_naive_tablespace);
+//        free(weights);
+    }
+
+
+
 
     void correlationOfTwoSignalsInSO3(double resampledMagnitude1[], double resampledMagnitude2[], fftw_complex so3SigReturn[]);
 

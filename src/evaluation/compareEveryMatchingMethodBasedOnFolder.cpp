@@ -17,8 +17,12 @@
 #include "std_srvs/SetBool.h"
 #include <filesystem>
 
-#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
-#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_30_5_RandomShifts/"
+//#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_30_5_RandomShifts/"
+
+#define HOME_LOCATION "/home/tim-external/dataFolder/StPereDataset/"
+#define WHICH_FOLDER_SHOULD_BE_SAVED "randomShifts/"
+
 
 
 struct intensityValues {
@@ -26,7 +30,7 @@ struct intensityValues {
     intensityMeasurement intensity;
 };
 //1: GICP, 2: SUPER4PCS, 3: NDT D2D 2D, 4: NDT P2D, 5: FourierMellinTransform(oneSize), 6: Our 32 FMS 2D, 7: Our 64 FMS 2D, 8: Our 128 FMS 2D, 9: Our 256 FMS 2D
-struct measurementResults{
+struct measurementResults {
     std::vector<double> calculationTime;
     std::vector<double> errorInRotation;
     std::vector<double> errorInDistance;
@@ -65,13 +69,13 @@ Eigen::Matrix4d registrationOfTwoVoxelsSOFFTFasterTest(double voxelData1[],
     rotationMatrixTMP.block<3, 3>(0, 0) = tmpMatrix3d;
 
     if (true) {
-        for (int i = 0 ; i< 2 ; i++){
+        for (int i = 0; i < 2; i++) {
 
 
             cv::Mat magTMP1(numberOfPoints, numberOfPoints, CV_64F, voxelData1);
             //add gaussian blur
             cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
-    //            cv::imwrite("/home/tim-external/Documents/imreg_fmt/firstImage.jpg", magTMP1);
+            //            cv::imwrite("/home/tim-external/Documents/imreg_fmt/firstImage.jpg", magTMP1);
 
             cv::Mat magTMP2(numberOfPoints, numberOfPoints, CV_64F, voxelData2);
             //add gaussian blur
@@ -166,11 +170,14 @@ std::vector<std::string> getNextLineAndSplitIntoTokens(std::istream &str) {
 }
 
 
-std::vector<measurementResults> handleRegistrationsOfDirectory(const std::string &s) {
+std::vector<measurementResults>
+handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass scanRegistrationObject32,
+                               scanRegistrationClass scanRegistrationObject64,
+                               scanRegistrationClass scanRegistrationObject128,
+                               scanRegistrationClass scanRegistrationObject256) {
     //load all the data
     std::vector<measurementResults> returnMeasurementsList;
-    scanRegistrationClass scanRegistrationObjectGeneral(32, 32 / 2, 32 / 2,
-                                                 32 / 2 - 1);
+
 
     std::ifstream sizeVoxelGridFile(s + std::string("/dimensionVoxelData.csv"));
     std::cout << s + std::string("/dimensionVoxelData.csv") << std::endl;
@@ -179,8 +186,8 @@ std::vector<measurementResults> handleRegistrationsOfDirectory(const std::string
     double sizeOfVoxelGrid = std::stod(sizeOfVoxelGridList[0]);
 
 
-
-    for(int currentNumberOfScanInDirectory=0;currentNumberOfScanInDirectory<10;currentNumberOfScanInDirectory++){
+    for (int currentNumberOfScanInDirectory = 0;
+         currentNumberOfScanInDirectory < 10; currentNumberOfScanInDirectory++) {
         measurementResults tmpMeasurements;
 
 
@@ -208,23 +215,26 @@ std::vector<measurementResults> handleRegistrationsOfDirectory(const std::string
         pcl::PointCloud<pcl::PointXYZ>::Ptr ThresholdPCL(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::PointCloud<pcl::PointXYZ>::Ptr ThresholdPCLShifted(new pcl::PointCloud<pcl::PointXYZ>);
 
-        pcl::io::loadPLYFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_Threshold.ply", *ThresholdPCL);
+        pcl::io::loadPLYFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_Threshold.ply",
+                             *ThresholdPCL);
         pcl::io::loadPLYFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_ThresholdShifted.ply",
                              *ThresholdPCLShifted);
+
+
         std::chrono::steady_clock::time_point begin;
         std::chrono::steady_clock::time_point end;
         Eigen::Matrix4d initialGuess = Eigen::Matrix4d::Identity();
         Eigen::Matrix4d estimatedTransformation;
-        double fitnessScoreX,fitnessScoreY;
+        double fitnessScoreX, fitnessScoreY;
 
 
         //GICP
         begin = std::chrono::steady_clock::now();
-        estimatedTransformation= scanRegistrationObjectGeneral.generalizedIcpRegistration(oneValuePCL,
-                                                                                          oneValuePCLShifted,
-                                                                                          final,
-                                                                                          fitnessScoreX,
-                                                                                          initialGuess);
+        estimatedTransformation = scanRegistrationObject32.generalizedIcpRegistration(oneValuePCL,
+                                                                                           oneValuePCLShifted,
+                                                                                           final,
+                                                                                           fitnessScoreX,
+                                                                                           initialGuess);
         end = std::chrono::steady_clock::now();
         double timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
         std::cout << timeToCalculate << std::endl;
@@ -233,21 +243,21 @@ std::vector<measurementResults> handleRegistrationsOfDirectory(const std::string
         //calculate the angle
         double angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
         double angleEstimated = std::atan2(estimatedTransformation(1, 0), estimatedTransformation(0, 0));
-        double angleDiff = abs(generalHelpfulTools::angleDiff(angleGT,angleEstimated));
+        double angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
         tmpMeasurements.errorInRotation.push_back(angleDiff);
         //calculate difference angle and take abs
         Eigen::Vector3d translationGT = gtTransformation.block<3, 1>(0, 3);
         Eigen::Vector3d translationEstimated = estimatedTransformation.block<3, 1>(0, 3);
-        double errorDistance = (translationGT-translationEstimated).norm();
+        double errorDistance = (translationGT - translationEstimated).norm();
         tmpMeasurements.errorInDistance.push_back(errorDistance);
 
 
         //SUPER4PCS
         begin = std::chrono::steady_clock::now();
-        estimatedTransformation = scanRegistrationObjectGeneral.super4PCSRegistration(oneValuePCL,
-                                                                                           oneValuePCLShifted,
-                                                                                           initialGuess,
-                                                                                           true, false);
+        estimatedTransformation = scanRegistrationObject32.super4PCSRegistration(oneValuePCL,
+                                                                                      oneValuePCLShifted,
+                                                                                      initialGuess,
+                                                                                      true, false);
 
         end = std::chrono::steady_clock::now();
         timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
@@ -257,40 +267,17 @@ std::vector<measurementResults> handleRegistrationsOfDirectory(const std::string
         //calculate the angle
         angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
         angleEstimated = std::atan2(estimatedTransformation(1, 0), estimatedTransformation(0, 0));
-        angleDiff = abs(generalHelpfulTools::angleDiff(angleGT,angleEstimated));
+        angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
         tmpMeasurements.errorInRotation.push_back(angleDiff);
         //calculate difference angle and take abs
         translationGT = gtTransformation.block<3, 1>(0, 3);
         translationEstimated = estimatedTransformation.block<3, 1>(0, 3);
-        errorDistance = (translationGT-translationEstimated).norm();
+        errorDistance = (translationGT - translationEstimated).norm();
         tmpMeasurements.errorInDistance.push_back(errorDistance);
 
         //NDT D2D 2D,
         begin = std::chrono::steady_clock::now();
-        estimatedTransformation = scanRegistrationObjectGeneral.ndt_d2d_2d(oneValuePCL,
-                                                                                      oneValuePCLShifted,
-                                                                                      initialGuess,
-                                                                                      true);
-
-        end = std::chrono::steady_clock::now();
-        timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-        std::cout << timeToCalculate << std::endl;
-        tmpMeasurements.calculationTime.push_back(timeToCalculate);
-
-        //calculate the angle
-        angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
-        angleEstimated = std::atan2(estimatedTransformation(1, 0), estimatedTransformation(0, 0));
-        angleDiff = abs(generalHelpfulTools::angleDiff(angleGT,angleEstimated));
-        tmpMeasurements.errorInRotation.push_back(angleDiff);
-        //calculate difference angle and take abs
-        translationGT = gtTransformation.block<3, 1>(0, 3);
-        translationEstimated = estimatedTransformation.block<3, 1>(0, 3);
-        errorDistance = (translationGT-translationEstimated).norm();
-        tmpMeasurements.errorInDistance.push_back(errorDistance);
-
-        //NDT P2D
-        begin = std::chrono::steady_clock::now();
-        estimatedTransformation = scanRegistrationObjectGeneral.ndt_p2d(oneValuePCL,
+        estimatedTransformation = scanRegistrationObject32.ndt_d2d_2d(oneValuePCL,
                                                                            oneValuePCLShifted,
                                                                            initialGuess,
                                                                            true);
@@ -303,12 +290,35 @@ std::vector<measurementResults> handleRegistrationsOfDirectory(const std::string
         //calculate the angle
         angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
         angleEstimated = std::atan2(estimatedTransformation(1, 0), estimatedTransformation(0, 0));
-        angleDiff = abs(generalHelpfulTools::angleDiff(angleGT,angleEstimated));
+        angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
         tmpMeasurements.errorInRotation.push_back(angleDiff);
         //calculate difference angle and take abs
         translationGT = gtTransformation.block<3, 1>(0, 3);
         translationEstimated = estimatedTransformation.block<3, 1>(0, 3);
-        errorDistance = (translationGT-translationEstimated).norm();
+        errorDistance = (translationGT - translationEstimated).norm();
+        tmpMeasurements.errorInDistance.push_back(errorDistance);
+
+        //NDT P2D
+        begin = std::chrono::steady_clock::now();
+        estimatedTransformation = scanRegistrationObject32.ndt_p2d(oneValuePCL,
+                                                                        oneValuePCLShifted,
+                                                                        initialGuess,
+                                                                        true);
+
+        end = std::chrono::steady_clock::now();
+        timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+        std::cout << timeToCalculate << std::endl;
+        tmpMeasurements.calculationTime.push_back(timeToCalculate);
+
+        //calculate the angle
+        angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
+        angleEstimated = std::atan2(estimatedTransformation(1, 0), estimatedTransformation(0, 0));
+        angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
+        tmpMeasurements.errorInRotation.push_back(angleDiff);
+        //calculate difference angle and take abs
+        translationGT = gtTransformation.block<3, 1>(0, 3);
+        translationEstimated = estimatedTransformation.block<3, 1>(0, 3);
+        errorDistance = (translationGT - translationEstimated).norm();
         tmpMeasurements.errorInDistance.push_back(errorDistance);
         // FourierMellinTransform(oneSize) (currently missing)
 
@@ -327,7 +337,8 @@ std::vector<measurementResults> handleRegistrationsOfDirectory(const std::string
             voxelData = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
 
             std::ifstream voxelDataFile(s + std::string(
-                    "/" + std::to_string(currentNumberOfScanInDirectory) + "intensity" + std::to_string(numberOfPoints) +
+                    "/" + std::to_string(currentNumberOfScanInDirectory) + "intensity" +
+                    std::to_string(numberOfPoints) +
                     ".csv"));
             for (int i = 0; i < numberOfPoints; i++) {
                 std::vector<std::string> voxelDataVector = getNextLineAndSplitIntoTokens(voxelDataFile);
@@ -345,20 +356,49 @@ std::vector<measurementResults> handleRegistrationsOfDirectory(const std::string
                 std::vector<std::string> voxelDataShiftedVector = getNextLineAndSplitIntoTokens(voxelDataShiftedFile);
                 for (int j = 0; j < numberOfPoints; j++) {
                     voxelDataShifted[i + numberOfPoints * j] = std::stod(voxelDataShiftedVector[j]);
-    //                std::cout <<voxelDataShifted[i + numberOfPoints * j] << std::endl;
+                    //                std::cout <<voxelDataShifted[i + numberOfPoints * j] << std::endl;
                 }
             }
 
 
-    //        std::cout << "start registration of: " << numberOfPoints << std::endl;
+            //        std::cout << "start registration of: " << numberOfPoints << std::endl;
             //registration can be done here
             begin = std::chrono::steady_clock::now();
+            if(numberOfPoints == 32){
+                estimatedTransformation = registrationOfTwoVoxelsSOFFTFasterTest(voxelDataShifted, voxelData,
+                                                                                 Eigen::Matrix4d::Identity(), true,
+                                                                                 true, numberOfPoints,
+                                                                                 scanRegistrationObject32,
+                                                                                 sizeOfVoxelGrid, true);
+            }else{
+                if(numberOfPoints == 64){
+                        estimatedTransformation = registrationOfTwoVoxelsSOFFTFasterTest(voxelDataShifted, voxelData,
+                                                                                         Eigen::Matrix4d::Identity(), true,
+                                                                                         true, numberOfPoints,
+                                                                                         scanRegistrationObject64,
+                                                                                         sizeOfVoxelGrid, true);
+                }else{
+                    if(numberOfPoints == 128){
+                        estimatedTransformation = registrationOfTwoVoxelsSOFFTFasterTest(voxelDataShifted, voxelData,
+                                                                                         Eigen::Matrix4d::Identity(), true,
+                                                                                         true, numberOfPoints,
+                                                                                         scanRegistrationObject128,
+                                                                                         sizeOfVoxelGrid, true);
+                    }else{
+                        if(numberOfPoints == 256){
+                            estimatedTransformation = registrationOfTwoVoxelsSOFFTFasterTest(voxelDataShifted, voxelData,
+                                                                                             Eigen::Matrix4d::Identity(), true,
+                                                                                             true, numberOfPoints,
+                                                                                             scanRegistrationObject256,
+                                                                                             sizeOfVoxelGrid, true);
+                        }else{
+                            std::cout << "should never happen" << std::endl;
+                            exit(-1);
+                        }
+                    }
+                }
+            }
 
-            estimatedTransformation = registrationOfTwoVoxelsSOFFTFasterTest(voxelDataShifted, voxelData,
-                                                                                          Eigen::Matrix4d::Identity(), true,
-                                                                                          true, numberOfPoints,
-                                                                                          scanRegistrationObject,
-                                                                                          sizeOfVoxelGrid, true);
             end = std::chrono::steady_clock::now();
             timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
             std::cout << timeToCalculate << std::endl;
@@ -367,17 +407,19 @@ std::vector<measurementResults> handleRegistrationsOfDirectory(const std::string
             //calculate the angle
             angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
             angleEstimated = std::atan2(estimatedTransformation(1, 0), estimatedTransformation(0, 0));
-            angleDiff = abs(generalHelpfulTools::angleDiff(angleGT,angleEstimated));
+            angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
             tmpMeasurements.errorInRotation.push_back(angleDiff);
             //calculate difference angle and take abs
             translationGT = gtTransformation.block<3, 1>(0, 3);
             translationEstimated = estimatedTransformation.block<3, 1>(0, 3);
-            errorDistance = (translationGT-translationEstimated).norm();
+            errorDistance = (translationGT - translationEstimated).norm();
             tmpMeasurements.errorInDistance.push_back(errorDistance);
+            free(voxelDataShifted);
+            free(voxelData);
 
-    //        std::cout << "estimated Transformation " << resultTransformation << std::endl;
-    //        std::cout << "test123" << std::endl;
-
+            //        std::cout << "estimated Transformation " << resultTransformation << std::endl;
+            //        std::cout << "test123" << std::endl;
+            scanRegistrationObject.~scanRegistrationClass();
         }
 
         returnMeasurementsList.push_back(tmpMeasurements);
@@ -390,26 +432,33 @@ int main(int argc, char **argv) {
     //get list of all the directories
     std::vector<std::string> listOfDirectories = get_directories(
             std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED));
-
-
+    scanRegistrationClass scanRegistrationObject32(32, 32 / 2, 32 / 2, 32 / 2 - 1);
+    scanRegistrationClass scanRegistrationObject64(64, 64 / 2, 64 / 2, 64 / 2 - 1);
+    scanRegistrationClass scanRegistrationObject128(128, 128 / 2, 128 / 2, 128 / 2 - 1);
+    scanRegistrationClass scanRegistrationObject256(256, 256 / 2, 256 / 2, 256 / 2 - 1);
     std::vector<measurementResults> resultVector;
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < listOfDirectories.size(); i++) {
 
-        std::vector<measurementResults> tmpVector = handleRegistrationsOfDirectory(listOfDirectories[i]);
+        std::vector<measurementResults> tmpVector = handleRegistrationsOfDirectory(listOfDirectories[i],
+                                                                                   scanRegistrationObject32,
+                                                                                   scanRegistrationObject64,
+                                                                                   scanRegistrationObject128,
+                                                                                   scanRegistrationObject256);
 
         resultVector.insert(std::end(resultVector), std::begin(tmpVector), std::end(tmpVector));
+        std::cout << "############################# we are at Number: " << i << std::endl;
 
     }
 
     std::ofstream errorAngleFile;
-    errorAngleFile.open (std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) + "errorAngle.csv");
+    errorAngleFile.open(std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) + "errorAngle.csv");
 
     //save errors angle
-    for(int i = 0 ; i<resultVector.size();i++){
-        for(int j = 0 ; j<resultVector[i].errorInRotation.size();j++){
+    for (int i = 0; i < resultVector.size(); i++) {
+        for (int j = 0; j < resultVector[i].errorInRotation.size(); j++) {
             errorAngleFile << resultVector[i].errorInRotation[j];//time
-            if(j != resultVector[i].errorInRotation.size()-1){
-                errorAngleFile<<",";
+            if (j != resultVector[i].errorInRotation.size() - 1) {
+                errorAngleFile << ",";
             }
         }
         errorAngleFile << "\n";//error
@@ -421,14 +470,15 @@ int main(int argc, char **argv) {
 
     //save times
     std::ofstream calculationTimeFile;
-    calculationTimeFile.open (std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) + "calculationTime.csv");
+    calculationTimeFile.open(
+            std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) + "calculationTime.csv");
 
     //save errors angle
-    for(int i = 0 ; i<resultVector.size();i++){
-        for(int j = 0 ; j<resultVector[i].calculationTime.size();j++){
+    for (int i = 0; i < resultVector.size(); i++) {
+        for (int j = 0; j < resultVector[i].calculationTime.size(); j++) {
             calculationTimeFile << resultVector[i].calculationTime[j];//time
-            if(j != resultVector[i].calculationTime.size()-1){
-                calculationTimeFile<<",";
+            if (j != resultVector[i].calculationTime.size() - 1) {
+                calculationTimeFile << ",";
             }
         }
         calculationTimeFile << "\n";//error
@@ -436,20 +486,19 @@ int main(int argc, char **argv) {
     //save errors distance
 
     std::ofstream errorDistanceFile;
-    errorDistanceFile.open (std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) + "errorDistance.csv");
+    errorDistanceFile.open(
+            std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) + "errorDistance.csv");
 
     //save errors angle
-    for(int i = 0 ; i<resultVector.size();i++){
-        for(int j = 0 ; j<resultVector[i].errorInDistance.size();j++){
+    for (int i = 0; i < resultVector.size(); i++) {
+        for (int j = 0; j < resultVector[i].errorInDistance.size(); j++) {
             errorDistanceFile << resultVector[i].errorInDistance[j];//time
-            if(j != resultVector[i].errorInDistance.size()-1){
-                errorDistanceFile<<",";
+            if (j != resultVector[i].errorInDistance.size() - 1) {
+                errorDistanceFile << ",";
             }
         }
         errorDistanceFile << "\n";//error
     }
-
-
 
 
     return (0);

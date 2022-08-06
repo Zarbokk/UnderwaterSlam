@@ -51,6 +51,9 @@ public:
             : mySofftRegistrationClass(N, bwOut, bwIn, degLim) {
         sizeVoxelData = N;
     }
+    ~scanRegistrationClass(){
+        mySofftRegistrationClass.~softDescriptorRegistration();
+    }
 
     static Eigen::Matrix4d generalizedIcpRegistrationSimple(const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudFirstScan,
                                                             const pcl::PointCloud<pcl::PointXYZ>::Ptr &cloudSecondScan,
