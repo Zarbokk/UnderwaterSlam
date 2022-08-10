@@ -18,7 +18,7 @@
 #include <filesystem>
 
 //#define numberOfPoints 128
-#define DIMENSION_OF_VOXEL_DATA 60
+#define DIMENSION_OF_VOXEL_DATA 40
 #define NUMBER_OF_POINTS_MAP 512.0
 #define DIMENSION_OF_MAP 200.0
 #define FACTOR_OF_THRESHOLD 0.3
@@ -26,11 +26,18 @@
 
 #define SHOULD_USE_ROSBAG true
 
-//#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
-#define HOME_LOCATION "/home/tim-external/dataFolder/StPereDataset/"
 
-//#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_30_5/"
-#define WHICH_FOLDER_SHOULD_BE_SAVED "randomShifts/"
+#define SHIFT_VALUE_ANGLE 15.0
+#define SHIFT_VALUE_POSITION 10.0
+
+
+#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
+//#define HOME_LOCATION "/home/tim-external/dataFolder/StPereDataset/"
+
+#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_15_1_RandomShifts1510/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "randomShifts105/"
+
+
 
 
 
@@ -263,10 +270,10 @@ private:
             std::random_device rd;  // Will be used to obtain a seed for the random number engine
             std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
             std::uniform_real_distribution<> dis(-1.0, 1.0);
-            double angleScaling = 15.0/180.0*M_PI;
+            double angleScaling = SHIFT_VALUE_ANGLE/180.0*M_PI;
 
-            double xScaling = 10;
-            double yScaling = 10;
+            double xScaling = SHIFT_VALUE_POSITION;
+            double yScaling = SHIFT_VALUE_POSITION;
 
             for (int numberOfTransformation = 0 ; numberOfTransformation<10; numberOfTransformation++){
                 //create random tranformation;

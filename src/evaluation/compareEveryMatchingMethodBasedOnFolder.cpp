@@ -17,11 +17,28 @@
 #include "std_srvs/SetBool.h"
 #include <filesystem>
 
-//#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
-//#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_30_5_RandomShifts/"
+#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
+#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_30_5_RandomShifts1510/"
 
-#define HOME_LOCATION "/home/tim-external/dataFolder/StPereDataset/"
-#define WHICH_FOLDER_SHOULD_BE_SAVED "randomShifts/"
+//#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_30_5_RandomShifts105/"
+//
+//#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_15_1_RandomShifts1510/"
+//
+//#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_15_1_RandomShifts105/"
+
+//#define HOME_LOCATION "/home/tim-external/dataFolder/StPereDataset/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "randomShifts/"
+
+//#define HOME_LOCATION "/home/tim-external/dataFolder/StPereDataset/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "randomShifts105/"
+
+
+
+
+
 
 
 
@@ -330,8 +347,8 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
 
         // Our 32 FMS 2D, 7: Our 64 FMS 2D, 8: Our 128 FMS 2D, 9: Our 256 FMS 2D
         for (int numberOfPoints = 32; numberOfPoints <= 256; numberOfPoints = numberOfPoints * 2) {
-            scanRegistrationClass scanRegistrationObject(numberOfPoints, numberOfPoints / 2, numberOfPoints / 2,
-                                                         numberOfPoints / 2 - 1);
+//            scanRegistrationClass scanRegistrationObject(numberOfPoints, numberOfPoints / 2, numberOfPoints / 2,
+//                                                         numberOfPoints / 2 - 1);
 
             double *voxelData;
             voxelData = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
@@ -416,10 +433,9 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
             tmpMeasurements.errorInDistance.push_back(errorDistance);
             free(voxelDataShifted);
             free(voxelData);
-
+//            scanRegistrationObject.~scanRegistrationClass();
             //        std::cout << "estimated Transformation " << resultTransformation << std::endl;
             //        std::cout << "test123" << std::endl;
-            scanRegistrationObject.~scanRegistrationClass();
         }
 
         returnMeasurementsList.push_back(tmpMeasurements);
@@ -432,11 +448,15 @@ int main(int argc, char **argv) {
     //get list of all the directories
     std::vector<std::string> listOfDirectories = get_directories(
             std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED));
+
+    std::vector<measurementResults> resultVector;
     scanRegistrationClass scanRegistrationObject32(32, 32 / 2, 32 / 2, 32 / 2 - 1);
     scanRegistrationClass scanRegistrationObject64(64, 64 / 2, 64 / 2, 64 / 2 - 1);
     scanRegistrationClass scanRegistrationObject128(128, 128 / 2, 128 / 2, 128 / 2 - 1);
     scanRegistrationClass scanRegistrationObject256(256, 256 / 2, 256 / 2, 256 / 2 - 1);
-    std::vector<measurementResults> resultVector;
+
+
+
     for (int i = 0; i < listOfDirectories.size(); i++) {
 
         std::vector<measurementResults> tmpVector = handleRegistrationsOfDirectory(listOfDirectories[i],

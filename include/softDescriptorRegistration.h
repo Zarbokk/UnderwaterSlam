@@ -35,8 +35,9 @@ public:
         this->bwIn = bwIn;
         this->degLim = degLim;
         this->resultingCorrelationDouble = (double *) malloc(sizeof(double) * N * N * N);
-        this->resultingCorrelationComplex = (fftw_complex *) fftw_malloc(
-                sizeof(fftw_complex) * (8 * bwOut * bwOut * bwOut));
+        this->resultingCorrelationComplex = fftw_alloc_complex(8 * bwOut * bwOut * bwOut);
+//        (fftw_complex *) fftw_malloc(
+//                sizeof(fftw_complex) * (8 * bwOut * bwOut * bwOut));
         this->resultingPhaseDiff2D = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * N * N);
         this->resultingShiftPeaks2D = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * N * N);
 
@@ -72,27 +73,30 @@ public:
 
     ~softDescriptorRegistration(){
         sofftCorrelationObject.~sofftCorrelationClass();
+
+
 //        free(this->resultingCorrelationDouble);
-//        free(this->resultingCorrelationComplex);
-//        free(this->resultingPhaseDiff2D );
-//        free(this->resultingShiftPeaks2D);
-//        free(this->magnitude1Shifted );
-//        free(this->magnitude2Shifted );
-//        free(this->voxelData1 );
-//        free(this->voxelData2 );
-//        free(this->spectrumOut );
-//        free(this->phase1);
-//        free(this->phase2);
-//        free(this->magnitude1 );
-//        free(this->magnitude2 );
-//        free(resampledMagnitudeSO3_1 );
-//        free(resampledMagnitudeSO3_2);
-//        free(resampledMagnitudeSO3_1TMP);
-//        free(resampledMagnitudeSO3_2TMP );
-//        free(inputSpacialData);
-//        free(planFourierToVoxel2D);
-//        free(planVoxelToFourier3D);
-//        free(planVoxelToFourier2D);
+//        fftw_free(this->resultingCorrelationComplex);
+//        fftw_free(this->resultingPhaseDiff2D );
+//        fftw_free(this->resultingShiftPeaks2D);
+//        fftw_free(this->magnitude1Shifted );
+//        fftw_free(this->magnitude2Shifted );
+//        fftw_free(this->voxelData1 );
+//        fftw_free(this->voxelData2 );
+//        fftw_free(this->spectrumOut );
+//        fftw_free(this->phase1);
+//        fftw_free(this->phase2);
+//        fftw_free(this->magnitude1 );
+//        fftw_free(this->magnitude2 );
+//        fftw_free(resampledMagnitudeSO3_1 );
+//        fftw_free(resampledMagnitudeSO3_2);
+//        fftw_free(resampledMagnitudeSO3_1TMP);
+//        fftw_free(resampledMagnitudeSO3_2TMP );
+//        fftw_free(inputSpacialData);
+//        fftw_destroy_plan(planFourierToVoxel2D);
+//        fftw_destroy_plan(planVoxelToFourier3D);
+//        fftw_destroy_plan(planVoxelToFourier2D);
+
 
     }
 
@@ -151,13 +155,20 @@ private://here everything is created. malloc is done in the constructor
 //    fftw_complex *spectrum1;
 //    fftw_complex *spectrum2;
     fftw_complex *spectrumOut;
-    double *magnitude1, *phase1;
-    double *magnitude2, *phase2;
-    double *magnitude1Shifted, *magnitude2Shifted;
-    double *resampledMagnitudeSO3_1, *resampledMagnitudeSO3_2, *resampledMagnitudeSO3_1TMP, *resampledMagnitudeSO3_2TMP;
+    double *magnitude1;
+    double *phase1;
+    double *magnitude2;
+    double *phase2;
+    double *magnitude1Shifted;
+    double *magnitude2Shifted;
+    double *resampledMagnitudeSO3_1;
+    double *resampledMagnitudeSO3_2;
+    double *resampledMagnitudeSO3_1TMP;
+    double *resampledMagnitudeSO3_2TMP;
     sofftCorrelationClass sofftCorrelationObject;
     fftw_complex *resultingCorrelationComplex;
-    fftw_complex *resultingPhaseDiff2D, *resultingShiftPeaks2D;
+    fftw_complex *resultingPhaseDiff2D;
+    fftw_complex *resultingShiftPeaks2D;
     double *resultingCorrelationDouble;
 //    fftw_plan planToFourierVoxel;
 //    double *correlation2DResult;
