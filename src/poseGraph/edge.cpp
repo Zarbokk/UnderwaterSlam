@@ -74,7 +74,7 @@ void edge::setTypeOfEdge(int &typeOfEdgeInput) {// 0=pointCloud    %%%%%%%%%   1
 
 
 
-Eigen::Matrix4d edge::getTransformation(){
+Eigen::Matrix4d edge::getTransformation() const{
     Eigen::Matrix4d transformation;
 
     transformation << 1, 0, 0, this->positionDifference.x(),

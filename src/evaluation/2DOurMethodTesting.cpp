@@ -734,7 +734,7 @@ private:
 //            myFile3.close();
 //            myFile6.close();
 //        }
-
+        double peakHeight;
         Eigen::Vector2d translation = this->scanRegistrationObject.sofftRegistrationVoxel2DTranslation(voxelData1,
                                                                                                        voxelData2,
                                                                                                        fitnessX,
@@ -744,6 +744,7 @@ private:
                                                                                                        initialGuessTransformation.block<3, 1>(
                                                                                                                0, 3),
                                                                                                        useInitialTranslation,
+                                                                                                       peakHeight,
                                                                                                        debug);
 
         Eigen::Matrix4d estimatedRotationScans;//from second scan to first

@@ -31,6 +31,17 @@ public:
 
     }
 
+    edge(const edge &edgeToCopy){
+        this->fromVertex = edgeToCopy.getFromVertex();
+        this->toVertex = edgeToCopy.getToVertex();
+        this->covariancePosition = edgeToCopy.getCovariancePosition();
+        this->covarianceQuaternion = edgeToCopy.getCovarianceQuaternion();
+        this->positionDifference = edgeToCopy.getPositionDifference();
+        this->rotationDifference = edgeToCopy.getRotationDifference();
+        this->rotationDifference.normalize();
+        this->typeOfEdge = edgeToCopy.getTypeOfEdge();
+    }
+
     void setEdge(edge &edgeToCopy);
 
     [[nodiscard]] Eigen::Vector3d getCovariancePosition() const;
@@ -61,7 +72,7 @@ public:
 
     void setTypeOfEdge(int &typeOfEdge);
 
-    Eigen::Matrix4d getTransformation();
+    Eigen::Matrix4d getTransformation() const;
 
 private:
     int fromVertex;

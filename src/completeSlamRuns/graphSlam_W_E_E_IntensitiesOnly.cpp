@@ -720,7 +720,7 @@ private:
 //            myFile3.close();
 //            myFile6.close();
 //        }
-
+        double maximumPeak;
         Eigen::Vector2d translation = this->scanRegistrationObject.sofftRegistrationVoxel2DTranslation(voxelData1,
                                                                                                        voxelData2,
                                                                                                        fitnessX,
@@ -729,6 +729,7 @@ private:
                                                                                                        (double) NUMBER_OF_POINTS_DIMENSION,
                                                                                                        initialGuessTransformation.block<3, 1>(0, 3),
                                                                                                        useInitialTranslation,
+                                                                                                       maximumPeak,
                                                                                                        debug);
 
         Eigen::Matrix4d estimatedRotationScans;//from second scan to first

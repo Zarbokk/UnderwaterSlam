@@ -71,7 +71,7 @@ public:
                                                 spectrumOut, FFTW_FORWARD, FFTW_ESTIMATE);
     }
 
-    ~softDescriptorRegistration(){
+    ~softDescriptorRegistration() {
         sofftCorrelationObject.~sofftCorrelationClass();
 
 
@@ -108,7 +108,8 @@ public:
 
     Eigen::Matrix4d registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData1,
                                            pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData2,
-                                           double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuessTransformation,
+                                           double &fitnessX, double &fitnessY,
+                                           Eigen::Matrix4d initialGuessTransformation,
                                            bool useInitialGuess,
                                            bool debug);
 
@@ -136,12 +137,23 @@ public:
     sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[], double voxelData2Input[], double goodGuessAlpha,
                                          bool debug = false);
 
-    Eigen::Vector2d sofftRegistrationVoxel2DTransformation(double voxelData1Input[],
-                                                           double voxelData2Input[],
-                                                           double &fitnessX, double &fitnessY, double cellSize,
-                                                           Eigen::Vector3d &initialGuess, bool useInitialGuess,
-                                                           bool debug = false);
+    std::vector<double>
+    sofftRegistrationVoxel2DListOfPossibleRotations(double voxelData1Input[], double voxelData2Input[],
+                                                    bool debug = false);
 
+    Eigen::Vector2d sofftRegistrationVoxel2DTranslation(double voxelData1Input[],
+                                                        double voxelData2Input[],
+                                                        double &fitnessX, double &fitnessY, double cellSize,
+                                                        Eigen::Vector3d initialGuess, bool useInitialGuess,
+                                                        double &heightMaximumPeak, bool debug = false);
+
+    Eigen::Matrix4d registrationOfTwoVoxelsSOFFTFast(double voxelData1Input[],
+                                                     double voxelData2Input[],
+                                                     Eigen::Matrix4d &initialGuess,
+                                                     bool useInitialAngle, bool useInitialTranslation,
+                                                     double cellSize,
+                                                     bool useGauss,
+                                                     bool debug = false);
 
 private://here everything is created. malloc is done in the constructor
 

@@ -90,10 +90,11 @@ public:
     sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[], double voxelData2Input[], double goodGuessAlpha,
                                          bool debug = false);
 
-    Eigen::Vector2d
-    sofftRegistrationVoxel2DTranslation(double voxelData1Input[], double voxelData2Input[], double &fitnessX,
-                                        double &fitnessY, double cellSize,
-                                        Eigen::Vector3d initialGuess, bool useInitialGuess, bool debug = false);
+    Eigen::Vector2d sofftRegistrationVoxel2DTranslation(double voxelData1Input[],
+                                                        double voxelData2Input[],
+                                                        double &fitnessX, double &fitnessY, double cellSize,
+                                                        Eigen::Vector3d initialGuess, bool useInitialGuess,
+                                                        double &heightMaximumPeak, bool debug = false);
 
     Eigen::Matrix4d
     FMSRegistrationOld(double voxelData1Input[], double voxelData2Input[], double cellSize, bool debug = false);
@@ -110,6 +111,15 @@ public:
     Eigen::Matrix4d ndt_p2d(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
                                pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan, Eigen::Matrix4d initialGuess,
                                bool useInitialGuess);
+
+    Eigen::Matrix4d registrationOfTwoVoxelsSOFFTFast(double voxelData1Input[],
+                                                     double voxelData2Input[],
+                                                     Eigen::Matrix4d initialGuess,
+                                                     bool useInitialAngle, bool useInitialTranslation,
+                                                     double cellSize,
+                                                     bool useGauss,
+                                                     bool debug = false);
+
 
 private:
     softDescriptorRegistration mySofftRegistrationClass;

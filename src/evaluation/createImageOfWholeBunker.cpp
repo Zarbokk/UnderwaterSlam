@@ -19,10 +19,10 @@
 
 #define NUMBER_OF_POINTS_DIMENSION 256
 #define DIMENSION_OF_VOXEL_DATA 60
-#define NUMBER_OF_POINTS_MAP 512.0
-#define DIMENSION_OF_MAP 200.0
+#define NUMBER_OF_POINTS_MAP 1024
+#define DIMENSION_OF_MAP 150.0
 #define FACTOR_OF_THRESHOLD 0.3
-#define IGNORE_DISTANCE_TO_ROBOT 0.8
+#define IGNORE_DISTANCE_TO_ROBOT 1.5
 
 #define SHOULD_USE_ROSBAG true
 
@@ -31,10 +31,10 @@
 #define SHIFT_VALUE_POSITION 5.0
 
 
-#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
-//#define HOME_LOCATION "/home/tim-external/dataFolder/StPereDataset/"
-
-#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_30_5_RandomShifts105/"
+//#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
+////#define HOME_LOCATION "/home/tim-external/dataFolder/StPereDataset/"
+//
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_30_5_RandomShifts105/"
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "randomShifts105/"
 
 
@@ -69,6 +69,7 @@ public:
 
 
 
+        this->mapOfBunker = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP);
 
         this->voxelData1 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
         this->voxelData2 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
@@ -105,8 +106,6 @@ public:
         this->firstSonarInput = true;
         this->firstCompleteSonarScan = true;
 
-        std::filesystem::create_directory(std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED));
-
     }
 
 
@@ -142,7 +141,7 @@ private:
 
     double *voxelData1;
     double *voxelData2;
-
+    double *mapOfBunker;
 
 
     int indexLastFullScan;
@@ -286,26 +285,42 @@ private:
 
             //still missing
 
-            double maximumVoxel1 = createVoxelOfGraph(voxelData1,
-                                                      indexOfLastKeyframe,
-                                                      generalHelpfulTools::getTransformationMatrixFromRPY(0,0,M_PI/2.0),
-                                                      NUMBER_OF_POINTS_DIMENSION);//get
-                                                      // voxel
-            double maximumVoxel2 = createVoxelOfGraph(voxelData2,
-                                                      this->graphSaved.getVertexList()->size() - 1,
-                                                      generalHelpfulTools::getTransformationMatrixFromRPY(0,0,M_PI/2.0),
-                                                      NUMBER_OF_POINTS_DIMENSION);//get voxel
-            bool debug = true;
+//            double maximumVoxel1 = createVoxelOfGraph(voxelData1,
+//                                                      indexOfLastKeyframe,
+//                                                      generalHelpfulTools::getTransformationMatrixFromRPY(0,0,M_PI/2.0),
+//                                                      NUMBER_OF_POINTS_DIMENSION);//get
+//                                                      // voxel
+//            double maximumVoxel2 = createVoxelOfGraph(voxelData2,
+//                                                      this->graphSaved.getVertexList()->size() - 1,
+//                                                      generalHelpfulTools::getTransformationMatrixFromRPY(0,0,M_PI/2.0),
+//                                                      NUMBER_OF_POINTS_DIMENSION);//get voxel
+            bool debug = false;
+
+
+            this->currentTransformation = this->initialGuessTransformation;
             //here the matching method is used
-            Eigen::Matrix4d estimatedTransformation = registrationOfTwoVoxelsSOFFTFasterTest(voxelData1, voxelData2,
-                                                                                             this->initialGuessTransformation, true,
-                                                                                             true, NUMBER_OF_POINTS_DIMENSION,
-                                                                                             scanRegistrationObject,
-                                                                                             DIMENSION_OF_VOXEL_DATA, debug,false);
-            std::cout << "init Guess:"<< std::endl;
-            std::cout << this->initialGuessTransformation << std::endl;
-            std::cout << "estimatedTransformation:"<< std::endl;
-            std::cout << estimatedTransformation << std::endl;
+//            this->currentTransformation = scanRegistrationObject.registrationOfTwoVoxelsSOFFTFast(voxelData1,
+//                                                                                                  voxelData2,
+//                                                                                                  this->initialGuessTransformation,
+//                                                                                                  true,
+//                                                                                                  true,
+//                                                                                                  (double) DIMENSION_OF_VOXEL_DATA /
+//                                                                                                  (double) NUMBER_OF_POINTS_DIMENSION,
+//                                                                                                  true, debug);
+//            std::cout << "init Guess:"<< std::endl;
+//            std::cout << this->initialGuessTransformation << std::endl;
+//            std::cout << "estimatedTransformation:"<< std::endl;
+//            std::cout << this->currentTransformation << std::endl;
+
+
+            Eigen::Quaterniond qTMP(this->currentTransformation.block<3, 3>(0, 0));
+            this->graphSaved.addEdge(indexOfLastKeyframe,
+                               graphSaved.getVertexList()->size() - 1,
+                               this->currentTransformation.block<3, 1>(0, 3), qTMP,
+                               Eigen::Vector3d(5.0, 5.0, 0),
+                               0.05,
+                               LOOP_CLOSURE,
+                               10.0);//@TODO still not sure about size
 
 
 //            std::cout << "test:" <<std::endl;
@@ -327,7 +342,7 @@ private:
                                                           NUMBER_OF_POINTS_DIMENSION);//get
                 double maximumVoxel2tmp = createVoxelOfGraph(voxelData2,
                                                           this->graphSaved.getVertexList()->size() - 1,
-                                                          estimatedTransformation*generalHelpfulTools::getTransformationMatrixFromRPY(0,0,M_PI/2.0),
+                                                             this->currentTransformation*generalHelpfulTools::getTransformationMatrixFromRPY(0,0,M_PI/2.0),
                                                           NUMBER_OF_POINTS_DIMENSION);//get voxel
 
                 std::ofstream myFile1, myFile2;
@@ -350,6 +365,20 @@ private:
             std::cout << "########################################################## " << this->numberOfScan <<" NEW SCAN ##########################################################"<< std::endl;
             this->lastGTPosition = currentGTlocalPosition;
             this->numberOfScan++;
+            if(numberOfScan >30){
+                this->createImageOfAllScans(mapOfBunker,2);
+
+                std::ofstream outMatrix("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultsOfManyMatching/completeMapTest.csv" );
+
+                for (int j = 0 ; j<NUMBER_OF_POINTS_MAP;j++) {
+                    for (int k = 0 ; k<NUMBER_OF_POINTS_MAP;k++)
+                        outMatrix << mapOfBunker[j + NUMBER_OF_POINTS_MAP * k] <<',';
+                    outMatrix << '\n';
+                }
+                outMatrix.close();
+                exit(-1);
+            }
+
             if(SHOULD_USE_ROSBAG){
 
                 std_srvs::SetBool srv;
@@ -869,96 +898,554 @@ private:
         return r;
     }
 
-    Eigen::Matrix4d registrationOfTwoVoxelsSOFFTFasterTest(double voxelData1[],
-                                                           double voxelData2[],
-                                                           Eigen::Matrix4d initialGuess,
-                                                           bool useInitialAngle, bool useInitialTranslation,
-                                                           int numberOfPoints, scanRegistrationClass &scanRegistrationObject,
-                                                           const int dimensionOfVoxelData,
-                                                           bool debug = false,bool useGauss = true) {
-        double goodGuessAlpha = -100;
-        if (useInitialAngle) {
-            goodGuessAlpha = std::atan2(initialGuess(1, 0),
-                                        initialGuess(0, 0));
+public:
+    void createImageOfAllScans(double mapData[],int howOften){
+        //homePosition is 0 0
+        //size of mapData is defined in NUMBER_OF_POINTS_MAP
+
+        //1: our 256 2:GICP 3:super 4: NDT d2d 5: NDT P2D 6: our global 256
+        int whichMethod = 6;
+
+        int *voxelDataIndex;
+        voxelDataIndex = (int *) malloc(sizeof(int) * NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP);
+        //set zero voxel and index
+        for (int i = 0; i < NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP; i++) {
+            voxelDataIndex[i] = 0;
+            mapData[i] = 0;
         }
 
 
-        double estimatedAngle = scanRegistrationObject.sofftRegistrationVoxel2DRotationOnly(voxelData1,
-                                                                                            voxelData2,
-                                                                                            goodGuessAlpha, debug);
-
-
-        Eigen::Matrix4d rotationMatrixTMP = Eigen::Matrix4d::Identity();
-        Eigen::AngleAxisd tmpRotVec(estimatedAngle, Eigen::Vector3d(0, 0, 1));
-        Eigen::Matrix3d tmpMatrix3d = tmpRotVec.toRotationMatrix();
-        rotationMatrixTMP.block<3, 3>(0, 0) = tmpMatrix3d;
-
-        if (useGauss) {
-            for (int i = 0; i < 1; i++) {
-
-
-                cv::Mat magTMP1(numberOfPoints, numberOfPoints, CV_64F, voxelData1);
-                //add gaussian blur
-                cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
-                //            cv::imwrite("/home/tim-external/Documents/imreg_fmt/firstImage.jpg", magTMP1);
-
-                cv::Mat magTMP2(numberOfPoints, numberOfPoints, CV_64F, voxelData2);
-                //add gaussian blur
-                cv::GaussianBlur(magTMP2, magTMP2, cv::Size(9, 9), 0);
-
-                cv::Point2f pc(magTMP2.cols / 2., magTMP2.rows / 2.);
-                cv::Mat r = cv::getRotationMatrix2D(pc, -estimatedAngle * 180.0 / M_PI, 1.0);
-
-                cv::warpAffine(magTMP2, magTMP2, r, magTMP2.size()); // what size I should use?
+        //get array of all created connections of matching estimations
+        std::vector<edge> listOfRegistratedEdges;
+        for(const edge& tmpEdgeFromList : *this->graphSaved.getEdgeList()){
+            if(tmpEdgeFromList.getTypeOfEdge() == LOOP_CLOSURE){
+                edge tmpEdge(tmpEdgeFromList);
+                listOfRegistratedEdges.push_back(tmpEdge);
             }
-//            cv::imwrite("/home/tim-external/Documents/imreg_fmt/secondImage.jpg", magTMP2);
-
-//        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
-//        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
         }
 
-        if (debug) {
-            std::ofstream myFile3, myFile6;
-            myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW1.csv");
-            myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW2.csv");
-            for (int i = 0; i < numberOfPoints; i++) {
-                for (int j = 0; j < numberOfPoints; j++) {
+        int startPoint = (int) (listOfRegistratedEdges.size()/2);
+        int lastPositionOfInterest = startPoint;
+        //missing: just add the point cloud to map at startPoint
+        Eigen::Matrix4d completeTransformationForCurrentScan = Eigen::Matrix4d::Identity();
 
-                    myFile3 << voxelData1[j + numberOfPoints * i]; // imaginary part
-                    myFile3 << "\n";
-                    myFile6 << voxelData2[j + numberOfPoints * i]; // imaginary part
-                    myFile6 << "\n";
+        for(int currentEdgePosition = startPoint ; currentEdgePosition<listOfRegistratedEdges.size();currentEdgePosition=currentEdgePosition+howOften){
+
+
+
+            int indexFirstPCL = listOfRegistratedEdges[lastPositionOfInterest].getToVertex();
+            int indexSecondPCL = listOfRegistratedEdges[currentEdgePosition].getToVertex();
+
+            this->initialGuessTransformation = this->graphSaved.getVertexList()->at(indexFirstPCL).getTransformation().inverse() *
+                                    this->graphSaved.getVertexList()->at(indexSecondPCL).getTransformation();
+            if(currentEdgePosition == startPoint){
+                this->currentTransformation = Eigen::Matrix4d::Identity();
+            }else {
+                double maximumVoxel1 = createVoxelOfGraph(voxelData1,
+                                                          indexFirstPCL,
+                                                          generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
+                                                                                                              M_PI /
+                                                                                                              2.0),
+                                                          NUMBER_OF_POINTS_DIMENSION);//get
+                // voxel
+                double maximumVoxel2 = createVoxelOfGraph(voxelData2,
+                                                          indexSecondPCL,
+                                                          generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
+                                                                                                              M_PI /
+                                                                                                              2.0),
+                                                          NUMBER_OF_POINTS_DIMENSION);//get voxel
+                Eigen::Matrix4d tmpMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(M_PI, 0, 0);
+                pcl::PointCloud<pcl::PointXYZ> scan1OneValue;
+                scan1OneValue = createPCLFromGraphOneValue(indexFirstPCL, tmpMatrix);
+                pcl::PointCloud<pcl::PointXYZ> scan2OneValue;
+                scan2OneValue = createPCLFromGraphOneValue(indexSecondPCL, tmpMatrix);
+                pcl::PointCloud<pcl::PointXYZ> final;
+                double fitnessScoreX;
+
+
+
+                if(whichMethod == 1){
+
+                   //SOFFT OUR OWN 256 local
+                    this->currentTransformation = scanRegistrationObject.registrationOfTwoVoxelsSOFFTFast(voxelData1,
+                                                                                                          voxelData2,
+                                                                                                          this->initialGuessTransformation,
+                                                                                                          true,
+                                                                                                          true,
+                                                                                                          (double) DIMENSION_OF_VOXEL_DATA /
+                                                                                                          (double) NUMBER_OF_POINTS_DIMENSION,
+                                                                                                          false, true);
+                }
+
+                if(whichMethod == 2) {
+                    //GICP
+
+                    this->currentTransformation = scanRegistrationObject.generalizedIcpRegistration(scan1OneValue,
+                                                                                                    scan2OneValue,
+                                                                                                    final,
+                                                                                                    fitnessScoreX,
+                                                                                                    this->initialGuessTransformation);
+                }
+                if(whichMethod == 3) {
+                    //SUPER4PCS
+
+                    this->currentTransformation = scanRegistrationObject.super4PCSRegistration(scan1OneValue,
+                                                                                               scan2OneValue,
+                                                                                               this->initialGuessTransformation,
+                                                                                               true, false);
+                }
+                if(whichMethod == 4) {
+                    //NDT D2D 2D,
+
+                    this->currentTransformation = scanRegistrationObject.ndt_d2d_2d(scan1OneValue,
+                                                                                    scan2OneValue,
+                                                                                    this->initialGuessTransformation,
+                                                                                    true);
+                }
+                if(whichMethod == 5) {
+                    //NDT P2D
+                    this->currentTransformation = scanRegistrationObject.ndt_p2d(scan1OneValue,
+                                                                                 scan2OneValue,
+                                                                                 this->initialGuessTransformation,
+                                                                                 true);
+                }
+                if(whichMethod == 6) {
+                    //SOFFT OUR OWN 256 global
+                    this->currentTransformation = scanRegistrationObject.registrationOfTwoVoxelsSOFFTFast(voxelData1,
+                                                                                                          voxelData2,
+                                                                                                          this->initialGuessTransformation,
+                                                                                                          true,
+                                                                                                          false,
+                                                                                                          (double) DIMENSION_OF_VOXEL_DATA /
+                                                                                                          (double) NUMBER_OF_POINTS_DIMENSION,
+                                                                                                          false, true);
+                }
+
+
+                if (true) {
+                    double maximumVoxel1tmp = createVoxelOfGraph(voxelData1,
+                                                                 indexFirstPCL,
+                                                                 generalHelpfulTools::getTransformationMatrixFromRPY(0,
+                                                                                                                     0,
+                                                                                                                     M_PI /
+                                                                                                                     2.0),
+                                                                 NUMBER_OF_POINTS_DIMENSION);//get
+                    double maximumVoxel2tmp = createVoxelOfGraph(voxelData2,
+                                                                 indexSecondPCL,
+                                                                 this->currentTransformation *
+                                                                 generalHelpfulTools::getTransformationMatrixFromRPY(0,
+                                                                                                                     0,
+                                                                                                                     M_PI /
+                                                                                                                     2.0),
+                                                                 NUMBER_OF_POINTS_DIMENSION);//get voxel
+
+                    std::ofstream myFile1, myFile2;
+                    myFile1.open(
+                            "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel1.csv");
+                    myFile2.open(
+                            "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel2.csv");
+                    for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION; i++) {
+                        for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
+                            myFile1 << voxelData1[j + NUMBER_OF_POINTS_DIMENSION * i]; // real part
+                            myFile1 << "\n";
+                            myFile2 << voxelData2[j + NUMBER_OF_POINTS_DIMENSION * i]; // imaginary part
+                            myFile2 << "\n";
+                        }
+                    }
+                    myFile1.close();
+                    myFile2.close();
                 }
             }
-            myFile3.close();
-            myFile6.close();
+            std::cout <<"init guess:" << std::endl;
+            std::cout << this->initialGuessTransformation << std::endl;
+            std::cout <<"current Transformation:" << std::endl;
+            std::cout << this->currentTransformation << std::endl;
+
+            completeTransformationForCurrentScan = this->currentTransformation*completeTransformationForCurrentScan;
+            std::cout <<"complete:" << std::endl;
+            std::cout << completeTransformationForCurrentScan << std::endl;
+            int indexStart = indexSecondPCL;
+            int i = 0;
+            do {
+                //calculate the position of each intensity and create an index in two arrays. First in voxel data, and second save number of intensities.
+
+
+                //get position of current intensityRay
+                Eigen::Matrix4d transformationOfIntensityRay =
+                        this->graphSaved.getVertexList()->at(indexStart).getTransformation().inverse() *
+                        this->graphSaved.getVertexList()->at(indexStart - i).getTransformation();
+
+                //positionOfIntensity has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
+                Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
+                                                                                                                 this->graphSaved.getVertexList()->at(
+                                                                                                                         indexStart -
+                                                                                                                         i).getIntensities().angle);
+
+                int ignoreDistance = (int)(IGNORE_DISTANCE_TO_ROBOT/(this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().range/((double) this->graphSaved.getVertexList()->at(
+                        indexStart - i).getIntensities().intensities.size())));
+
+
+                for (int j = ignoreDistance;
+                     j < this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
+                    double distanceOfIntensity =
+                            j / ((double) this->graphSaved.getVertexList()->at(
+                                    indexStart - i).getIntensities().intensities.size()) *
+                            ((double) this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().range);
+
+                    int incrementOfScan = this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().increment;
+                    for(int l = -incrementOfScan-5 ; l <=incrementOfScan+5;l++){
+                        Eigen::Vector4d positionOfIntensity(
+                                distanceOfIntensity,
+                                0,
+                                0,
+                                1);
+                        double rotationOfPoint = l/400.0;
+                        Eigen::Matrix4d rotationForBetterView = generalHelpfulTools::getTransformationMatrixFromRPY(0,0,rotationOfPoint);
+                        positionOfIntensity = rotationForBetterView*positionOfIntensity;
+
+                        positionOfIntensity = completeTransformationForCurrentScan * generalHelpfulTools::getTransformationMatrixFromRPY(0,0,M_PI/2)*transformationOfIntensityRay *
+                                              rotationOfSonarAngleMatrix * positionOfIntensity;
+                        //calculate index dependent on  DIMENSION_OF_VOXEL_DATA and numberOfPoints the middle
+                        int indexX =
+                                (int) (positionOfIntensity.x() / (DIMENSION_OF_MAP / 2) * NUMBER_OF_POINTS_MAP /
+                                       2) +
+                                NUMBER_OF_POINTS_MAP / 2;
+                        int indexY =
+                                (int) (positionOfIntensity.y() / (DIMENSION_OF_MAP / 2) * NUMBER_OF_POINTS_MAP /
+                                       2) +
+                                NUMBER_OF_POINTS_MAP / 2;
+
+
+                        if (indexX < NUMBER_OF_POINTS_MAP && indexY < NUMBER_OF_POINTS_MAP && indexY >= 0 &&
+                            indexX >= 0) {
+                            //                    std::cout << indexX << " " << indexY << std::endl;
+                            //if index fits inside of our data, add that data. Else Ignore
+                            voxelDataIndex[indexX + NUMBER_OF_POINTS_MAP * indexY] =
+                                    voxelDataIndex[indexX + NUMBER_OF_POINTS_MAP * indexY] + 1;
+                            //                    std::cout << "Index: " << voxelDataIndex[indexY + numberOfPoints * indexX] << std::endl;
+                            mapData[indexX + NUMBER_OF_POINTS_MAP * indexY] =
+                                    mapData[indexX + NUMBER_OF_POINTS_MAP * indexY] +
+                                    this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[j];
+                            //                    std::cout << "Intensity: " << voxelData[indexY + numberOfPoints * indexX] << std::endl;
+                            //                    std::cout << "random: " << std::endl;
+                        }
+                    }
+                }
+                i++;
+            } while (this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
+                     this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
+                     INTENSITY_SAVED_AND_KEYFRAME);
+
+            //make sure next iteration the correct registrationis calculated
+            lastPositionOfInterest = currentEdgePosition;
         }
-        double fitnessX = 0;
-        double fitnessY = 0;
-        Eigen::Vector2d translation = scanRegistrationObject.sofftRegistrationVoxel2DTranslation(voxelData1,
-                                                                                                 voxelData2,
-                                                                                                 fitnessX,
-                                                                                                 fitnessY,
-                                                                                                 (double) dimensionOfVoxelData /
-                                                                                                 (double) numberOfPoints,
-                                                                                                 initialGuess.block<3, 1>(
-                                                                                                         0, 3),
-                                                                                                 useInitialTranslation,
-                                                                                                 debug);
-
-        Eigen::Matrix4d estimatedRotationScans = Eigen::Matrix4d::Identity();//from second scan to first
-        //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
-        Eigen::AngleAxisd rotation_vectorTMP(estimatedAngle, Eigen::Vector3d(0, 0, 1));
-        Eigen::Matrix3d tmpRotMatrix3d = rotation_vectorTMP.toRotationMatrix();
-        estimatedRotationScans.block<3, 3>(0, 0) = tmpRotMatrix3d;
-        estimatedRotationScans(0, 3) = translation.x();
-        estimatedRotationScans(1, 3) = translation.y();
-        estimatedRotationScans(2, 3) = 0;
-        estimatedRotationScans(3, 3) = 1;
+        //TO THE END
+        //NOW: TO THE BEGINNING
 
 
+        lastPositionOfInterest = startPoint;
 
-        return estimatedRotationScans;//should be the transformation matrix from 1 to 2
+        completeTransformationForCurrentScan = Eigen::Matrix4d::Identity();
+
+        for(int currentEdgePosition = startPoint-howOften ; currentEdgePosition>2;currentEdgePosition=currentEdgePosition-howOften){
+            int indexFirstPCL = listOfRegistratedEdges[currentEdgePosition].getToVertex();
+            int indexSecondPCL = listOfRegistratedEdges[lastPositionOfInterest].getToVertex();
+
+            this->initialGuessTransformation = this->graphSaved.getVertexList()->at(indexFirstPCL).getTransformation().inverse() *
+                                               this->graphSaved.getVertexList()->at(indexSecondPCL).getTransformation();
+
+            double maximumVoxel1 = createVoxelOfGraph(voxelData1,
+                                                      indexFirstPCL,
+                                                      generalHelpfulTools::getTransformationMatrixFromRPY(0,0,M_PI/2.0),
+                                                      NUMBER_OF_POINTS_DIMENSION);//get
+            // voxel
+            double maximumVoxel2 = createVoxelOfGraph(voxelData2,
+                                                      indexSecondPCL,
+                                                      generalHelpfulTools::getTransformationMatrixFromRPY(0,0,M_PI/2.0),
+                                                      NUMBER_OF_POINTS_DIMENSION);//get voxel
+
+            Eigen::Matrix4d tmpMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(M_PI, 0, 0);
+            pcl::PointCloud<pcl::PointXYZ> scan1OneValue;
+            scan1OneValue = createPCLFromGraphOneValue(indexFirstPCL, tmpMatrix);
+            pcl::PointCloud<pcl::PointXYZ> scan2OneValue;
+            scan2OneValue = createPCLFromGraphOneValue(indexSecondPCL, tmpMatrix);
+            pcl::PointCloud<pcl::PointXYZ> final;
+            double fitnessScoreX;
+
+
+
+
+
+            if(whichMethod == 1){
+
+                //SOFFT OUR OWN 256 local
+                this->currentTransformation = scanRegistrationObject.registrationOfTwoVoxelsSOFFTFast(voxelData1,
+                                                                                                      voxelData2,
+                                                                                                      this->initialGuessTransformation,
+                                                                                                      true,
+                                                                                                      true,
+                                                                                                      (double) DIMENSION_OF_VOXEL_DATA /
+                                                                                                      (double) NUMBER_OF_POINTS_DIMENSION,
+                                                                                                      false, true);
+            }
+
+            if(whichMethod == 2) {
+                //GICP
+
+                this->currentTransformation = scanRegistrationObject.generalizedIcpRegistration(scan1OneValue,
+                                                                                                scan2OneValue,
+                                                                                                final,
+                                                                                                fitnessScoreX,
+                                                                                                this->initialGuessTransformation);
+            }
+            if(whichMethod == 3) {
+                //SUPER4PCS
+
+                this->currentTransformation = scanRegistrationObject.super4PCSRegistration(scan1OneValue,
+                                                                                           scan2OneValue,
+                                                                                           this->initialGuessTransformation,
+                                                                                           true, false);
+            }
+            if(whichMethod == 4) {
+                //NDT D2D 2D,
+
+                this->currentTransformation = scanRegistrationObject.ndt_d2d_2d(scan1OneValue,
+                                                                                scan2OneValue,
+                                                                                this->initialGuessTransformation,
+                                                                                true);
+            }
+            if(whichMethod == 5) {
+                //NDT P2D
+                this->currentTransformation = scanRegistrationObject.ndt_p2d(scan1OneValue,
+                                                                             scan2OneValue,
+                                                                             this->initialGuessTransformation,
+                                                                             true);
+            }
+            if(whichMethod == 6) {
+                //SOFFT OUR OWN 256 global
+                this->currentTransformation = scanRegistrationObject.registrationOfTwoVoxelsSOFFTFast(voxelData1,
+                                                                                                      voxelData2,
+                                                                                                      this->initialGuessTransformation,
+                                                                                                      true,
+                                                                                                      false,
+                                                                                                      (double) DIMENSION_OF_VOXEL_DATA /
+                                                                                                      (double) NUMBER_OF_POINTS_DIMENSION,
+                                                                                                      false, true);
+            }
+
+
+            if (true) {
+                double maximumVoxel1tmp = createVoxelOfGraph(voxelData1,
+                                                             indexFirstPCL,
+                                                             generalHelpfulTools::getTransformationMatrixFromRPY(0,0,M_PI/2.0),
+                                                             NUMBER_OF_POINTS_DIMENSION);//get
+                double maximumVoxel2tmp = createVoxelOfGraph(voxelData2,
+                                                             indexSecondPCL,
+                                                             this->currentTransformation*generalHelpfulTools::getTransformationMatrixFromRPY(0,0,M_PI/2.0),
+                                                             NUMBER_OF_POINTS_DIMENSION);//get voxel
+
+                std::ofstream myFile1, myFile2;
+                myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel1.csv");
+                myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel2.csv");
+                for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION; i++) {
+                    for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
+                        myFile1 << voxelData1[j + NUMBER_OF_POINTS_DIMENSION * i]; // real part
+                        myFile1 << "\n";
+                        myFile2 << voxelData2[j + NUMBER_OF_POINTS_DIMENSION * i]; // imaginary part
+                        myFile2 << "\n";
+                    }
+                }
+                myFile1.close();
+                myFile2.close();
+            }
+            std::cout <<"init guess:" << std::endl;
+            std::cout << this->initialGuessTransformation << std::endl;
+            std::cout <<"current Transformation:" << std::endl;
+            std::cout << this->currentTransformation << std::endl;
+//            this->currentTransformation(0,3) = -this->currentTransformation(0,3);
+//            std::cout <<"current Transformation:" << std::endl;
+//            std::cout << this->currentTransformation << std::endl;
+            completeTransformationForCurrentScan = this->currentTransformation.inverse()*completeTransformationForCurrentScan;
+            int indexStart = indexFirstPCL;
+            int i = 0;
+            do {
+                //calculate the position of each intensity and create an index in two arrays. First in voxel data, and second save number of intensities.
+
+
+                //get position of current intensityRay
+                Eigen::Matrix4d transformationOfIntensityRay =
+                        this->graphSaved.getVertexList()->at(indexStart).getTransformation().inverse() *
+                        this->graphSaved.getVertexList()->at(indexStart - i).getTransformation();
+
+                //positionOfIntensity has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
+                Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
+                                                                                                                 this->graphSaved.getVertexList()->at(
+                                                                                                                         indexStart -
+                                                                                                                         i).getIntensities().angle);
+
+                int ignoreDistance = (int)(IGNORE_DISTANCE_TO_ROBOT/(this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().range/((double) this->graphSaved.getVertexList()->at(
+                        indexStart - i).getIntensities().intensities.size())));
+
+
+                for (int j = ignoreDistance;
+                     j < this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
+                    double distanceOfIntensity =
+                            j / ((double) this->graphSaved.getVertexList()->at(
+                                    indexStart - i).getIntensities().intensities.size()) *
+                            ((double) this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().range);
+
+                    int incrementOfScan = this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().increment;
+                    for(int l = -incrementOfScan-5 ; l <=incrementOfScan+5;l++){
+                        Eigen::Vector4d positionOfIntensity(
+                                distanceOfIntensity,
+                                0,
+                                0,
+                                1);
+                        double rotationOfPoint = l/400.0;
+                        Eigen::Matrix4d rotationForBetterView = generalHelpfulTools::getTransformationMatrixFromRPY(0,0,rotationOfPoint);
+                        positionOfIntensity = rotationForBetterView*positionOfIntensity;
+
+                        positionOfIntensity = completeTransformationForCurrentScan * generalHelpfulTools::getTransformationMatrixFromRPY(0,0,M_PI/2.0)*transformationOfIntensityRay *
+                                              rotationOfSonarAngleMatrix * positionOfIntensity;
+                        //calculate index dependent on  DIMENSION_OF_VOXEL_DATA and numberOfPoints the middle
+                        int indexX =
+                                (int) (positionOfIntensity.x() / (DIMENSION_OF_MAP / 2) * NUMBER_OF_POINTS_MAP /
+                                       2) +
+                                NUMBER_OF_POINTS_MAP / 2;
+                        int indexY =
+                                (int) (positionOfIntensity.y() / (DIMENSION_OF_MAP / 2) * NUMBER_OF_POINTS_MAP /
+                                       2) +
+                                NUMBER_OF_POINTS_MAP / 2;
+
+
+                        if (indexX < NUMBER_OF_POINTS_MAP && indexY < NUMBER_OF_POINTS_MAP && indexY >= 0 &&
+                            indexX >= 0) {
+                            //                    std::cout << indexX << " " << indexY << std::endl;
+                            //if index fits inside of our data, add that data. Else Ignore
+                            voxelDataIndex[indexX + NUMBER_OF_POINTS_MAP * indexY] =
+                                    voxelDataIndex[indexX + NUMBER_OF_POINTS_MAP * indexY] + 1;
+                            //                    std::cout << "Index: " << voxelDataIndex[indexY + numberOfPoints * indexX] << std::endl;
+                            mapData[indexX + NUMBER_OF_POINTS_MAP * indexY] =
+                                    mapData[indexX + NUMBER_OF_POINTS_MAP * indexY] +
+                                    this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[j];
+                            //                    std::cout << "Intensity: " << voxelData[indexY + numberOfPoints * indexX] << std::endl;
+                            //                    std::cout << "random: " << std::endl;
+                        }
+                    }
+                }
+                i++;
+            } while (this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
+                     this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
+                     INTENSITY_SAVED_AND_KEYFRAME);
+
+            //make sure next iteration the correct registrationis calculated
+            lastPositionOfInterest = currentEdgePosition;
+        }
+
+
+
+//        Eigen::Matrix4d transformationEdge = Eigen::Matrix4d::Identity();
+//        for(const edge& tmpEdgeFromList : listOfRegistratedEdges) {
+//            int fromVertex = tmpEdgeFromList.getFromVertex();
+//            int toVertex = tmpEdgeFromList.getToVertex();
+//            transformationEdge = tmpEdgeFromList.getTransformation()*transformationEdge;
+////            std::cout << transformationEdge << std::endl;
+//
+//            int indexStart = toVertex;
+//            int i = 0;
+//            do {
+//                //calculate the position of each intensity and create an index in two arrays. First in voxel data, and second save number of intensities.
+//
+//
+//                //get position of current intensityRay
+//                Eigen::Matrix4d transformationOfIntensityRay =
+//                        this->graphSaved.getVertexList()->at(indexStart).getTransformation().inverse() *
+//                        this->graphSaved.getVertexList()->at(indexStart - i).getTransformation();
+//
+//                //positionOfIntensity has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
+//                Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
+//                                                                                                                 this->graphSaved.getVertexList()->at(
+//                                                                                                                         indexStart -
+//                                                                                                                         i).getIntensities().angle);
+//
+//                int ignoreDistance = (int)(IGNORE_DISTANCE_TO_ROBOT/(this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().range/((double) this->graphSaved.getVertexList()->at(
+//                        indexStart - i).getIntensities().intensities.size())));
+//
+//
+//                for (int j = ignoreDistance;
+//                     j < this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
+//                    double distanceOfIntensity =
+//                            j / ((double) this->graphSaved.getVertexList()->at(
+//                                    indexStart - i).getIntensities().intensities.size()) *
+//                            ((double) this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().range);
+//
+//                    int incrementOfScan = this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().increment;
+//                    for(int l = -incrementOfScan-5 ; l <=incrementOfScan+5;l++){
+//                        Eigen::Vector4d positionOfIntensity(
+//                                distanceOfIntensity,
+//                                0,
+//                                0,
+//                                1);
+//                        double rotationOfPoint = l/400.0;
+//                        Eigen::Matrix4d rotationForBetterView = generalHelpfulTools::getTransformationMatrixFromRPY(0,0,rotationOfPoint);
+//                        positionOfIntensity = rotationForBetterView*positionOfIntensity;
+//
+//                        positionOfIntensity = transformationEdge * generalHelpfulTools::getTransformationMatrixFromRPY(0,0,M_PI/2.0)*transformationOfIntensityRay *
+//                                              rotationOfSonarAngleMatrix * positionOfIntensity;
+//                        //calculate index dependent on  DIMENSION_OF_VOXEL_DATA and numberOfPoints the middle
+//                        int indexX =
+//                                (int) (positionOfIntensity.x() / (DIMENSION_OF_MAP / 2) * NUMBER_OF_POINTS_MAP /
+//                                       2) +
+//                                        NUMBER_OF_POINTS_MAP / 2;
+//                        int indexY =
+//                                (int) (positionOfIntensity.y() / (DIMENSION_OF_MAP / 2) * NUMBER_OF_POINTS_MAP /
+//                                       2) +
+//                                        NUMBER_OF_POINTS_MAP / 2;
+//
+//
+//                        if (indexX < NUMBER_OF_POINTS_MAP && indexY < NUMBER_OF_POINTS_MAP && indexY >= 0 &&
+//                            indexX >= 0) {
+//                            //                    std::cout << indexX << " " << indexY << std::endl;
+//                            //if index fits inside of our data, add that data. Else Ignore
+//                            voxelDataIndex[indexX + NUMBER_OF_POINTS_MAP * indexY] =
+//                                    voxelDataIndex[indexX + NUMBER_OF_POINTS_MAP * indexY] + 1;
+//                            //                    std::cout << "Index: " << voxelDataIndex[indexY + numberOfPoints * indexX] << std::endl;
+//                            mapData[indexX + NUMBER_OF_POINTS_MAP * indexY] =
+//                                    mapData[indexX + NUMBER_OF_POINTS_MAP * indexY] +
+//                                    this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[j];
+//                            //                    std::cout << "Intensity: " << voxelData[indexY + numberOfPoints * indexX] << std::endl;
+//                            //                    std::cout << "random: " << std::endl;
+//                        }
+//                    }
+//                }
+//                i++;
+//            } while (this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
+//                     this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
+//                     INTENSITY_SAVED_AND_KEYFRAME);
+//        }
+//
+
+
+
+
+        double maximumOfVoxelData = 0;
+        for (int i = 0; i < NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP; i++) {
+            if (voxelDataIndex[i] > 0) {
+                mapData[i] = mapData[i] / voxelDataIndex[i];
+                if (maximumOfVoxelData < mapData[i]) {
+                    maximumOfVoxelData = mapData[i];
+                }
+                //std::cout << voxelData[i] << std::endl;
+            }
+        }// @TODO calculate the maximum and normalize "somehow"
+
+
+
+
+
+
+
+        free(voxelDataIndex);
     }
 
 };
@@ -1042,8 +1529,8 @@ int main(int argc, char **argv) {
         //rosClassForTests.updateHilbertMap();
         //rosClassForTests.updateMap();
 
-        loop_rate.sleep();
 
+        loop_rate.sleep();
         //std::cout << ros::Time::now() << std::endl;
     }
 

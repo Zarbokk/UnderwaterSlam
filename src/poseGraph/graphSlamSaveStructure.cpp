@@ -3,12 +3,12 @@
 //
 
 #include "graphSlamSaveStructure.h"
-
+#include "random"
 
 void
 graphSlamSaveStructure::addEdge(int fromVertex, int toVertex, Eigen::Vector3d positionDifference,
-                                Eigen::Quaterniond rotationDifference,  Eigen::Vector3d covariancePosition,
-                                double covarianceQuaternion,int typeOfEdge, double maxTimeOptimization) {
+                                Eigen::Quaterniond rotationDifference, Eigen::Vector3d covariancePosition,
+                                double covarianceQuaternion, int typeOfEdge, double maxTimeOptimization) {
     if (std::isnan(covarianceQuaternion) ||
         std::isnan(covariancePosition[0]) ||
         std::isnan(covariancePosition[1])) {
@@ -38,7 +38,8 @@ graphSlamSaveStructure::addEdge(int fromVertex, int toVertex, Eigen::Vector3d po
                     bool containingConnection = checkIfElementsOfVectorAreEqual(this->lookUpTableCell[i],
                                                                                 listOfConnectedVertexes);//check if overlap exists
                     if (containingConnection) {//create graph from indexCellFrom to i
-                        graphSlamSaveStructure currentSubGraph(this->hierachicalGraph->degreeOfFreedom,ONLY_SIMPLE_GRAPH);
+                        graphSlamSaveStructure currentSubGraph(this->hierachicalGraph->degreeOfFreedom,
+                                                               ONLY_SIMPLE_GRAPH);
                         for (int k = 0;
                              k < this->lookUpTableCell[indexCellFrom].size(); k++) {//add vertices of cell indexCellFrom
                             vertex tmpVertex = this->vertexList[this->lookUpTableCell[indexCellFrom][k]];
@@ -60,7 +61,7 @@ graphSlamSaveStructure::addEdge(int fromVertex, int toVertex, Eigen::Vector3d po
 
                         std::vector<int> vertexIndexOfJoinedGraph = joinTwoLists(this->lookUpTableCell[indexCellFrom],
                                                                                  this->lookUpTableCell[i]);//list of vertex index of cell indexCellFrom and cell i
-                        for (auto &currentEdge : this->edgeList) {//go threw complete edge lists
+                        for (auto &currentEdge: this->edgeList) {//go threw complete edge lists
 
                             auto itFromVertex = std::find(vertexIndexOfJoinedGraph.begin(),
                                                           vertexIndexOfJoinedGraph.end(),
@@ -72,8 +73,9 @@ graphSlamSaveStructure::addEdge(int fromVertex, int toVertex, Eigen::Vector3d po
                             if (itFromVertex != vertexIndexOfJoinedGraph.end() &&
                                 itToVertex !=
                                 vertexIndexOfJoinedGraph.end()) {// check if edge is contained in joined graph
-                                int indexToVertex = (int)std::distance(vertexIndexOfJoinedGraph.begin(), itToVertex);
-                                int indexFromVertex = (int)std::distance(vertexIndexOfJoinedGraph.begin(), itFromVertex);
+                                int indexToVertex = (int) std::distance(vertexIndexOfJoinedGraph.begin(), itToVertex);
+                                int indexFromVertex = (int) std::distance(vertexIndexOfJoinedGraph.begin(),
+                                                                          itFromVertex);
                                 currentSubGraph.addEdge(indexFromVertex, indexToVertex,
                                                         currentEdge.getPositionDifference(),
                                                         currentEdge.getRotationDifference(),
@@ -85,7 +87,7 @@ graphSlamSaveStructure::addEdge(int fromVertex, int toVertex, Eigen::Vector3d po
                         std::vector<int> holdStill{0};
                         edge resultingEdge = currentSubGraph.getEdgeBetweenNodes(0,
                                                                                  this->lookUpTableCell[indexCellFrom].size(),
-                                                                                 holdStill,maxTimeOptimization);
+                                                                                 holdStill, maxTimeOptimization);
                         resultingEdge.setFromVertex(indexCellFrom);
                         resultingEdge.setToVertex(i);
                         for (int j = 0; j < hierachicalGraph->edgeList.size(); j++) {
@@ -108,7 +110,7 @@ graphSlamSaveStructure::addEdge(int fromVertex, int toVertex, Eigen::Vector3d po
             getListofConnectedVertexAndEdges(this->lookUpTableCell[indexCellFrom], listOfContainingEdges,
                                              listOfConnectedVertexes);
 
-            graphSlamSaveStructure currentSubGraph(this->hierachicalGraph->degreeOfFreedom,ONLY_SIMPLE_GRAPH);
+            graphSlamSaveStructure currentSubGraph(this->hierachicalGraph->degreeOfFreedom, ONLY_SIMPLE_GRAPH);
             for (int k = 0;
                  k < this->lookUpTableCell[indexCellFrom].size(); k++) {//add vertices of cell indexCellFrom
                 vertex tmpVertex = this->vertexList[this->lookUpTableCell[indexCellFrom][k]];
@@ -130,7 +132,7 @@ graphSlamSaveStructure::addEdge(int fromVertex, int toVertex, Eigen::Vector3d po
 
             std::vector<int> vertexIndexOfJoinedGraph = joinTwoLists(this->lookUpTableCell[indexCellFrom],
                                                                      this->lookUpTableCell[indexCellTo]);//list of vertex index of cell indexCellFrom and cell indexCellTo
-            for (auto &currentEdge : this->edgeList) {//go threw complete edge lists
+            for (auto &currentEdge: this->edgeList) {//go threw complete edge lists
 
                 auto itFromVertex = std::find(vertexIndexOfJoinedGraph.begin(),
                                               vertexIndexOfJoinedGraph.end(),
@@ -155,7 +157,7 @@ graphSlamSaveStructure::addEdge(int fromVertex, int toVertex, Eigen::Vector3d po
             std::vector<int> holdStill{0};
             edge resultingEdge = currentSubGraph.getEdgeBetweenNodes(0,
                                                                      this->lookUpTableCell[indexCellFrom].size(),
-                                                                     holdStill,maxTimeOptimization);
+                                                                     holdStill, maxTimeOptimization);
             resultingEdge.setFromVertex(indexCellFrom);
             resultingEdge.setToVertex(indexCellTo);
             bool edgeAlreadyThere = false;
@@ -186,9 +188,10 @@ graphSlamSaveStructure::addEdge(int fromVertex, int toVertex, Eigen::Vector3d po
 }
 
 void
-graphSlamSaveStructure::addEdge( int fromVertex,  int toVertex,  Eigen::Vector3d positionDifference,
-                                 Eigen::Quaterniond rotationDifference, Eigen::Vector3d covariancePosition,
-                                 double covarianceQuaternion, pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloud,int typeOfEdge, double maxTimeOptimization) {
+graphSlamSaveStructure::addEdge(int fromVertex, int toVertex, Eigen::Vector3d positionDifference,
+                                Eigen::Quaterniond rotationDifference, Eigen::Vector3d covariancePosition,
+                                double covarianceQuaternion, pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloud,
+                                int typeOfEdge, double maxTimeOptimization) {
 
     if (std::isnan(covarianceQuaternion) ||
         std::isnan(covariancePosition[0]) ||
@@ -218,7 +221,8 @@ graphSlamSaveStructure::addEdge( int fromVertex,  int toVertex,  Eigen::Vector3d
                     bool containingConnection = checkIfElementsOfVectorAreEqual(this->lookUpTableCell[i],
                                                                                 listOfConnectedVertexes);//check if overlap exists
                     if (containingConnection) {//create graph from indexCellFrom to i
-                        graphSlamSaveStructure currentSubGraph(this->hierachicalGraph->degreeOfFreedom,ONLY_SIMPLE_GRAPH);
+                        graphSlamSaveStructure currentSubGraph(this->hierachicalGraph->degreeOfFreedom,
+                                                               ONLY_SIMPLE_GRAPH);
                         for (int k = 0;
                              k < this->lookUpTableCell[indexCellFrom].size(); k++) {//add vertices of cell indexCellFrom
                             vertex tmpVertex = this->vertexList[this->lookUpTableCell[indexCellFrom][k]];
@@ -240,7 +244,7 @@ graphSlamSaveStructure::addEdge( int fromVertex,  int toVertex,  Eigen::Vector3d
 
                         std::vector<int> vertexIndexOfJoinedGraph = joinTwoLists(this->lookUpTableCell[indexCellFrom],
                                                                                  this->lookUpTableCell[i]);//list of vertex index of cell indexCellFrom and cell i
-                        for (auto &currentEdge : this->edgeList) {//go threw complete edge lists
+                        for (auto &currentEdge: this->edgeList) {//go threw complete edge lists
 
                             auto itFromVertex = std::find(vertexIndexOfJoinedGraph.begin(),
                                                           vertexIndexOfJoinedGraph.end(),
@@ -265,7 +269,7 @@ graphSlamSaveStructure::addEdge( int fromVertex,  int toVertex,  Eigen::Vector3d
                         std::vector<int> holdStill{0};
                         edge resultingEdge = currentSubGraph.getEdgeBetweenNodes(0,
                                                                                  this->lookUpTableCell[indexCellFrom].size(),
-                                                                                 holdStill,maxTimeOptimization);
+                                                                                 holdStill, maxTimeOptimization);
                         resultingEdge.setFromVertex(indexCellFrom);
                         resultingEdge.setToVertex(i);
                         for (int j = 0; j < hierachicalGraph->edgeList.size(); j++) {
@@ -288,7 +292,7 @@ graphSlamSaveStructure::addEdge( int fromVertex,  int toVertex,  Eigen::Vector3d
             getListofConnectedVertexAndEdges(this->lookUpTableCell[indexCellFrom], listOfContainingEdges,
                                              listOfConnectedVertexes);
 
-            graphSlamSaveStructure currentSubGraph(this->hierachicalGraph->degreeOfFreedom,ONLY_SIMPLE_GRAPH);
+            graphSlamSaveStructure currentSubGraph(this->hierachicalGraph->degreeOfFreedom, ONLY_SIMPLE_GRAPH);
             for (int k = 0;
                  k < this->lookUpTableCell[indexCellFrom].size(); k++) {//add vertices of cell indexCellFrom
                 vertex tmpVertex = this->vertexList[this->lookUpTableCell[indexCellFrom][k]];
@@ -310,7 +314,7 @@ graphSlamSaveStructure::addEdge( int fromVertex,  int toVertex,  Eigen::Vector3d
 
             std::vector<int> vertexIndexOfJoinedGraph = joinTwoLists(this->lookUpTableCell[indexCellFrom],
                                                                      this->lookUpTableCell[indexCellTo]);//list of vertex index of cell indexCellFrom and cell indexCellTo
-            for (auto &currentEdge : this->edgeList) {//go threw complete edge lists
+            for (auto &currentEdge: this->edgeList) {//go threw complete edge lists
 
                 auto itFromVertex = std::find(vertexIndexOfJoinedGraph.begin(),
                                               vertexIndexOfJoinedGraph.end(),
@@ -335,7 +339,8 @@ graphSlamSaveStructure::addEdge( int fromVertex,  int toVertex,  Eigen::Vector3d
             std::vector<int> holdStill{0};
             edge resultingEdge = currentSubGraph.getEdgeBetweenNodes(0,
                                                                      this->lookUpTableCell[indexCellFrom].size(),
-                                                                     holdStill,maxTimeOptimization);//resultingEdge.setFromVertex(indexCellFrom); resultingEdge.setToVertex(indexCellTo);
+                                                                     holdStill,
+                                                                     maxTimeOptimization);//resultingEdge.setFromVertex(indexCellFrom); resultingEdge.setToVertex(indexCellTo);
             resultingEdge.setFromVertex(indexCellFrom);
             resultingEdge.setToVertex(indexCellTo);
             bool edgeAlreadyThere = false;
@@ -477,7 +482,6 @@ void graphSlamSaveStructure::addVertex(int vertexNumber, const Eigen::Vector3d &
         // optimize subgraphs, should not be done only if edge is connected
     }
 }
-
 
 
 Eigen::SparseMatrix<double> graphSlamSaveStructure::getInformationMatrix() {
@@ -690,9 +694,10 @@ Eigen::MatrixXd graphSlamSaveStructure::getErrorMatrix() {
                 currentRotation * differenceBeforeRotation;
         //calculate angle difference
 
-        double angleDiffVertex = angleDiff(this->getYawAngle(this->vertexList[toVertex].getRotationVertex()),yawAngle);
+        double angleDiffVertex = angleDiff(this->getYawAngle(this->vertexList[toVertex].getRotationVertex()), yawAngle);
 
-        double angleErrorDiff = angleDiff( this->getYawAngle(this->edgeList[i].getRotationDifference()),angleDiffVertex);
+        double angleErrorDiff = angleDiff(this->getYawAngle(this->edgeList[i].getRotationDifference()),
+                                          angleDiffVertex);
         //tf2::getYaw(this->edgeList[i].getRotationDifference());
         //Eigen::Quaterniond tmpQuat();
 
@@ -786,18 +791,18 @@ std::vector<edge> *graphSlamSaveStructure::getEdgeList() {
 
 void graphSlamSaveStructure::optimizeGraphWithSlamTopDown(bool verbose, double cellSize, double maxTimeOptimization) {
     if (this->hasHierachicalGraph) {
-        this->hierachicalGraph->optimizeGraphWithSlamTopDown(verbose, this->cellSize,maxTimeOptimization);
+        this->hierachicalGraph->optimizeGraphWithSlamTopDown(verbose, this->cellSize, maxTimeOptimization);
         //std::vector<vertex> stateAfterOptimization = this->hierachicalGraph->getVertexList();
         //test if difference between x(k) und x(k-1) is "big" if yes: change graph k-1 else do nothing
         std::vector<int> cellListToUpdate;
-        for (auto &currentHierachicalSupGraphCell : this->hierachicalGraph->vertexList) {// get the vertex number
+        for (auto &currentHierachicalSupGraphCell: this->hierachicalGraph->vertexList) {// get the vertex number
             Eigen::Vector3d diffPosition = currentHierachicalSupGraphCell.getPositionVertex() -
                                            this->vertexList[this->lookUpTableCell[currentHierachicalSupGraphCell.getVertexNumber()][0]].getPositionVertex();
             Eigen::Quaterniond diffRotation = currentHierachicalSupGraphCell.getRotationVertex() *
                                               this->vertexList[this->lookUpTableCell[currentHierachicalSupGraphCell.getVertexNumber()][0]].getRotationVertex().inverse();
             if (diffPosition.norm() > cellSize * 0.01) {
                 //propagate down
-                for (int indexVertex : this->lookUpTableCell[currentHierachicalSupGraphCell.getVertexNumber()]) {// also is done for every cell member
+                for (int indexVertex: this->lookUpTableCell[currentHierachicalSupGraphCell.getVertexNumber()]) {// also is done for every cell member
                     this->vertexList[indexVertex].setPositionVertex(
                             this->vertexList[indexVertex].getPositionVertex() + diffPosition);
                     this->vertexList[indexVertex].setRotationVertex(
@@ -806,11 +811,11 @@ void graphSlamSaveStructure::optimizeGraphWithSlamTopDown(bool verbose, double c
                 cellListToUpdate.push_back(currentHierachicalSupGraphCell.getVertexNumber());
             }
         }
-        for (auto cellToUpdate:cellListToUpdate) {
+        for (auto cellToUpdate: cellListToUpdate) {
             // should optimize sub graph anew keep both keyframes between them still
             for (int i = 0; i < this->hierachicalGraph->edgeList.size(); i++) {
                 if (this->hierachicalGraph->edgeList[i].getFromVertex() == cellToUpdate) {
-                    graphSlamSaveStructure currentSubGraph(this->hierachicalGraph->degreeOfFreedom,ONLY_SIMPLE_GRAPH);
+                    graphSlamSaveStructure currentSubGraph(this->hierachicalGraph->degreeOfFreedom, ONLY_SIMPLE_GRAPH);
                     bool connectionExists = createSubGraphBetweenCell(cellToUpdate,
                                                                       this->hierachicalGraph->edgeList[i].getToVertex(),
                                                                       currentSubGraph, maxTimeOptimization);
@@ -818,9 +823,9 @@ void graphSlamSaveStructure::optimizeGraphWithSlamTopDown(bool verbose, double c
                         //optimize graph and calculate the edge between the two representing nodes
                         //representing nodes are: first of currentSubGraph and cellVertexLookUpList[i].size()
                         std::vector<int> holdStill{0, (int) this->lookUpTableCell[cellToUpdate].size()};
-                        currentSubGraph.optimizeGraphWithSlam(false, holdStill,maxTimeOptimization);
+                        currentSubGraph.optimizeGraphWithSlam(false, holdStill, maxTimeOptimization);
                         int j = 0;
-                        for (auto vertexIndex:this->lookUpTableCell[this->hierachicalGraph->edgeList[i].getFromVertex()]) {
+                        for (auto vertexIndex: this->lookUpTableCell[this->hierachicalGraph->edgeList[i].getFromVertex()]) {
                             this->vertexList[vertexIndex].setPositionVertex(
                                     currentSubGraph.getVertexByIndex(j)->getPositionVertex());
                             this->vertexList[vertexIndex].setRotationVertex(
@@ -828,7 +833,7 @@ void graphSlamSaveStructure::optimizeGraphWithSlamTopDown(bool verbose, double c
                             j++;
                         }
                         //j=0;
-                        for (auto vertexIndex:this->lookUpTableCell[this->hierachicalGraph->edgeList[i].getToVertex()]) {
+                        for (auto vertexIndex: this->lookUpTableCell[this->hierachicalGraph->edgeList[i].getToVertex()]) {
                             this->vertexList[vertexIndex].setPositionVertex(
                                     currentSubGraph.getVertexByIndex(j)->getPositionVertex());
                             this->vertexList[vertexIndex].setRotationVertex(
@@ -844,7 +849,8 @@ void graphSlamSaveStructure::optimizeGraphWithSlamTopDown(bool verbose, double c
 
                 } else {
                     if (this->hierachicalGraph->edgeList[i].getToVertex() == cellToUpdate) {
-                        graphSlamSaveStructure currentSubGraph(this->hierachicalGraph->degreeOfFreedom,ONLY_SIMPLE_GRAPH);
+                        graphSlamSaveStructure currentSubGraph(this->hierachicalGraph->degreeOfFreedom,
+                                                               ONLY_SIMPLE_GRAPH);
                         bool connectionExists = createSubGraphBetweenCell(
                                 this->hierachicalGraph->edgeList[i].getFromVertex(),
                                 cellToUpdate, currentSubGraph, maxTimeOptimization);
@@ -855,10 +861,10 @@ void graphSlamSaveStructure::optimizeGraphWithSlamTopDown(bool verbose, double c
                                                        (int) this->lookUpTableCell[this->hierachicalGraph->edgeList[i].getFromVertex()].size()};
                             //edge resultingEdge = currentSubGraph.getEdgeBetweenNodes(0, holdStill[1], holdStill);
 
-                            currentSubGraph.optimizeGraphWithSlam(false, holdStill,maxTimeOptimization);
+                            currentSubGraph.optimizeGraphWithSlam(false, holdStill, maxTimeOptimization);
 
                             int j = 0;
-                            for (auto vertexIndex:this->lookUpTableCell[this->hierachicalGraph->edgeList[i].getFromVertex()]) {
+                            for (auto vertexIndex: this->lookUpTableCell[this->hierachicalGraph->edgeList[i].getFromVertex()]) {
                                 this->vertexList[vertexIndex].setPositionVertex(
                                         currentSubGraph.getVertexByIndex(j)->getPositionVertex());
                                 this->vertexList[vertexIndex].setRotationVertex(
@@ -866,7 +872,7 @@ void graphSlamSaveStructure::optimizeGraphWithSlamTopDown(bool verbose, double c
                                 j++;
                             }
                             //j=0;
-                            for (auto vertexIndex:this->lookUpTableCell[this->hierachicalGraph->edgeList[i].getToVertex()]) {
+                            for (auto vertexIndex: this->lookUpTableCell[this->hierachicalGraph->edgeList[i].getToVertex()]) {
                                 this->vertexList[vertexIndex].setPositionVertex(
                                         currentSubGraph.getVertexByIndex(j)->getPositionVertex());
                                 this->vertexList[vertexIndex].setRotationVertex(
@@ -886,8 +892,8 @@ void graphSlamSaveStructure::optimizeGraphWithSlamTopDown(bool verbose, double c
 
 
         // next the covariance should be added at lower levels
-        for (auto &currentSubGraphVertex : *this->hierachicalGraph->getVertexList()) {// get the vertex list
-            for (int indexVertex : this->lookUpTableCell[currentSubGraphVertex.getVertexNumber()]) {// change the covariance for each cellmember dependend on the covariance of vertex
+        for (auto &currentSubGraphVertex: *this->hierachicalGraph->getVertexList()) {// get the vertex list
+            for (int indexVertex: this->lookUpTableCell[currentSubGraphVertex.getVertexNumber()]) {// change the covariance for each cellmember dependend on the covariance of vertex
 
                 this->vertexList[indexVertex].setCovariancePosition(currentSubGraphVertex.getCovariancePosition());
                 this->vertexList[indexVertex].setCovarianceQuaternion(currentSubGraphVertex.getCovarianceQuaternion());
@@ -897,7 +903,7 @@ void graphSlamSaveStructure::optimizeGraphWithSlamTopDown(bool verbose, double c
 
     } else {
         std::vector<int> holdStill{0};
-        this->optimizeGraphWithSlam(verbose, holdStill,maxTimeOptimization);
+        this->optimizeGraphWithSlam(verbose, holdStill, maxTimeOptimization);
     }
 
 }
@@ -926,7 +932,8 @@ void graphSlamSaveStructure::removeLastEdge() {
 }
 
 
-void graphSlamSaveStructure::optimizeGraphWithSlam(bool verbose, std::vector<int> &holdStill, double maxTimeOptimization) {
+void
+graphSlamSaveStructure::optimizeGraphWithSlam(bool verbose, std::vector<int> &holdStill, double maxTimeOptimization) {
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
@@ -1103,7 +1110,7 @@ void graphSlamSaveStructure::optimizeGraphWithSlam(bool verbose, std::vector<int
         }
         errorLast = errorMatrix.norm();
         std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-        if(std::chrono::duration_cast<std::chrono::duration<double> >(end - begin).count()>maxTimeOptimization){
+        if (std::chrono::duration_cast<std::chrono::duration<double> >(end - begin).count() > maxTimeOptimization) {
             std::cout << "Time took to long exited after: " << maxTimeOptimization << std::endl;
             break;
         }
@@ -1175,19 +1182,19 @@ void graphSlamSaveStructure::lookupTableCreation(double minDistanceForNewCell) {
 }
 
 void graphSlamSaveStructure::initiallizeSubGraphs(
-        std::deque<double> cellSizes,double maxTimeOptimization) {//this is useful for the beginning of innitialization
+        std::deque<double> cellSizes, double maxTimeOptimization) {//this is useful for the beginning of innitialization
 
-    this->createHierachicalGraph(cellSizes[0],maxTimeOptimization);
+    this->createHierachicalGraph(cellSizes[0], maxTimeOptimization);
     cellSizes.pop_front();
     if (!cellSizes.empty()) {
         this->hierachicalGraph->initiallizeSubGraphs(cellSizes, maxTimeOptimization);
     }
 }
 
-void graphSlamSaveStructure::resetHierachicalGraph(){
+void graphSlamSaveStructure::resetHierachicalGraph() {
     this->lookUpTableCell.clear();
     this->hasHierachicalGraph = false;
-    delete(this->hierachicalGraph);
+    delete (this->hierachicalGraph);
 
 }
 
@@ -1195,7 +1202,7 @@ void graphSlamSaveStructure::getListofConnectedVertexAndEdges(std::vector<int> &
                                                               std::vector<edge> &listOfContainingEdges,
                                                               std::vector<int> &listOfConnectedVertexes) {//go threw cell I and save edges connected to it
 //check if vertex is in edge, if true save the edge
-    for (auto &currentEdge : this->edgeList) {// get the vertex number
+    for (auto &currentEdge: this->edgeList) {// get the vertex number
 
         if (std::find(vertexIndicesofICell.begin(), vertexIndicesofICell.end(),
                       currentEdge.getFromVertex()) != vertexIndicesofICell.end() ||
@@ -1213,7 +1220,7 @@ void graphSlamSaveStructure::getListofConnectedVertexAndEdges(std::vector<int> &
 void graphSlamSaveStructure::createHierachicalGraph(double cellSizeDes, double maxTimeOptimization) {
     this->cellSize = cellSizeDes;
     this->lookupTableCreation(this->cellSize);//creating each cell with containing graph
-    hierachicalGraph = new graphSlamSaveStructure(this->degreeOfFreedom,ONLY_SIMPLE_GRAPH);
+    hierachicalGraph = new graphSlamSaveStructure(this->degreeOfFreedom, ONLY_SIMPLE_GRAPH);
     // create hierachical graph
 
     for (int i = 0; i < this->lookUpTableCell.size(); i++) {
@@ -1227,13 +1234,14 @@ void graphSlamSaveStructure::createHierachicalGraph(double cellSizeDes, double m
 
     for (int i = 0; i < this->lookUpTableCell.size(); i++) {// go threw vertex list of cells i current cell
         for (int j = i + 1; j < this->lookUpTableCell.size(); j++) {// go threw rest cells to find connecting edges
-            graphSlamSaveStructure currentSubGraph(this->hierachicalGraph->degreeOfFreedom,ONLY_SIMPLE_GRAPH);
+            graphSlamSaveStructure currentSubGraph(this->hierachicalGraph->degreeOfFreedom, ONLY_SIMPLE_GRAPH);
             bool connectionExists = createSubGraphBetweenCell(i, j, currentSubGraph, maxTimeOptimization);
             if (connectionExists) {
                 //optimize graph and calculate the edge between the two representing nodes
                 //representing nodes are: first of currentSubGraph and cellVertexLookUpList[i].size()
                 std::vector<int> holdStill{0};
-                edge resultingEdge = currentSubGraph.getEdgeBetweenNodes(0, this->lookUpTableCell[i].size(), holdStill,maxTimeOptimization);
+                edge resultingEdge = currentSubGraph.getEdgeBetweenNodes(0, this->lookUpTableCell[i].size(), holdStill,
+                                                                         maxTimeOptimization);
                 hierachicalGraph->addEdge(i, j, resultingEdge.getPositionDifference(),
                                           resultingEdge.getRotationDifference(), resultingEdge.getCovariancePosition(),
                                           resultingEdge.getCovarianceQuaternion(),
@@ -1245,8 +1253,9 @@ void graphSlamSaveStructure::createHierachicalGraph(double cellSizeDes, double m
 }
 
 
-edge graphSlamSaveStructure::getEdgeBetweenNodes(int fromVertex, int toVertex, std::vector<int> &holdStill,double maxTimeOptimization) {
-    this->optimizeGraphWithSlam(false, holdStill,maxTimeOptimization);
+edge graphSlamSaveStructure::getEdgeBetweenNodes(int fromVertex, int toVertex, std::vector<int> &holdStill,
+                                                 double maxTimeOptimization) {
+    this->optimizeGraphWithSlam(false, holdStill, maxTimeOptimization);
     Eigen::MatrixXd errorMatrix;
     Eigen::SparseMatrix<double> informationMatrix;
     Eigen::SparseMatrix<double> jacobianMatrix;
@@ -1324,7 +1333,7 @@ edge graphSlamSaveStructure::getEdgeBetweenNodes(int fromVertex, int toVertex, s
                        this->vertexList[fromVertex].getRotationVertex().inverse() *
                        this->vertexList[toVertex].getRotationVertex(), covarianceOfPosEdge, covarianceOfRotEdge,
                        degreeOfFreedom, INTEGRATED_POSE);
-    this->optimizeGraphWithSlam(false, holdStill,maxTimeOptimization);
+    this->optimizeGraphWithSlam(false, holdStill, maxTimeOptimization);
     return resultingEdge;
 
 }
@@ -1358,8 +1367,8 @@ Eigen::MatrixXd graphSlamSaveStructure::transformStateDiffToAddVector(std::vecto
         Eigen::Vector3d posdiff =
                 stateAfterOptimization[i].getPositionVertex() - stateBeforeOptimization[i].getPositionVertex();
         double angleDiff = this->getYawAngle(stateAfterOptimization[i].getRotationVertex()) -
-                this->getYawAngle(stateBeforeOptimization[i].getRotationVertex());
-        for (int j : this->lookUpTableCell[i]) {
+                           this->getYawAngle(stateBeforeOptimization[i].getRotationVertex());
+        for (int j: this->lookUpTableCell[i]) {
             vectorToAdd(j * this->degreeOfFreedom + 0, 0) = posdiff[0];
             vectorToAdd(j * this->degreeOfFreedom + 1, 0) = posdiff[1];
             vectorToAdd(j * this->degreeOfFreedom + 2, 0) = angleDiff;
@@ -1387,7 +1396,7 @@ int graphSlamSaveStructure::getCellOfVertexIndex(int vertexIndex) {
 bool graphSlamSaveStructure::checkIfElementsOfVectorAreEqual(std::vector<int> &i0,
                                                              std::vector<int> &i1) {// check if an element of i0 is equal to element of i1
 
-    for (int &element : i1) {
+    for (int &element: i1) {
         if (std::find(i0.begin(), i0.end(),
                       element) != i0.end()) {
             return true;
@@ -1406,7 +1415,8 @@ std::vector<int> graphSlamSaveStructure::joinTwoLists(std::vector<int> &i0,
 }
 
 bool graphSlamSaveStructure::createSubGraphBetweenCell(int vertexIndexFrom, int vertexIndexTo,
-                                                       graphSlamSaveStructure &currentSubGraph, double maxTimeOptimization) {
+                                                       graphSlamSaveStructure &currentSubGraph,
+                                                       double maxTimeOptimization) {
     std::vector<int> vertexIndicesOfICell = this->lookUpTableCell[vertexIndexFrom];
     std::vector<int> vertexIndicesOfJCell = this->lookUpTableCell[vertexIndexTo];
     std::vector<edge> listOfContainingEdges;
@@ -1437,7 +1447,7 @@ bool graphSlamSaveStructure::createSubGraphBetweenCell(int vertexIndexFrom, int 
         //get all containing elements of the joined sub graph
         std::vector<int> vertexIndexOfJoinedGraph = joinTwoLists(vertexIndicesOfICell, vertexIndicesOfJCell);
         // look at each edge to be contained at these vertex
-        for (auto &currentEdge : this->edgeList) {
+        for (auto &currentEdge: this->edgeList) {
 
             auto itFromVertex = std::find(vertexIndexOfJoinedGraph.begin(), vertexIndexOfJoinedGraph.end(),
                                           currentEdge.getFromVertex());
@@ -1465,9 +1475,10 @@ bool graphSlamSaveStructure::createSubGraphBetweenCell(int vertexIndexFrom, int 
 
 
 void
-graphSlamSaveStructure::calculateCovarianceInCloseProximity(double maxTimeOptimization) {//@TODO calculate the covariance CORRECT only for the current cell.(last) and connected Cells
+graphSlamSaveStructure::calculateCovarianceInCloseProximity(
+        double maxTimeOptimization) {//@TODO calculate the covariance CORRECT only for the current cell.(last) and connected Cells
 
-    if(!this->hasHierachicalGraph){
+    if (!this->hasHierachicalGraph) {
         return;
     }
     // get vertex numbers that are of interest:
@@ -1489,13 +1500,13 @@ graphSlamSaveStructure::calculateCovarianceInCloseProximity(double maxTimeOptimi
         currentHierachicalGraph = currentHierachicalGraph->hierachicalGraph;
     }
     int lastCell = (int) lookUpTableCellOfSubGraphs.back().size() - 1;
-    for (auto cellElement : lookUpTableCellOfSubGraphs.back()[lastCell]) {
+    for (auto cellElement: lookUpTableCellOfSubGraphs.back()[lastCell]) {
         currentListOfCellsOfImportanceLower.push_back(cellElement);
     }
 
     for (int m = 0; m < lookUpTableCellOfSubGraphs.back().size() - 1; m++) {
         if (currentHierachicalGraph->checkIfDirectConnectionExists(m, lastCell)) {
-            for (auto containingVertexIndex : lookUpTableCellOfSubGraphs.back()[m]) {
+            for (auto containingVertexIndex: lookUpTableCellOfSubGraphs.back()[m]) {
                 currentListOfCellsOfImportanceLower.push_back(containingVertexIndex);
             }
         }
@@ -1507,8 +1518,8 @@ graphSlamSaveStructure::calculateCovarianceInCloseProximity(double maxTimeOptimi
         for (int k = 0; k < (j - 1); k++) {//get current hierachical graph
             currentHierachicalGraph = currentHierachicalGraph->hierachicalGraph;
         }
-        for (auto cell:currentListOfCellsOfImportanceLower) {
-            for (auto cellIndex:lookUpTableCellOfSubGraphs[j - 1][cell]) {
+        for (auto cell: currentListOfCellsOfImportanceLower) {
+            for (auto cellIndex: lookUpTableCellOfSubGraphs[j - 1][cell]) {
                 currentListOfCellsOfImportanceHigher.push_back(cellIndex);
             }
         }
@@ -1518,7 +1529,7 @@ graphSlamSaveStructure::calculateCovarianceInCloseProximity(double maxTimeOptimi
     //sort for highest value stand last
     std::sort(listOfContainingVertex.begin(), listOfContainingVertex.end());
     //create subgraph for cells of listOfContainingVertex
-    graphSlamSaveStructure currentSubGraph(this->degreeOfFreedom,ONLY_SIMPLE_GRAPH);
+    graphSlamSaveStructure currentSubGraph(this->degreeOfFreedom, ONLY_SIMPLE_GRAPH);
 
     for (int j = 0; j < listOfContainingVertex.size(); j++) {
         // sort in into vertex list
@@ -1528,7 +1539,7 @@ graphSlamSaveStructure::calculateCovarianceInCloseProximity(double maxTimeOptimi
                                   INTEGRATED_POSE);
     }
 
-    for (auto &currentEdge : this->edgeList) {
+    for (auto &currentEdge: this->edgeList) {
 
         auto itFromVertex = std::find(listOfContainingVertex.begin(), listOfContainingVertex.end(),
                                       currentEdge.getFromVertex());
@@ -1549,9 +1560,9 @@ graphSlamSaveStructure::calculateCovarianceInCloseProximity(double maxTimeOptimi
         }
     }
     std::vector<int> holdStill{(int) (listOfContainingVertex.size() - 1)};
-    currentSubGraph.optimizeGraphWithSlam(false, holdStill,maxTimeOptimization);
+    currentSubGraph.optimizeGraphWithSlam(false, holdStill, maxTimeOptimization);
     //now put in the covariances to the main graph
-    for (auto &currentVertex : *currentSubGraph.getVertexList()) {
+    for (auto &currentVertex: *currentSubGraph.getVertexList()) {
         this->vertexList[listOfContainingVertex[currentVertex.getVertexNumber()]].setCovariancePosition(
                 currentVertex.getCovariancePosition());
         this->vertexList[listOfContainingVertex[currentVertex.getVertexNumber()]].setCovarianceQuaternion(
@@ -1562,7 +1573,7 @@ graphSlamSaveStructure::calculateCovarianceInCloseProximity(double maxTimeOptimi
 
 
 bool graphSlamSaveStructure::checkIfDirectConnectionExists(int vertexIndex0, int vertexIndex1) {
-    for (auto &currentEdge : this->edgeList) {
+    for (auto &currentEdge: this->edgeList) {
         if (currentEdge.getFromVertex() == vertexIndex0 && currentEdge.getToVertex() == vertexIndex1 ||
             currentEdge.getToVertex() == vertexIndex0 && currentEdge.getFromVertex() == vertexIndex1) {
             return true;
@@ -1572,16 +1583,16 @@ bool graphSlamSaveStructure::checkIfDirectConnectionExists(int vertexIndex0, int
 }
 
 double graphSlamSaveStructure::getYawAngle(Eigen::Quaterniond quaternionYaw) {
-    return  tf2::getYaw(tf2::Quaternion(quaternionYaw.x(), quaternionYaw.y(), quaternionYaw.z(), quaternionYaw.w()));
+    return tf2::getYaw(tf2::Quaternion(quaternionYaw.x(), quaternionYaw.y(), quaternionYaw.z(), quaternionYaw.w()));
 }
 
-void graphSlamSaveStructure::saveGraphJson(std::string nameSavingFile){
+void graphSlamSaveStructure::saveGraphJson(std::string nameSavingFile) {
 
     Json::Value keyFrames;
 
     int currentKeyFrameNumber = 0;
-    for(int i = 0 ; i<this->numberOfVertex;i++){
-        if(this->vertexList[i].getTypeOfVertex()==POINT_CLOUD_SAVED){
+    for (int i = 0; i < this->numberOfVertex; i++) {
+        if (this->vertexList[i].getTypeOfVertex() == POINT_CLOUD_SAVED) {
             // if point cloud is used then save this keyframe
             Json::Value positionOfKeyframe;
             positionOfKeyframe["x"] = this->vertexList[i].getPositionVertex()[0];
@@ -1592,15 +1603,15 @@ void graphSlamSaveStructure::saveGraphJson(std::string nameSavingFile){
             positionOfKeyframe["yaw"] = this->getYawAngle(this->vertexList[i].getRotationVertex());
             Json::Value pointCloud;
 
-            for(int j = 0 ; j < this->vertexList[i].getPointCloudCorrected()->points.size() ; j++){
+            for (int j = 0; j < this->vertexList[i].getPointCloudCorrected()->points.size(); j++) {
                 Json::Value tmpPoint;
                 tmpPoint["x"] = this->vertexList[i].getPointCloudCorrected()->points[j].x;
                 tmpPoint["y"] = this->vertexList[i].getPointCloudCorrected()->points[j].y;
                 tmpPoint["z"] = this->vertexList[i].getPointCloudCorrected()->points[j].z;
                 pointCloud[j]["point"] = tmpPoint;
             }
-            keyFrames[currentKeyFrameNumber]["position"]=positionOfKeyframe;
-            keyFrames[currentKeyFrameNumber]["pointCloud"]=pointCloud;
+            keyFrames[currentKeyFrameNumber]["position"] = positionOfKeyframe;
+            keyFrames[currentKeyFrameNumber]["pointCloud"] = pointCloud;
             currentKeyFrameNumber++;
         }
     }
@@ -1613,4 +1624,52 @@ void graphSlamSaveStructure::saveGraphJson(std::string nameSavingFile){
     ifs.open(nameSavingFile);
     ifs << outputText << '\n';
     ifs.close();
+}
+
+
+void graphSlamSaveStructure::addRandomNoiseToGraph(double percentageOfAdditiveNoise, double percentageOfRandomNoise) {
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(0.0, 1.0);
+
+
+
+
+    double maximumIntensity = 0;
+    for (int i = 0; i < this->vertexList.size(); i++) {
+        intensityMeasurement tmpIntensity = this->vertexList[i].getIntensities();
+        //find max intensity;
+        for (int j = 0; j < tmpIntensity.intensities.size(); j++) {
+            if (tmpIntensity.intensities[j] > maximumIntensity) {
+                maximumIntensity = tmpIntensity.intensities[j];
+            }
+        }
+    }
+
+    for (int i = 0; i < this->vertexList.size(); i++) {
+        intensityMeasurement tmpIntensity = this->vertexList[i].getIntensities();
+        //find max intensity;
+        for (int j = 0; j < tmpIntensity.intensities.size(); j++) {
+            if(dis(gen)<percentageOfRandomNoise){
+                tmpIntensity.intensities[j] = dis(gen)*maximumIntensity;
+//                std::cout << tmpIntensity.intensities[j] << std::endl;
+            }
+
+            if(dis(gen)<percentageOfAdditiveNoise){
+                tmpIntensity.intensities[j] += dis(gen)*maximumIntensity/5.0;
+            }
+
+
+
+
+        }
+        this->vertexList[i].setIntensities(tmpIntensity);
+    }
+
+
+
+
+//    this->vertexList[i].setIntensities(tmpIntensity);
+
 }

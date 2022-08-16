@@ -70,15 +70,14 @@ Eigen::Matrix4d scanRegistrationClass::icpRegistration(pcl::PointCloud<pcl::Poin
     std::cout << icp.getFinalTransformation() << std::endl;
 
 
-
-
     return icp.getFinalTransformation().cast<double>();
 }
 
 
 Eigen::Matrix4d scanRegistrationClass::sofftRegistration2D(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData1,
                                                            pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData2,
-                                                           double &fitnessX, double &fitnessY, double goodGuessAlpha, bool debug) {
+                                                           double &fitnessX, double &fitnessY, double goodGuessAlpha,
+                                                           bool debug) {
 
 //    const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1New(pointCloudInputData1.makeShared());
 //    const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2New(pointCloudInputData2.makeShared());
@@ -90,14 +89,14 @@ Eigen::Matrix4d scanRegistrationClass::sofftRegistration2D(pcl::PointCloud<pcl::
 Eigen::Matrix4d scanRegistrationClass::sofftRegistration2D(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData1,
                                                            pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData2,
                                                            double &fitnessX, double &fitnessY,
-                                                           Eigen::Matrix4d initialGuess,bool useInitialGuess,
+                                                           Eigen::Matrix4d initialGuess, bool useInitialGuess,
                                                            bool debug) {
 
 //    const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1New(pointCloudInputData1.makeShared());
 //    const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2New(pointCloudInputData2.makeShared());
 
     return mySofftRegistrationClass.registrationOfTwoPCL2D(pointCloudInputData1, pointCloudInputData2, fitnessX,
-                                                           fitnessY, initialGuess,useInitialGuess, debug);
+                                                           fitnessY, initialGuess, useInitialGuess, debug);
 }
 
 
@@ -110,17 +109,17 @@ double scanRegistrationClass::sofftRegistrationVoxel2DRotationOnly(double voxelD
 
 }
 
-Eigen::Vector2d
-scanRegistrationClass::sofftRegistrationVoxel2DTranslation(double voxelData1Input[], double voxelData2Input[],
-                                                           double &fitnessX, double &fitnessY, double cellSize,
-                                                           Eigen::Vector3d initialGuess, bool useInitialGuess,
-                                                           bool debug) {
-
-    return mySofftRegistrationClass.sofftRegistrationVoxel2DTransformation(voxelData1Input, voxelData2Input, fitnessX,
-                                                                           fitnessY, cellSize, initialGuess,
-                                                                           useInitialGuess, debug);
-
-}
+//Eigen::Vector2d
+//scanRegistrationClass::sofftRegistrationVoxel2DTranslation(double voxelData1Input[], double voxelData2Input[],
+//                                                           double &fitnessX, double &fitnessY, double cellSize,
+//                                                           Eigen::Vector3d initialGuess, bool useInitialGuess,
+//                                                           bool debug) {
+//
+//    return mySofftRegistrationClass.sofftRegistrationVoxel2DTranslation(voxelData1Input, voxelData2Input, fitnessX,
+//                                                                        fitnessY, cellSize, initialGuess,
+//                                                                        useInitialGuess, debug);
+//
+//}
 
 Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
                                                              pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
@@ -129,11 +128,12 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(pcl::PointCloud<pcl
 
     using TrVisitor = gr::DummyTransformVisitor;
 
-    using MatcherType = gr::Match4pcsBase<gr::FunctorSuper4PCS, gr::Point3D<float>, TrVisitor, gr::AdaptivePointFilter, gr::AdaptivePointFilter::Options>;
+    using MatcherType = gr::Match4pcsBase <gr::FunctorSuper4PCS, gr::Point3D<float>, TrVisitor, gr::AdaptivePointFilter, gr::AdaptivePointFilter::Options>;
     using OptionType = typename MatcherType::OptionsType;
-    using SamplerType = gr::UniformDistSampler<gr::Point3D<float> >;
+    using SamplerType = gr::UniformDistSampler <gr::Point3D<float>>;
 
-    std::vector<gr::Point3D<float>> set1, set2;
+    std::vector<gr::Point3D < float>>
+    set1, set2;
     std::vector<Eigen::Matrix2f> tex_coords1, tex_coords2;
     std::vector<typename gr::Point3D<float>::VectorType> normals1, normals2;
     std::vector<std::string> mtls1, mtls2;
@@ -310,8 +310,9 @@ scanRegistrationClass::FMSRegistrationOld(double voxelData1Input[], double voxel
 }
 
 Eigen::Matrix4d scanRegistrationClass::ndt_d2d_2d(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
-                           pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan, Eigen::Matrix4d initialGuess,
-                           bool useInitialGuess){
+                                                  pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
+                                                  Eigen::Matrix4d initialGuess,
+                                                  bool useInitialGuess) {
 
     initialGuess(0, 1) = -initialGuess(0, 1);
     initialGuess(1, 0) = -initialGuess(1, 0);
@@ -319,16 +320,16 @@ Eigen::Matrix4d scanRegistrationClass::ndt_d2d_2d(pcl::PointCloud<pcl::PointXYZ>
 
 
     double __res[] = {0.5, 1, 2, 4};
-    std::vector<double> resolutions (__res, __res+sizeof(__res)/sizeof(double));
+    std::vector<double> resolutions(__res, __res + sizeof(__res) / sizeof(double));
 
 
-    Eigen::Transform<double,3,Eigen::Affine,Eigen::ColMajor> Tout(initialGuess);
+    Eigen::Transform<double, 3, Eigen::Affine, Eigen::ColMajor> Tout(initialGuess);
 //    Tout.setIdentity();
 
 
 //    std::cout<<"Transform Before: \n"<<Tout.matrix()<<std::endl;
-    lslgeneric::NDTMatcherD2D_2D<pcl::PointXYZ,pcl::PointXYZ> matcherD2D(false, false, resolutions);
-        bool ret = matcherD2D.match(cloudSecondScan,cloudFirstScan,Tout,true);
+    lslgeneric::NDTMatcherD2D_2D <pcl::PointXYZ, pcl::PointXYZ> matcherD2D(false, false, resolutions);
+    bool ret = matcherD2D.match(cloudSecondScan, cloudFirstScan, Tout, true);
 
     Tout(0, 1) = -Tout(0, 1);
     Tout(1, 0) = -Tout(1, 0);
@@ -339,8 +340,9 @@ Eigen::Matrix4d scanRegistrationClass::ndt_d2d_2d(pcl::PointCloud<pcl::PointXYZ>
 }
 
 Eigen::Matrix4d scanRegistrationClass::ndt_p2d(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
-                        pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan, Eigen::Matrix4d initialGuess,
-                        bool useInitialGuess){
+                                               pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
+                                               Eigen::Matrix4d initialGuess,
+                                               bool useInitialGuess) {
 
     initialGuess(0, 1) = -initialGuess(0, 1);
     initialGuess(1, 0) = -initialGuess(1, 0);
@@ -349,13 +351,13 @@ Eigen::Matrix4d scanRegistrationClass::ndt_p2d(pcl::PointCloud<pcl::PointXYZ> &c
 //    printf("X %f Y %f Z %f Roll %f Pitch %f Yaw %f \n",xoffset,yoffset,zoffset,roll,pitch,yaw);
 
 
-    Eigen::Transform<double,3,Eigen::Affine,Eigen::ColMajor> Tout(initialGuess);
+    Eigen::Transform<double, 3, Eigen::Affine, Eigen::ColMajor> Tout(initialGuess);
 
 //    std::cout<<"Transform Before: \n"<<Tout.matrix()<<std::endl;
 
-    lslgeneric::NDTMatcherP2D<pcl::PointXYZ,pcl::PointXYZ> matcherP2D;
+    lslgeneric::NDTMatcherP2D <pcl::PointXYZ, pcl::PointXYZ> matcherP2D;
 
-    bool ret = matcherP2D.match(cloudSecondScan,cloudFirstScan,Tout);
+    bool ret = matcherP2D.match(cloudSecondScan, cloudFirstScan, Tout);
 
     Tout(0, 1) = -Tout(0, 1);
     Tout(1, 0) = -Tout(1, 0);
@@ -368,3 +370,33 @@ Eigen::Matrix4d scanRegistrationClass::ndt_p2d(pcl::PointCloud<pcl::PointXYZ> &c
 }
 
 
+Eigen::Vector2d scanRegistrationClass::sofftRegistrationVoxel2DTranslation(double voxelData1Input[],
+                                                                           double voxelData2Input[],
+                                                                           double &fitnessX, double &fitnessY,
+                                                                           double cellSize,
+                                                                           Eigen::Vector3d initialGuess,
+                                                                           bool useInitialGuess,
+                                                                           double &heightMaximumPeak, bool debug) {
+
+    this->mySofftRegistrationClass.sofftRegistrationVoxel2DTranslation(voxelData1Input, voxelData2Input, fitnessX,
+                                                                       fitnessY, cellSize, initialGuess,
+                                                                       useInitialGuess, heightMaximumPeak, debug);
+
+}
+
+Eigen::Matrix4d scanRegistrationClass::registrationOfTwoVoxelsSOFFTFast(double voxelData1Input[],
+                                                                        double voxelData2Input[],
+                                                                        Eigen::Matrix4d initialGuess,
+                                                                        bool useInitialAngle, bool useInitialTranslation,
+                                                                        double cellSize,
+                                                                        bool useGauss,
+                                                                        bool debug){
+
+    return mySofftRegistrationClass.registrationOfTwoVoxelsSOFFTFast(voxelData1Input,
+                                                                     voxelData2Input,
+                                                                     initialGuess,
+                                                                     useInitialAngle, useInitialTranslation,
+                                                                     cellSize,
+                                                                     useGauss,
+                                                                     debug);
+}

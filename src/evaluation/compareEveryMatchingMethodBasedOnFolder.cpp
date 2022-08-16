@@ -17,8 +17,8 @@
 #include "std_srvs/SetBool.h"
 #include <filesystem>
 
-#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
-#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_30_5_RandomShifts1510/"
+//#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_30_5_RandomShifts1510/"
 
 //#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_30_5_RandomShifts105/"
@@ -61,112 +61,6 @@ std::vector<std::string> get_directories(const std::string &s) {
     return r;
 }
 
-Eigen::Matrix4d registrationOfTwoVoxelsSOFFTFasterTest(double voxelData1[],
-                                                       double voxelData2[],
-                                                       Eigen::Matrix4d initialGuess,
-                                                       bool useInitialAngle, bool useInitialTranslation,
-                                                       int numberOfPoints, scanRegistrationClass &scanRegistrationObject,
-                                                       const int dimensionOfVoxelData,
-                                                       bool debug = false) {
-    double goodGuessAlpha = -100;
-    if (useInitialAngle) {
-        goodGuessAlpha = std::atan2(initialGuess(1, 0),
-                                    initialGuess(0, 0));
-    }
-
-
-    double estimatedAngle = scanRegistrationObject.sofftRegistrationVoxel2DRotationOnly(voxelData1,
-                                                                                        voxelData2,
-                                                                                        goodGuessAlpha, debug);
-
-
-    Eigen::Matrix4d rotationMatrixTMP = Eigen::Matrix4d::Identity();
-    Eigen::AngleAxisd tmpRotVec(estimatedAngle, Eigen::Vector3d(0, 0, 1));
-    Eigen::Matrix3d tmpMatrix3d = tmpRotVec.toRotationMatrix();
-    rotationMatrixTMP.block<3, 3>(0, 0) = tmpMatrix3d;
-
-    if (true) {
-        for (int i = 0; i < 2; i++) {
-
-
-            cv::Mat magTMP1(numberOfPoints, numberOfPoints, CV_64F, voxelData1);
-            //add gaussian blur
-            cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
-            //            cv::imwrite("/home/tim-external/Documents/imreg_fmt/firstImage.jpg", magTMP1);
-
-            cv::Mat magTMP2(numberOfPoints, numberOfPoints, CV_64F, voxelData2);
-            //add gaussian blur
-            cv::GaussianBlur(magTMP2, magTMP2, cv::Size(9, 9), 0);
-
-            cv::Point2f pc(magTMP2.cols / 2., magTMP2.rows / 2.);
-            cv::Mat r = cv::getRotationMatrix2D(pc, -estimatedAngle * 180.0 / M_PI, 1.0);
-
-            cv::warpAffine(magTMP2, magTMP2, r, magTMP2.size()); // what size I should use?
-        }
-//            cv::imwrite("/home/tim-external/Documents/imreg_fmt/secondImage.jpg", magTMP2);
-
-//        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
-//        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
-    }
-
-    if (debug) {
-        std::ofstream myFile3, myFile6;
-        myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW1.csv");
-        myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW2.csv");
-        for (int i = 0; i < numberOfPoints; i++) {
-            for (int j = 0; j < numberOfPoints; j++) {
-
-                myFile3 << voxelData1[j + numberOfPoints * i]; // imaginary part
-                myFile3 << "\n";
-                myFile6 << voxelData2[j + numberOfPoints * i]; // imaginary part
-                myFile6 << "\n";
-            }
-        }
-        myFile3.close();
-        myFile6.close();
-    }
-    double fitnessX = 0;
-    double fitnessY = 0;
-    Eigen::Vector2d translation = scanRegistrationObject.sofftRegistrationVoxel2DTranslation(voxelData1,
-                                                                                             voxelData2,
-                                                                                             fitnessX,
-                                                                                             fitnessY,
-                                                                                             (double) dimensionOfVoxelData /
-                                                                                             (double) numberOfPoints,
-                                                                                             initialGuess.block<3, 1>(
-                                                                                                     0, 3),
-                                                                                             useInitialTranslation,
-                                                                                             debug);
-
-    Eigen::Matrix4d estimatedRotationScans = Eigen::Matrix4d::Identity();//from second scan to first
-    //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
-    Eigen::AngleAxisd rotation_vectorTMP(estimatedAngle, Eigen::Vector3d(0, 0, 1));
-    Eigen::Matrix3d tmpRotMatrix3d = rotation_vectorTMP.toRotationMatrix();
-    estimatedRotationScans.block<3, 3>(0, 0) = tmpRotMatrix3d;
-    estimatedRotationScans(0, 3) = translation.x();
-    estimatedRotationScans(1, 3) = translation.y();
-    estimatedRotationScans(2, 3) = 0;
-    estimatedRotationScans(3, 3) = 1;
-
-    if (debug) {
-        std::ofstream myFile1, myFile2;
-        myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel1.csv");
-        myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel2.csv");
-        for (int i = 0; i < numberOfPoints; i++) {
-            for (int j = 0; j < numberOfPoints; j++) {
-                myFile1 << voxelData1[j + numberOfPoints * i]; // real part
-                myFile1 << "\n";
-                myFile2 << voxelData2[j + numberOfPoints * i]; // imaginary part
-                myFile2 << "\n";
-            }
-        }
-        myFile1.close();
-        myFile2.close();
-    }
-
-    return estimatedRotationScans;//should be the transformation matrix from 1 to 2
-}
-
 std::vector<std::string> getNextLineAndSplitIntoTokens(std::istream &str) {
     std::vector<std::string> result;
     std::string line;
@@ -191,7 +85,8 @@ std::vector<measurementResults>
 handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scanRegistrationObject32,
                                scanRegistrationClass &scanRegistrationObject64,
                                scanRegistrationClass &scanRegistrationObject128,
-                               scanRegistrationClass &scanRegistrationObject256) {
+                               scanRegistrationClass &scanRegistrationObject256,
+                               int howManyScans) {
     //load all the data
     std::vector<measurementResults> returnMeasurementsList;
 
@@ -204,7 +99,7 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
 
 
     for (int currentNumberOfScanInDirectory = 0;
-         currentNumberOfScanInDirectory < 10; currentNumberOfScanInDirectory++) {
+         currentNumberOfScanInDirectory < howManyScans; currentNumberOfScanInDirectory++) {
         measurementResults tmpMeasurements;
 
 
@@ -253,7 +148,7 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
                                                                                            fitnessScoreX,
                                                                                            initialGuess);
         end = std::chrono::steady_clock::now();
-        double timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+        double timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
         std::cout << timeToCalculate << std::endl;
         tmpMeasurements.calculationTime.push_back(timeToCalculate);
 
@@ -277,7 +172,7 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
                                                                                       true, false);
 
         end = std::chrono::steady_clock::now();
-        timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+        timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
         std::cout << timeToCalculate << std::endl;
         tmpMeasurements.calculationTime.push_back(timeToCalculate);
 
@@ -300,7 +195,7 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
                                                                            true);
 
         end = std::chrono::steady_clock::now();
-        timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+        timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
         std::cout << timeToCalculate << std::endl;
         tmpMeasurements.calculationTime.push_back(timeToCalculate);
 
@@ -323,7 +218,7 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
                                                                         true);
 
         end = std::chrono::steady_clock::now();
-        timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+        timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
         std::cout << timeToCalculate << std::endl;
         tmpMeasurements.calculationTime.push_back(timeToCalculate);
 
@@ -343,111 +238,172 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
         tmpMeasurements.calculationTime.push_back(0);
         tmpMeasurements.errorInRotation.push_back(0);
         tmpMeasurements.errorInDistance.push_back(0);
+        for(int boolState = 0 ; boolState<2;boolState++){
+            bool useInitialAngle = boolState==0;
+            bool useInitialTranslation = boolState==0;
 
 
         // Our 32 FMS 2D, 7: Our 64 FMS 2D, 8: Our 128 FMS 2D, 9: Our 256 FMS 2D
-        for (int numberOfPoints = 32; numberOfPoints <= 256; numberOfPoints = numberOfPoints * 2) {
-//            scanRegistrationClass scanRegistrationObject(numberOfPoints, numberOfPoints / 2, numberOfPoints / 2,
-//                                                         numberOfPoints / 2 - 1);
+            for (int numberOfPoints = 32; numberOfPoints <= 256; numberOfPoints = numberOfPoints * 2) {
+    //            scanRegistrationClass scanRegistrationObject(numberOfPoints, numberOfPoints / 2, numberOfPoints / 2,
+    //                                                         numberOfPoints / 2 - 1);
 
-            double *voxelData;
-            voxelData = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
+                double *voxelData;
+                voxelData = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
 
-            std::ifstream voxelDataFile(s + std::string(
-                    "/" + std::to_string(currentNumberOfScanInDirectory) + "intensity" +
-                    std::to_string(numberOfPoints) +
-                    ".csv"));
-            for (int i = 0; i < numberOfPoints; i++) {
-                std::vector<std::string> voxelDataVector = getNextLineAndSplitIntoTokens(voxelDataFile);
-                for (int j = 0; j < numberOfPoints; j++) {
-                    voxelData[i + numberOfPoints * j] = std::stod(voxelDataVector[j]);
+                std::ifstream voxelDataFile(s + std::string(
+                        "/" + std::to_string(currentNumberOfScanInDirectory) + "intensity" +
+                        std::to_string(numberOfPoints) +
+                        ".csv"));
+                for (int i = 0; i < numberOfPoints; i++) {
+                    std::vector<std::string> voxelDataVector = getNextLineAndSplitIntoTokens(voxelDataFile);
+                    for (int j = 0; j < numberOfPoints; j++) {
+                        voxelData[i + numberOfPoints * j] = std::stod(voxelDataVector[j]);
+                    }
                 }
-            }
 
-            double *voxelDataShifted;
-            voxelDataShifted = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
-            std::ifstream voxelDataShiftedFile(s + std::string(
-                    "/" + std::to_string(currentNumberOfScanInDirectory) + "intensityShifted" +
-                    std::to_string(numberOfPoints) + ".csv"));
-            for (int i = 0; i < numberOfPoints; i++) {
-                std::vector<std::string> voxelDataShiftedVector = getNextLineAndSplitIntoTokens(voxelDataShiftedFile);
-                for (int j = 0; j < numberOfPoints; j++) {
-                    voxelDataShifted[i + numberOfPoints * j] = std::stod(voxelDataShiftedVector[j]);
-                    //                std::cout <<voxelDataShifted[i + numberOfPoints * j] << std::endl;
+                double *voxelDataShifted;
+                voxelDataShifted = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
+                std::ifstream voxelDataShiftedFile(s + std::string(
+                        "/" + std::to_string(currentNumberOfScanInDirectory) + "intensityShifted" +
+                        std::to_string(numberOfPoints) + ".csv"));
+                for (int i = 0; i < numberOfPoints; i++) {
+                    std::vector<std::string> voxelDataShiftedVector = getNextLineAndSplitIntoTokens(voxelDataShiftedFile);
+                    for (int j = 0; j < numberOfPoints; j++) {
+                        voxelDataShifted[i + numberOfPoints * j] = std::stod(voxelDataShiftedVector[j]);
+                        //                std::cout <<voxelDataShifted[i + numberOfPoints * j] << std::endl;
+                    }
                 }
-            }
+
+                bool debug = false;
 
 
-            //        std::cout << "start registration of: " << numberOfPoints << std::endl;
-            //registration can be done here
-            begin = std::chrono::steady_clock::now();
-            if(numberOfPoints == 32){
-                estimatedTransformation = registrationOfTwoVoxelsSOFFTFasterTest(voxelDataShifted, voxelData,
-                                                                                 Eigen::Matrix4d::Identity(), true,
-                                                                                 true, numberOfPoints,
-                                                                                 scanRegistrationObject32,
-                                                                                 sizeOfVoxelGrid, true);
-            }else{
-                if(numberOfPoints == 64){
-                        estimatedTransformation = registrationOfTwoVoxelsSOFFTFasterTest(voxelDataShifted, voxelData,
-                                                                                         Eigen::Matrix4d::Identity(), true,
-                                                                                         true, numberOfPoints,
-                                                                                         scanRegistrationObject64,
-                                                                                         sizeOfVoxelGrid, true);
+                //        std::cout << "start registration of: " << numberOfPoints << std::endl;
+                //registration can be done here
+                begin = std::chrono::steady_clock::now();
+                if(numberOfPoints == 32){
+
+                    estimatedTransformation = scanRegistrationObject32.registrationOfTwoVoxelsSOFFTFast(
+                            voxelDataShifted, voxelData,
+                            Eigen::Matrix4d::Identity(), useInitialAngle,
+                            useInitialTranslation, (double) sizeOfVoxelGrid /
+                                                   (double) numberOfPoints, true, debug);
                 }else{
-                    if(numberOfPoints == 128){
-                        estimatedTransformation = registrationOfTwoVoxelsSOFFTFasterTest(voxelDataShifted, voxelData,
-                                                                                         Eigen::Matrix4d::Identity(), true,
-                                                                                         true, numberOfPoints,
-                                                                                         scanRegistrationObject128,
-                                                                                         sizeOfVoxelGrid, true);
+                    if(numberOfPoints == 64){
+                        estimatedTransformation = scanRegistrationObject64.registrationOfTwoVoxelsSOFFTFast(
+                                voxelDataShifted, voxelData,
+                                Eigen::Matrix4d::Identity(), useInitialAngle,
+                                useInitialTranslation, (double) sizeOfVoxelGrid /
+                                                       (double) numberOfPoints, true, debug);
                     }else{
-                        if(numberOfPoints == 256){
-                            estimatedTransformation = registrationOfTwoVoxelsSOFFTFasterTest(voxelDataShifted, voxelData,
-                                                                                             Eigen::Matrix4d::Identity(), true,
-                                                                                             true, numberOfPoints,
-                                                                                             scanRegistrationObject256,
-                                                                                             sizeOfVoxelGrid, true);
+                        if(numberOfPoints == 128){
+                            estimatedTransformation = scanRegistrationObject128.registrationOfTwoVoxelsSOFFTFast(
+                                    voxelDataShifted, voxelData,
+                                    Eigen::Matrix4d::Identity(), useInitialAngle,
+                                    useInitialTranslation, (double) sizeOfVoxelGrid /
+                                                           (double) numberOfPoints, true, debug);
                         }else{
-                            std::cout << "should never happen" << std::endl;
-                            exit(-1);
+                            if(numberOfPoints == 256){
+                                estimatedTransformation = scanRegistrationObject256.registrationOfTwoVoxelsSOFFTFast(
+                                        voxelDataShifted, voxelData,
+                                        Eigen::Matrix4d::Identity(), useInitialAngle,
+                                        useInitialTranslation, (double) sizeOfVoxelGrid /
+                                                               (double) numberOfPoints, true, debug);
+                            }else{
+                                std::cout << "should never happen" << std::endl;
+                                exit(-1);
+                            }
                         }
                     }
                 }
+//                std::cout << estimatedTransformation << std::endl;
+                end = std::chrono::steady_clock::now();
+                timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+                std::cout << timeToCalculate << std::endl;
+                tmpMeasurements.calculationTime.push_back(timeToCalculate);
+
+                //calculate the angle
+                angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
+                angleEstimated = std::atan2(estimatedTransformation(1, 0), estimatedTransformation(0, 0));
+                angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
+                tmpMeasurements.errorInRotation.push_back(angleDiff);
+                //calculate difference angle and take abs
+                translationGT = gtTransformation.block<3, 1>(0, 3);
+                translationEstimated = estimatedTransformation.block<3, 1>(0, 3);
+                errorDistance = (translationGT - translationEstimated).norm();
+                tmpMeasurements.errorInDistance.push_back(errorDistance);
+                free(voxelDataShifted);
+                free(voxelData);
+    //            scanRegistrationObject.~scanRegistrationClass();
+                //        std::cout << "estimated Transformation " << resultTransformation << std::endl;
+                //        std::cout << "test123" << std::endl;
             }
-
-            end = std::chrono::steady_clock::now();
-            timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-            std::cout << timeToCalculate << std::endl;
-            tmpMeasurements.calculationTime.push_back(timeToCalculate);
-
-            //calculate the angle
-            angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
-            angleEstimated = std::atan2(estimatedTransformation(1, 0), estimatedTransformation(0, 0));
-            angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
-            tmpMeasurements.errorInRotation.push_back(angleDiff);
-            //calculate difference angle and take abs
-            translationGT = gtTransformation.block<3, 1>(0, 3);
-            translationEstimated = estimatedTransformation.block<3, 1>(0, 3);
-            errorDistance = (translationGT - translationEstimated).norm();
-            tmpMeasurements.errorInDistance.push_back(errorDistance);
-            free(voxelDataShifted);
-            free(voxelData);
-//            scanRegistrationObject.~scanRegistrationClass();
-            //        std::cout << "estimated Transformation " << resultTransformation << std::endl;
-            //        std::cout << "test123" << std::endl;
         }
-
         returnMeasurementsList.push_back(tmpMeasurements);
     }
     return returnMeasurementsList;
 }
 
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle15 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle20 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle25 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle30 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle35 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle40 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle45 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle50 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle55 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle60 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle65 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle70 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle75 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle80 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle85 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle90 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle95 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle100 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle105 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle110 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle115 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle120 1
 
+
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/ onlyAngles15 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/ onlyAngles20 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/ onlyAngles25 1
+// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/ onlyAngles30 1
+
+
+
+// HOME_LOCATION WHICH_FOLDER_SHOULD_BE_SAVED numberOfScans
 int main(int argc, char **argv) {
+    std::string current_exec_name = argv[0]; // Name of the current exec program
+    std::vector<std::string> all_args;
+    if(argc<3){
+        std::cout << "not the correct arguments given" << std::endl;
+        exit(-1);
+    }else{
+        all_args.assign(argv + 1, argv + argc);
+    }
+
+    std::string HOME_LOCATION = all_args[0];//"/home/tim-external/dataFolder/ValentinBunkerData/";
+    std::string WHICH_FOLDER_SHOULD_BE_SAVED = all_args[1];//"4_7_Bunker_range_30_5_RandomShifts1510/";
+    int howManyScans = std::stoi(all_args[2]);
+
     //get list of all the directories
     std::vector<std::string> listOfDirectories = get_directories(
             std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED));
+
+
+
+
+
+
+
+
+
+
+
 
     std::vector<measurementResults> resultVector;
     scanRegistrationClass scanRegistrationObject32(32, 32 / 2, 32 / 2, 32 / 2 - 1);
@@ -463,7 +419,8 @@ int main(int argc, char **argv) {
                                                                                    scanRegistrationObject32,
                                                                                    scanRegistrationObject64,
                                                                                    scanRegistrationObject128,
-                                                                                   scanRegistrationObject256);
+                                                                                   scanRegistrationObject256,
+                                                                                   howManyScans);
 
         resultVector.insert(std::end(resultVector), std::begin(tmpVector), std::end(tmpVector));
         std::cout << "############################# we are at Number: " << i << std::endl;
@@ -471,7 +428,7 @@ int main(int argc, char **argv) {
     }
 
     std::ofstream errorAngleFile;
-    errorAngleFile.open(std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) + "errorAngle.csv");
+    errorAngleFile.open(std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) + "/errorAngle.csv");
 
     //save errors angle
     for (int i = 0; i < resultVector.size(); i++) {
@@ -491,7 +448,7 @@ int main(int argc, char **argv) {
     //save times
     std::ofstream calculationTimeFile;
     calculationTimeFile.open(
-            std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) + "calculationTime.csv");
+            std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) + "/calculationTime.csv");
 
     //save errors angle
     for (int i = 0; i < resultVector.size(); i++) {
@@ -507,7 +464,7 @@ int main(int argc, char **argv) {
 
     std::ofstream errorDistanceFile;
     errorDistanceFile.open(
-            std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) + "errorDistance.csv");
+            std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) + "/errorDistance.csv");
 
     //save errors angle
     for (int i = 0; i < resultVector.size(); i++) {

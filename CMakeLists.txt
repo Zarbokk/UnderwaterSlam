@@ -98,8 +98,8 @@ target_link_libraries(registrationOfTwoImages fftw3 OpenMP::OpenMP_CXX ${PCL_LIB
 #add_executable(ndtTests src/registration/ndtMatching/simple.cc  )
 #target_link_libraries(ndtTests  ${PCL_LIBRARIES} ${catkin_LIBRARIES} )
 
-add_executable(comparisonMatching src/evaluation/comparisonEveryMatchingMethod.cpp ${SOURCE_FILES})
-target_link_libraries(comparisonMatching gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+#add_executable(comparisonMatching src/evaluation/comparisonEveryMatchingMethod.cpp ${SOURCE_FILES})
+#target_link_libraries(comparisonMatching gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(extractingCorrectedDataForRegistration src/evaluation/extractingCorrectedDataForRegistration.cpp ${SOURCE_FILES})
 target_link_libraries(extractingCorrectedDataForRegistration gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
