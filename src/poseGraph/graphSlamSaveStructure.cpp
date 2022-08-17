@@ -1657,7 +1657,7 @@ void graphSlamSaveStructure::addRandomNoiseToGraph(double percentageOfAdditiveNo
             }
 
             if(dis(gen)<percentageOfAdditiveNoise){
-                tmpIntensity.intensities[j] += dis(gen)*maximumIntensity/5.0;
+                tmpIntensity.intensities[j] += dis(gen)*maximumIntensity/4.0;
             }
 
 

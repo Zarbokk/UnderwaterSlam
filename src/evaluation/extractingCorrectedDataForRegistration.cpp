@@ -18,29 +18,29 @@
 #include <filesystem>
 
 //#define numberOfPoints 128
-#define DIMENSION_OF_VOXEL_DATA 40
+#define DIMENSION_OF_VOXEL_DATA 60
 #define NUMBER_OF_POINTS_MAP 1024.0
 #define DIMENSION_OF_MAP 200.0
-#define FACTOR_OF_THRESHOLD 0.3
+#define FACTOR_OF_THRESHOLD 0.5
 #define IGNORE_DISTANCE_TO_ROBOT 1.5
 
 #define SHOULD_USE_ROSBAG true
 
 
-#define SHIFT_VALUE_ANGLE 10.0
-#define SHIFT_VALUE_POSITION 5.0
-#define NUMBER_OF_CHANGED_SCANS 10.0
-#define ONLY_ANGLE_CHANGED false
+#define SHIFT_VALUE_ANGLE 55.0
+#define SHIFT_VALUE_POSITION 0.0
+#define NUMBER_OF_CHANGED_SCANS 1.0
+#define ONLY_ANGLE_CHANGED true
 
-#define ADD_NOISE_TO_SCANS true
-
-
-#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
-#define WHICH_FOLDER_SHOULD_BE_SAVED "randomTests/"
+#define ADD_NOISE_TO_SCANS false
 
 
-//#define HOME_LOCATION "/home/tim-external/dataFolder/StPereDataset/"
-//#define WHICH_FOLDER_SHOULD_BE_SAVED "randomShifts105/"
+//#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "randomTests/"
+
+
+#define HOME_LOCATION "/home/tim-external/dataFolder/StPereDataset/"
+#define WHICH_FOLDER_SHOULD_BE_SAVED "onlyAngle55/"
 
 
 
@@ -328,7 +328,7 @@ private:
 
                 if(ADD_NOISE_TO_SCANS){
                     //maybe add here NOISE or wrong angles complete wrong other things
-                    randomNoiseGraph.addRandomNoiseToGraph(0.1,0.005);
+                    randomNoiseGraph.addRandomNoiseToGraph(0.2,0.005);
                 }
 
 //                std::cout << randomTransformation << std::endl;
@@ -475,7 +475,7 @@ private:
         //ros::Duration(0.001).sleep();
         while (endTimeToAdd > this->timeVector[this->timeVector.size() - 1]) {
             ros::topic::waitForMessage<geometry_msgs::PoseWithCovarianceStamped>("publisherPoseEkf");
-            ros::Duration(0.001).sleep();
+            ros::Duration(0.002).sleep();
         }
 
         //@TEST
