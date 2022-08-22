@@ -21,26 +21,27 @@
 #define DIMENSION_OF_VOXEL_DATA 60
 #define NUMBER_OF_POINTS_MAP 1024.0
 #define DIMENSION_OF_MAP 200.0
-#define FACTOR_OF_THRESHOLD 0.5
+#define FACTOR_OF_THRESHOLD 0.4
 #define IGNORE_DISTANCE_TO_ROBOT 1.5
 
 #define SHOULD_USE_ROSBAG true
 
 
-#define SHIFT_VALUE_ANGLE 55.0
-#define SHIFT_VALUE_POSITION 0.0
-#define NUMBER_OF_CHANGED_SCANS 1.0
-#define ONLY_ANGLE_CHANGED true
+#define SHIFT_VALUE_ANGLE 5.0
+#define SHIFT_VALUE_POSITION 2.0
+#define NUMBER_OF_CHANGED_SCANS 50.0
+#define ONLY_ANGLE_CHANGED false
 
-#define ADD_NOISE_TO_SCANS false
-
-
-//#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
-//#define WHICH_FOLDER_SHOULD_BE_SAVED "randomTests/"
+#define ADD_NOISE_TO_SCANS true
 
 
-#define HOME_LOCATION "/home/tim-external/dataFolder/StPereDataset/"
-#define WHICH_FOLDER_SHOULD_BE_SAVED "onlyAngle55/"
+#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
+#define WHICH_FOLDER_SHOULD_BE_SAVED "highNoise305_52/"
+
+
+//#define HOME_LOCATION "/home/tim-external/dataFolder/StPereDataset/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "onlyAngle120/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "veryVeryHighNoise/"
 
 
 
@@ -328,7 +329,10 @@ private:
 
                 if(ADD_NOISE_TO_SCANS){
                     //maybe add here NOISE or wrong angles complete wrong other things
-                    randomNoiseGraph.addRandomNoiseToGraph(0.2,0.005);
+                    //very strong noise 0.2 and 0.03
+                    //strong noise 0.1 and 0.01
+                    //low noise 0.05 and 0.005
+                    randomNoiseGraph.addRandomNoiseToGraph(0.1,0.01);
                 }
 
 //                std::cout << randomTransformation << std::endl;

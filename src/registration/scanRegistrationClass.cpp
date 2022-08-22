@@ -212,7 +212,7 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(pcl::PointCloud<pcl
         mat(0, 1) = -mat(0, 1);
         mat(1, 0) = -mat(1, 0);
         mat(1, 3) = -mat(1, 3);
-
+        mat(0, 3) = -mat(0, 3);
         //calculate a score how good that is.
         Eigen::Matrix4d saveMat;
         for (int j = 0; j < 4; j++) {
@@ -331,9 +331,9 @@ Eigen::Matrix4d scanRegistrationClass::ndt_d2d_2d(pcl::PointCloud<pcl::PointXYZ>
     lslgeneric::NDTMatcherD2D_2D <pcl::PointXYZ, pcl::PointXYZ> matcherD2D(false, false, resolutions);
     bool ret = matcherD2D.match(cloudSecondScan, cloudFirstScan, Tout, true);
 
-    Tout(0, 1) = -Tout(0, 1);
-    Tout(1, 0) = -Tout(1, 0);
-    Tout(1, 3) = -Tout(1, 3);
+//    Tout(0, 1) = -Tout(0, 1);
+//    Tout(1, 0) = -Tout(1, 0);
+//    Tout(1, 3) = -Tout(1, 3);
 
 //    std::cout<<"Transform: \n"<<Tout.matrix()<<std::endl;
     return Tout.matrix();
@@ -359,9 +359,9 @@ Eigen::Matrix4d scanRegistrationClass::ndt_p2d(pcl::PointCloud<pcl::PointXYZ> &c
 
     bool ret = matcherP2D.match(cloudSecondScan, cloudFirstScan, Tout);
 
-    Tout(0, 1) = -Tout(0, 1);
-    Tout(1, 0) = -Tout(1, 0);
-    Tout(1, 3) = -Tout(1, 3);
+//    Tout(0, 1) = Tout(0, 1);
+//    Tout(1, 0) = Tout(1, 0);
+//    Tout(1, 3) = Tout(1, 3);
 
 //    std::cout<<"Transform: \n"<<Tout.matrix()<<std::endl;
 

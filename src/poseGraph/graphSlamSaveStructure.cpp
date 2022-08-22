@@ -1627,12 +1627,12 @@ void graphSlamSaveStructure::saveGraphJson(std::string nameSavingFile) {
 }
 
 
-void graphSlamSaveStructure::addRandomNoiseToGraph(double percentageOfAdditiveNoise, double percentageOfRandomNoise) {
+void graphSlamSaveStructure::addRandomNoiseToGraph(double stdDiviationGauss, double percentageOfRandomNoise) {
 
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<> dis(0.0, 1.0);
-
+    std::normal_distribution<> disNormal(0.0, stdDiviationGauss);
 
 
 
@@ -1656,12 +1656,11 @@ void graphSlamSaveStructure::addRandomNoiseToGraph(double percentageOfAdditiveNo
 //                std::cout << tmpIntensity.intensities[j] << std::endl;
             }
 
-            if(dis(gen)<percentageOfAdditiveNoise){
-                tmpIntensity.intensities[j] += dis(gen)*maximumIntensity/4.0;
+
+            tmpIntensity.intensities[j] = tmpIntensity.intensities[j]+disNormal(gen)*maximumIntensity;
+            if(tmpIntensity.intensities[j]<0) {
+                tmpIntensity.intensities[j] = 0;
             }
-
-
-
 
         }
         this->vertexList[i].setIntensities(tmpIntensity);
