@@ -15,16 +15,23 @@
 #include <hilbertMap.h>
 #include <opencv2/imgcodecs.hpp>
 #include "std_srvs/SetBool.h"
+#include <filesystem>
+
 
 //#define numberOfPoints 128
 #define DIMENSION_OF_VOXEL_DATA 60
-#define NUMBER_OF_POINTS_MAP 512.0
-#define DIMENSION_OF_MAP 200.0
-#define FACTOR_OF_THRESHOLD 0.7
 
+
+//#define NUMBER_OF_POINTS_MAP 512.0
+//#define DIMENSION_OF_MAP 200.0
+#define FACTOR_OF_THRESHOLD 0.4
+#define IGNORE_DISTANCE_TO_ROBOT 0.5
 
 #define SHOULD_USE_ROSBAG true
 
+#define HOME_LOCATION "/home/tim-external/dataFolder/rosbagRecord/gazebo/"
+
+#define WHICH_FOLDER_SHOULD_BE_SAVED "lowNoise305_52/"
 
 
 struct intensityValues {
@@ -77,12 +84,12 @@ public:
                                                                                        512 / 2 -
                                                                                        1) {
 
-        comparisonFile.open ("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/comparisonAllMethods.csv");
-        comparisonFile << "GICP Error, GICP Time, Super4PCS Error, Super4PCS Time, NDT D2D 2D Error, NDT D2D 2D Time, NDT P2D Error, NDT P2D Time,";
-//        comparisonFile << " FMS OLD 64 Error, FMS OLD 64 Time, FMS OLD 128 Error, FMS OLD 128,";
-        comparisonFile << " Our FMS 32 Error, Our FMS 32 Time, Our FMS 64 Error, Our FMS 64 Time, Our FMS 128 Error, Our FMS 128 Time, Our FMS 256 Error, Our FMS 256 Time,";
-        comparisonFile << " Our FMS Fast 32 Error, Our FMS Fast 32 Time, Our FMS Fast 64 Error, Our FMS Fast 64 Time, Our FMS Fast 128 Error, Our FMS Fast 128 Time, Our FMS Fast 256 Error, Our FMS Fast 256 Time\n";
-        comparisonFile.close();
+//        comparisonFile.open ("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/comparisonAllMethods.csv");
+//        comparisonFile << "GICP Error, GICP Time, Super4PCS Error, Super4PCS Time, NDT D2D 2D Error, NDT D2D 2D Time, NDT P2D Error, NDT P2D Time,";
+////        comparisonFile << " FMS OLD 64 Error, FMS OLD 64 Time, FMS OLD 128 Error, FMS OLD 128,";
+//        comparisonFile << " Our FMS 32 Error, Our FMS 32 Time, Our FMS 64 Error, Our FMS 64 Time, Our FMS 128 Error, Our FMS 128 Time, Our FMS 256 Error, Our FMS 256 Time,";
+//        comparisonFile << " Our FMS Fast 32 Error, Our FMS Fast 32 Time, Our FMS Fast 64 Error, Our FMS Fast 64 Time, Our FMS Fast 128 Error, Our FMS Fast 128 Time, Our FMS Fast 256 Error, Our FMS Fast 256 Time\n";
+//        comparisonFile.close();
 
         subscriberEKF = n_.subscribe("publisherPoseEkf", 1000, &rosClassEKF::stateEstimationCallback, this);
         ros::Duration(1).sleep();
@@ -116,23 +123,15 @@ public:
         this->firstCompleteSonarScan = true;
 
 
-        map.info.height = NUMBER_OF_POINTS_MAP;
-        map.info.width = NUMBER_OF_POINTS_MAP;
-        map.info.resolution = DIMENSION_OF_MAP / NUMBER_OF_POINTS_MAP;
-        map.info.origin.position.x = -DIMENSION_OF_MAP / 2;
-        map.info.origin.position.y = -DIMENSION_OF_MAP / 2;
-        map.info.origin.position.z = +0.5;
-        for (int i = 0; i < NUMBER_OF_POINTS_MAP; i++) {
-            for (int j = 0; j < NUMBER_OF_POINTS_MAP; j++) {
-                //determine color:
-                map.data.push_back(50);
-            }
-        }
+
+
+
+        std::filesystem::create_directory(std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED));
     }
 
 
 private:
-    nav_msgs::OccupancyGrid map;
+
 
 
     ros::Subscriber subscriberEKF, subscriberIntensitySonar, subscriberGroundTruth;
@@ -166,7 +165,7 @@ private:
     double fitnessScore;
     double sigmaScaling;
 
-    std::ofstream comparisonFile;
+    std::ofstream comparisonFileTime,comparisonFileL2Error, comparisonFileAngleError;
 
 
     graphSlamSaveStructure graphSaved;
@@ -282,20 +281,20 @@ private:
             pcl::PointCloud<pcl::PointXYZ> scan1Threshold;
             pcl::PointCloud<pcl::PointXYZ> scan2Threshold;
             pcl::PointCloud<pcl::PointXYZ> finalThreshold;
-            pcl::PointCloud<pcl::PointXYZ> scan1OneValue;
-            pcl::PointCloud<pcl::PointXYZ> scan2OneValue;
-            pcl::PointCloud<pcl::PointXYZ> finalOneValue;
+//            pcl::PointCloud<pcl::PointXYZ> scan1OneValue;
+//            pcl::PointCloud<pcl::PointXYZ> scan2OneValue;
+//            pcl::PointCloud<pcl::PointXYZ> finalOneValue;
 
             Eigen::Matrix4d tmpMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(M_PI, 0, 0);
-            scan1OneValue = createPCLFromGraphOneValue(indexOfLastKeyframe, tmpMatrix);
-            scan2OneValue = createPCLFromGraphOneValue(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
-            scan1Threshold = createPCLFromGraphOnlyThreshold(indexOfLastKeyframe, tmpMatrix);
-            scan2Threshold = createPCLFromGraphOnlyThreshold(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
+//            scan1OneValue = createPCLFromGraphOneValue(indexOfLastKeyframe, tmpMatrix);
+//            scan2OneValue = createPCLFromGraphOneValue(this->graphSaved.getVertexList()->size() - 1, tmpMatrix);
+            scan1Threshold = createPCLFromGraphOnlyThreshold(indexOfLastKeyframe, tmpMatrix,this->graphSaved);
+            scan2Threshold = createPCLFromGraphOnlyThreshold(this->graphSaved.getVertexList()->size() - 1, tmpMatrix,this->graphSaved);
 
             this->initialGuessTransformation.block<3, 1>(0, 3) =
                     this->initialGuessTransformation.block<3, 1>(0, 3) + Eigen::Vector3d(0, -0, 0);
             
-            Eigen::Matrix4d GTTransformation =
+            Eigen::Matrix4d gtTransformation =
                     gtToTranformation(this->lastGTPosition).inverse() * gtToTranformation(currentGTlocalPosition);
             
             
@@ -305,15 +304,16 @@ private:
             pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan2.ply",
                                        scan2Threshold);
             std::cout << "GT to compare with:" << std::endl;
-            std::cout << GTTransformation << std::endl;
+            std::cout << gtTransformation << std::endl;
             std::cout << "Initial Guess:" << std::endl;
             std::cout << this->initialGuessTransformation << std::endl;
 /////////////////////////////////////////////////////// start of Registration ////////////////////////////////////////////////////
 
 
 
-            comparisonFile.open ("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/comparisonAllMethods.csv",std::ios_base::app);
-
+            comparisonFileTime.open (std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) +std::string("calculationTime.csv"),std::ios_base::app);
+            comparisonFileAngleError.open (std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) + std::string("errorDistance.csv"),std::ios_base::app);
+            comparisonFileL2Error.open (std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) +std::string("errorAngle.csv"),std::ios_base::app);
 
 
 
@@ -340,178 +340,93 @@ private:
 //            std::cout << this->currentTransformation << std::endl;
 
             begin = std::chrono::steady_clock::now();
-            this->currentTransformation = this->scanRegistrationObject64.generalizedIcpRegistration(scan2OneValue,
-                                                                                                    scan1OneValue,
-                                                                                                    finalOneValue,
+            this->currentTransformation = this->scanRegistrationObject64.generalizedIcpRegistration(scan1Threshold,
+                                                                                                    scan2Threshold,
+                                                                                                    finalThreshold,
                                                                                                     fitnessScoreX,
                                                                                                     initialGuessTransformation);
             end = std::chrono::steady_clock::now();
-            std::cout << "GICP : " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
-                      << "[ms]" << std::endl;
-            std::cout << this->currentTransformation << std::endl;
-            comparisonFile << (GTTransformation.block<3, 1>(0, 3) - this->currentTransformation.block<3, 1>(0, 3)).norm()*
-            abs(generalHelpfulTools::angleDiff(std::atan2(GTTransformation(1, 0), GTTransformation(0, 0)),
-                    std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0))))<<",";//error
-            comparisonFile << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()<<",";//time
+            double timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+            comparisonFileTime << timeToCalculate<<",";//time
+
+            //calculate the angle
+            double angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
+            double angleEstimated = std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0));
+            double angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
+            comparisonFileAngleError << angleDiff<<",";//time
+
+            //calculate difference angle and take abs
+            Eigen::Vector3d translationGT = gtTransformation.block<3, 1>(0, 3);
+            Eigen::Vector3d translationEstimated = this->currentTransformation.block<3, 1>(0, 3);
+            double errorDistance = (translationGT - translationEstimated).norm();
+            comparisonFileL2Error << errorDistance<<",";//time
 
 
-//            Eigen::Matrix4d tmpMatruc = Eigen::Matrix4d::Identity();
 
-//            this->currentTransformation = this->scanRegistrationObject.normalDistributionsTransformRegistration(scan2,
-//                                                                                                                scan1,
-//                                                                                                                final,
-//                                                                                                                fitnessScoreX,
-//                                                                                                                initialGuessTransformation,
-//                                                                                                                1.0, 0.1,
-//                                                                                                                0.01);
-//            this->currentTransformation = this->scanRegistrationObject.RANSACRegistration(scan2, scan1,
-//                                                                                          initialGuessTransformation,
-//                                                                                          false, false);
             begin = std::chrono::steady_clock::now();
-            this->currentTransformation = this->scanRegistrationObject64.super4PCSRegistration(scan1OneValue,
-                                                                                               scan2OneValue,
+            this->currentTransformation = this->scanRegistrationObject64.super4PCSRegistration(scan1Threshold,
+                                                                                               scan2Threshold,
                                                                                                this->initialGuessTransformation,
                                                                                                true, false);
             end = std::chrono::steady_clock::now();
-            std::cout << "Super4PCS: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
-                      << "[ms]" << std::endl;
-            std::cout << this->currentTransformation << std::endl;
-            comparisonFile << (GTTransformation.block<3, 1>(0, 3) - this->currentTransformation.block<3, 1>(0, 3)).norm()*
-            abs(generalHelpfulTools::angleDiff(std::atan2(GTTransformation(1, 0), GTTransformation(0, 0)),
-                    std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0))))<<",";//error
-            comparisonFile << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()<<",";//time
+            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+            comparisonFileTime << timeToCalculate<<",";//time
+
+            //calculate the angle
+            angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
+            angleEstimated = std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0));
+            angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
+            comparisonFileAngleError << angleDiff<<",";//time
+
+            //calculate difference angle and take abs
+            translationGT = gtTransformation.block<3, 1>(0, 3);
+            translationEstimated = this->currentTransformation.block<3, 1>(0, 3);
+            errorDistance = (translationGT - translationEstimated).norm();
+            comparisonFileL2Error << errorDistance<<",";//time
+
+
+
+
             begin = std::chrono::steady_clock::now();
-            this->currentTransformation = this->scanRegistrationObject64.ndt_d2d_2d(scan2OneValue, scan1Threshold,
+            this->currentTransformation = this->scanRegistrationObject64.ndt_d2d_2d(scan1Threshold, scan2Threshold,
                                                                                     initialGuessTransformation, true);
             end = std::chrono::steady_clock::now();
-            std::cout << "NDT D2D 2D: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
-                      << "[ms]" << std::endl;
-            std::cout << this->currentTransformation << std::endl;
-            comparisonFile << (GTTransformation.block<3, 1>(0, 3) - this->currentTransformation.block<3, 1>(0, 3)).norm()*
-            abs(generalHelpfulTools::angleDiff(std::atan2(GTTransformation(1, 0), GTTransformation(0, 0)),
-                    std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0))))<<",";//error
-            comparisonFile << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()<<",";//time
+            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+            comparisonFileTime << timeToCalculate<<",";//time
+
+            //calculate the angle
+            angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
+            angleEstimated = std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0));
+            angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
+            comparisonFileAngleError << angleDiff<<",";//time
+
+            //calculate difference angle and take abs
+            translationGT = gtTransformation.block<3, 1>(0, 3);
+            translationEstimated = this->currentTransformation.block<3, 1>(0, 3);
+            errorDistance = (translationGT - translationEstimated).norm();
+            comparisonFileL2Error << errorDistance<<",";//time
+
+
             begin = std::chrono::steady_clock::now();
             this->currentTransformation = this->scanRegistrationObject64.ndt_p2d(scan2Threshold, scan1Threshold,
                                                                                  initialGuessTransformation, true);
             end = std::chrono::steady_clock::now();
-            std::cout << "NDT P2D:" << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
-                      << "[ms]" << std::endl;
-            std::cout << this->currentTransformation << std::endl;
-            comparisonFile << (GTTransformation.block<3, 1>(0, 3) - this->currentTransformation.block<3, 1>(0, 3)).norm()*
-            abs(generalHelpfulTools::angleDiff(std::atan2(GTTransformation(1, 0), GTTransformation(0, 0)),
-                    std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0))))<<",";//error
-            comparisonFile << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()<<",";//time
+            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+            comparisonFileTime << timeToCalculate<<",";//time
+
+            //calculate the angle
+            angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
+            angleEstimated = std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0));
+            angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
+            comparisonFileAngleError << angleDiff<<",";//time
+
+            //calculate difference angle and take abs
+            translationGT = gtTransformation.block<3, 1>(0, 3);
+            translationEstimated = this->currentTransformation.block<3, 1>(0, 3);
+            errorDistance = (translationGT - translationEstimated).norm();
+            comparisonFileL2Error << errorDistance<<",";//time
 
 
-//            this->initialGuessTransformation(0, 1) = -this->initialGuessTransformation(0, 1);
-//            this->initialGuessTransformation(1, 0) = -this->initialGuessTransformation(1, 0);
-//            this->initialGuessTransformation(1, 3) = -this->initialGuessTransformation(1, 3);
-
-//            pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/final.ply",
-//                                       *final);
-
-            // create a registration of two scans.
-
-
-
-
-            // transform from 1 to 2
-//            begin = std::chrono::steady_clock::now();
-//            this->currentTransformation = this->registrationOfTwoVoxelsFMSOld(indexOfLastKeyframe,
-//                                                                              this->graphSaved.getVertexList()->size() -
-//                                                                              1,
-//                                                                              fitnessScoreX,
-//                                                                              fitnessScoreY,
-//                                                                              this->initialGuessTransformation, true,
-//                                                                              true,
-//                                                                              64, false);
-//            end = std::chrono::steady_clock::now();
-//            std::cout << "FMS Old 64: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
-//                      << "[ms]" << std::endl;
-//            std::cout << this->currentTransformation << std::endl;
-//            comparisonFile << (GTTransformation.block<3, 1>(0, 3) - this->currentTransformation.block<3, 1>(0, 3)).norm()*
-//            abs(generalHelpfulTools::angleDiff(std::atan2(GTTransformation(1, 0), GTTransformation(0, 0)),
-//                    std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0))))<<",";//error
-//            comparisonFile << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()<<",";//time
-//            begin = std::chrono::steady_clock::now();
-//            this->currentTransformation = this->registrationOfTwoVoxelsFMSOld(indexOfLastKeyframe,
-//                                                                              this->graphSaved.getVertexList()->size() -
-//                                                                              1,
-//                                                                              fitnessScoreX,
-//                                                                              fitnessScoreY,
-//                                                                              this->initialGuessTransformation, true,
-//                                                                              true,
-//                                                                              128, false);
-//            end = std::chrono::steady_clock::now();
-//            std::cout << "FMS Old 128: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
-//                      << "[ms]" << std::endl;
-//            std::cout << this->currentTransformation << std::endl;
-//            comparisonFile << (GTTransformation.block<3, 1>(0, 3) - this->currentTransformation.block<3, 1>(0, 3)).norm()*
-//            abs(generalHelpfulTools::angleDiff(std::atan2(GTTransformation(1, 0), GTTransformation(0, 0)),
-//                    std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0))))<<",";//error
-//            comparisonFile << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()<<",";//time
-//            begin = std::chrono::steady_clock::now();
-//            this->currentTransformation = this->registrationOfTwoVoxelsFMSOld(indexOfLastKeyframe,
-//                                                                              this->graphSaved.getVertexList()->size() -
-//                                                                              1,
-//                                                                              fitnessScoreX,
-//                                                                              fitnessScoreY,
-//                                                                              this->initialGuessTransformation, true,
-//                                                                              true,
-//                                                                              256, false);
-//            end = std::chrono::steady_clock::now();
-//            std::cout << "FMS Old 256: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
-//                      << "[ms]" << std::endl;
-//            std::cout << this->currentTransformation << std::endl;
-//            comparisonFile << (GTTransformation.block<3, 1>(0, 3) - this->currentTransformation.block<3, 1>(0, 3)).norm()*
-//            abs(generalHelpfulTools::angleDiff(std::atan2(GTTransformation(1, 0), GTTransformation(0, 0)),
-//                    std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0))))<<",";//error
-//            comparisonFile << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()<<",";//time
-//
-//            begin = std::chrono::steady_clock::now();
-//            this->currentTransformation = this->registrationOfTwoVoxelsFMSOld(indexOfLastKeyframe,
-//                                                                              this->graphSaved.getVertexList()->size() -
-//                                                                              1,
-//                                                                              fitnessScoreX,
-//                                                                              fitnessScoreY,
-//                                                                              this->initialGuessTransformation, true,
-//                                                                              true,
-//                                                                              512, false);
-//            end = std::chrono::steady_clock::now();
-//            std::cout << "FMS Old 512: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
-//                      << "[ms]" << std::endl;
-//            std::cout << this->currentTransformation << std::endl;
-
-
-
-
-
-
-
-
-
-            for (int i = 32; i <= 256; i = i * 2) {
-                int numberOfPoints = i;
-                begin = std::chrono::steady_clock::now();
-                this->currentTransformation = this->registrationOfTwoVoxelsSOFFT(indexOfLastKeyframe,
-                                                                                 this->graphSaved.getVertexList()->size() -
-                                                                                 1,
-                                                                                 fitnessScoreX,
-                                                                                 fitnessScoreY,
-                                                                                 this->initialGuessTransformation, true,
-                                                                                 true, numberOfPoints,
-                                                                                 false);
-                end = std::chrono::steady_clock::now();
-                std::cout << "our FMS " << numberOfPoints << ": "
-                          << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
-                          << "[ms]" << std::endl;
-                std::cout << this->currentTransformation << std::endl;
-                comparisonFile << (GTTransformation.block<3, 1>(0, 3) - this->currentTransformation.block<3, 1>(0, 3)).norm()*
-            abs(generalHelpfulTools::angleDiff(std::atan2(GTTransformation(1, 0), GTTransformation(0, 0)),
-                    std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0))))<<",";//error
-                comparisonFile << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()<<",";//time
-            }
 
             for (int i = 32; i <= 256; i = i * 2) {
                 int numberOfPoints = i;
@@ -523,80 +438,82 @@ private:
                 double maximumVoxel1 = createVoxelOfGraph(voxelData1,
                                                           indexOfLastKeyframe,
                                                           Eigen::Matrix4d::Identity(),
-                                                          numberOfPoints);//get voxel
+                                                          numberOfPoints,this->graphSaved);//get voxel
+
+
                 double maximumVoxel2 = createVoxelOfGraph(voxelData2,
                                                           this->graphSaved.getVertexList()->size() - 1,
-                                                                      Eigen::Matrix4d::Identity(),
-                                                          numberOfPoints);//get voxel
+                                                          Eigen::Matrix4d::Identity(),
+                                                          numberOfPoints,this->graphSaved);//get voxel
 
                 begin = std::chrono::steady_clock::now();
-                this->currentTransformation = this->registrationOfTwoVoxelsSOFFTFasterTest(voxelData1,
-                                                                                           voxelData2,
-                                                                                           fitnessScoreX,
-                                                                                           fitnessScoreY,
-                                                                                           this->initialGuessTransformation,
-                                                                                           true,
-                                                                                           true, numberOfPoints,
-                                                                                           false);
+                if (numberOfPoints == 32) {
+
+                    this->currentTransformation = scanRegistrationObject32.registrationOfTwoVoxelsSOFFTFast(
+                            voxelData1, voxelData2,
+                            Eigen::Matrix4d::Identity(), true,
+                            true, (double) DIMENSION_OF_VOXEL_DATA /
+                                                   (double) numberOfPoints, true, true);
+                } else {
+                    if (numberOfPoints == 64) {
+                        this->currentTransformation = scanRegistrationObject64.registrationOfTwoVoxelsSOFFTFast(
+                                voxelData1, voxelData2,
+                                Eigen::Matrix4d::Identity(), true,
+                                true, (double) DIMENSION_OF_VOXEL_DATA /
+                                      (double) numberOfPoints, true, true);
+                    } else {
+                        if (numberOfPoints == 128) {
+                            this->currentTransformation = scanRegistrationObject128.registrationOfTwoVoxelsSOFFTFast(
+                                    voxelData1, voxelData2,
+                                    Eigen::Matrix4d::Identity(), true,
+                                    true, (double) DIMENSION_OF_VOXEL_DATA /
+                                          (double) numberOfPoints, true, true);
+                        } else {
+                            if (numberOfPoints == 256) {
+                                this->currentTransformation = scanRegistrationObject256.registrationOfTwoVoxelsSOFFTFast(
+                                        voxelData1, voxelData2,
+                                        Eigen::Matrix4d::Identity(), true,
+                                        true, (double) DIMENSION_OF_VOXEL_DATA /
+                                              (double) numberOfPoints, true, true);
+                            } else {
+                                std::cout << "should never happen" << std::endl;
+                                exit(-1);
+                            }
+                        }
+                    }
+                }
                 end = std::chrono::steady_clock::now();
-                std::cout << "our Fast FMS " << numberOfPoints << ": "
-                          << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
-                          << "[ms]" << std::endl;
-                std::cout << this->currentTransformation << std::endl;
-                comparisonFile << (GTTransformation.block<3, 1>(0, 3) - this->currentTransformation.block<3, 1>(0, 3)).norm()*
-            abs(generalHelpfulTools::angleDiff(std::atan2(GTTransformation(1, 0), GTTransformation(0, 0)),
-                    std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0))))<<",";//error
-                comparisonFile << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()<<",";//time
+                timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+                comparisonFileTime << timeToCalculate<<",";//time
+
+                //calculate the angle
+                angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
+                angleEstimated = std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0));
+                angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
+                comparisonFileAngleError << angleDiff<<",";//time
+
+                //calculate difference angle and take abs
+                translationGT = gtTransformation.block<3, 1>(0, 3);
+                translationEstimated = this->currentTransformation.block<3, 1>(0, 3);
+                errorDistance = (translationGT - translationEstimated).norm();
+                comparisonFileL2Error << errorDistance<<",";//time
+
+
                 std::free(voxelData1);
                 std::free(voxelData2);
             }
 
-            comparisonFile << "\n";//error
-            comparisonFile.close();
+
+
+            comparisonFileTime << "\n";//error
+            comparisonFileTime.close();
+            comparisonFileAngleError << "\n";//error
+            comparisonFileAngleError.close();
+            comparisonFileL2Error << "\n";//error
+            comparisonFileL2Error.close();
 /////////////////////////////////////////////////////// end of Registration ////////////////////////////////////////////////////
 
 
-
-
-
-
-//            double differenceAngleBeforeAfter = generalHelpfulTools::angleDiff(
-//                    std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)),
-//                    std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)));
-
-
-            //maybe print ground truth vs registration difference
-//            std::cout << "current Position:" << std::endl;
-//            std::cout << gtToTranformation(currentGTlocalPosition) << std::endl;
-//            std::cout << "last Position:" << std::endl;
-//            std::cout << gtToTranformation(this->lastGTPosition) << std::endl;
-//            std::cout << "everything in NED:" << std::endl;
-//            std::cout << "GT difference:" << std::endl;
-//            std::cout << GTTransformation << std::endl;
-//            std::cout << "Transformation Estimated:" << std::endl;
-//            std::cout << this->currentTransformation << std::endl;
-//            std::cout << "Initial Guess:" << std::endl;
-//            std::cout << this->initialGuessTransformation << std::endl;
-//            //std::cout << "error:" << std::endl;
-//            std::cout << std::fixed;
-//            std::cout << std::setprecision(4);
-//            std::cout << "Error gt vs Registration: "
-//                      << (GTTransformation.block<3, 1>(0, 3) - this->currentTransformation.block<3, 1>(0, 3)).norm();
-//            std::cout << " Error gt vs Feed Forward: " << (GTTransformation.block<3, 1>(0, 3) -
-//                                                           this->initialGuessTransformation.block<3, 1>(0, 3)).norm()
-//                      << std::endl;
-
-
-//            std::cout << "Angle difference GT and registration: " << generalHelpfulTools::angleDiff(
-//                    std::atan2(GTTransformation(1, 0), GTTransformation(0, 0)),
-//                    std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)));
-//            std::cout << " Angle difference GT and initial Guess: " << generalHelpfulTools::angleDiff(
-//                    std::atan2(GTTransformation(1, 0), GTTransformation(0, 0)),
-//                    std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)))
-//                      << std::endl;
-//            std::cout << "GT Angle: " << std::atan2(GTTransformation(1, 0), GTTransformation(0, 0)) << std::endl;
-//            std::cout << "initialGuessTransformation Angle: " << std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0)) << std::endl;
-//            std::cout << "reg Angle: " << std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)) << std::endl;
             std::cout << "########################################################## NEW SCAN ##########################################################"<< std::endl;
             this->lastGTPosition = currentGTlocalPosition;
 //            exit(-1);
@@ -827,7 +744,7 @@ private:
     }
 
     double createVoxelOfGraph(double voxelData[], int indexStart, Eigen::Matrix4d transformationInTheEndOfCalculation,
-                              int numberOfPoints) {
+                              int numberOfPoints, graphSlamSaveStructure &usedGraph) {
         int *voxelDataIndex;
         voxelDataIndex = (int *) malloc(sizeof(int) * numberOfPoints * numberOfPoints);
         //set zero voxel and index
@@ -844,58 +761,71 @@ private:
 
             //get position of current intensityRay
             Eigen::Matrix4d transformationOfIntensityRay =
-                    this->graphSaved.getVertexList()->at(indexStart).getTransformation().inverse() *
-                    this->graphSaved.getVertexList()->at(indexStart - i).getTransformation();
+                    usedGraph.getVertexList()->at(indexStart).getTransformation().inverse() *
+                    usedGraph.getVertexList()->at(indexStart - i).getTransformation();
 
             //positionOfIntensity has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
             Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
-                                                                                                             this->graphSaved.getVertexList()->at(
+                                                                                                             usedGraph.getVertexList()->at(
                                                                                                                      indexStart -
                                                                                                                      i).getIntensities().angle);
 
-            for (int j = 0;
-                 j < this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
+            int ignoreDistance = (int) (IGNORE_DISTANCE_TO_ROBOT /
+                                        (usedGraph.getVertexList()->at(indexStart - i).getIntensities().range /
+                                         ((double) usedGraph.getVertexList()->at(
+                                                 indexStart - i).getIntensities().intensities.size())));
+
+
+            for (int j = ignoreDistance;
+                 j < usedGraph.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
                 double distanceOfIntensity =
-                        j / ((double) this->graphSaved.getVertexList()->at(
+                        j / ((double) usedGraph.getVertexList()->at(
                                 indexStart - i).getIntensities().intensities.size()) *
-                        ((double) this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().range);
-                Eigen::Vector4d positionOfIntensity(
-                        distanceOfIntensity,
-                        0,
-                        0,
-                        1);
+                        ((double) usedGraph.getVertexList()->at(indexStart - i).getIntensities().range);
+
+                int incrementOfScan = usedGraph.getVertexList()->at(indexStart - i).getIntensities().increment;
+                for (int l = -incrementOfScan - 5; l <= incrementOfScan + 5; l++) {
+                    Eigen::Vector4d positionOfIntensity(
+                            distanceOfIntensity,
+                            0,
+                            0,
+                            1);
+                    double rotationOfPoint = l / 400.0;
+                    Eigen::Matrix4d rotationForBetterView = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
+                                                                                                                rotationOfPoint);
+                    positionOfIntensity = rotationForBetterView * positionOfIntensity;
+
+                    positionOfIntensity = transformationInTheEndOfCalculation * transformationOfIntensityRay *
+                                          rotationOfSonarAngleMatrix * positionOfIntensity;
+                    //calculate index dependent on  DIMENSION_OF_VOXEL_DATA and numberOfPoints the middle
+                    int indexX =
+                            (int) (positionOfIntensity.x() / (DIMENSION_OF_VOXEL_DATA / 2) * numberOfPoints /
+                                   2) +
+                            numberOfPoints / 2;
+                    int indexY =
+                            (int) (positionOfIntensity.y() / (DIMENSION_OF_VOXEL_DATA / 2) * numberOfPoints /
+                                   2) +
+                            numberOfPoints / 2;
 
 
-                positionOfIntensity = transformationInTheEndOfCalculation * transformationOfIntensityRay *
-                                      rotationOfSonarAngleMatrix * positionOfIntensity;
-                //calculate index dependent on  DIMENSION_OF_VOXEL_DATA and numberOfPoints the middle
-                int indexX =
-                        (int) (positionOfIntensity.x() / (DIMENSION_OF_VOXEL_DATA / 2) * numberOfPoints /
-                               2) +
-                        numberOfPoints / 2;
-                int indexY =
-                        (int) (positionOfIntensity.y() / (DIMENSION_OF_VOXEL_DATA / 2) * numberOfPoints /
-                               2) +
-                        numberOfPoints / 2;
-
-
-                if (indexX < numberOfPoints && indexY < numberOfPoints && indexY >= 0 &&
-                    indexX >= 0) {
-//                    std::cout << indexX << " " << indexY << std::endl;
-                    //if index fits inside of our data, add that data. Else Ignore
-                    voxelDataIndex[indexX + numberOfPoints * indexY] =
-                            voxelDataIndex[indexX + numberOfPoints * indexY] + 1;
-//                    std::cout << "Index: " << voxelDataIndex[indexY + numberOfPoints * indexX] << std::endl;
-                    voxelData[indexX + numberOfPoints * indexY] =
-                            voxelData[indexX + numberOfPoints * indexY] +
-                            this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[j];
-//                    std::cout << "Intensity: " << voxelData[indexY + numberOfPoints * indexX] << std::endl;
-//                    std::cout << "random: " << std::endl;
+                    if (indexX < numberOfPoints && indexY < numberOfPoints && indexY >= 0 &&
+                        indexX >= 0) {
+                        //                    std::cout << indexX << " " << indexY << std::endl;
+                        //if index fits inside of our data, add that data. Else Ignore
+                        voxelDataIndex[indexX + numberOfPoints * indexY] =
+                                voxelDataIndex[indexX + numberOfPoints * indexY] + 1;
+                        //                    std::cout << "Index: " << voxelDataIndex[indexY + numberOfPoints * indexX] << std::endl;
+                        voxelData[indexX + numberOfPoints * indexY] =
+                                voxelData[indexX + numberOfPoints * indexY] +
+                                usedGraph.getVertexList()->at(indexStart - i).getIntensities().intensities[j];
+                        //                    std::cout << "Intensity: " << voxelData[indexY + numberOfPoints * indexX] << std::endl;
+                        //                    std::cout << "random: " << std::endl;
+                    }
                 }
             }
             i++;
-        } while (this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
-                 this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
+        } while (usedGraph.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
+                 usedGraph.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
                  INTENSITY_SAVED_AND_KEYFRAME);
         double maximumOfVoxelData = 0;
         for (i = 0; i < numberOfPoints * numberOfPoints; i++) {
@@ -916,97 +846,345 @@ private:
         return maximumOfVoxelData;
     }
 
-    Eigen::Matrix4d registrationOfTwoVoxelsSOFFT(int indexVoxel1,
-                                                 int indexVoxel2,
-                                                 double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuess,
-                                                 bool useInitialAngle, bool useInitialTranslation,
-                                                 int numberOfPoints,
-                                                 bool debug = false) {
-        double goodGuessAlpha = -100;
-        if (useInitialAngle) {
-            goodGuessAlpha = std::atan2(initialGuess(1, 0),
-                                        initialGuess(0, 0));
-        }
-
-        //create a voxel of current scan (last rotation) and voxel of the rotation before that
-        double *voxelData1;
-        double *voxelData2;
-        voxelData1 = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
-        voxelData2 = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
-        //still missing
-        double maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity(),
-                                                  numberOfPoints);//get voxel
-        double maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, Eigen::Matrix4d::Identity(),
-                                                  numberOfPoints);//get voxel
-//        double normalizationValue = 1;
-//        for (int i = 0; i < numberOfPoints * numberOfPoints; i++) {
-//            voxelData1[i] = normalizationValue * voxelData1[i] / maximumVoxel1;
-//            voxelData2[i] = normalizationValue * voxelData2[i] / maximumVoxel2;
+//    Eigen::Matrix4d registrationOfTwoVoxelsSOFFT(int indexVoxel1,
+//                                                 int indexVoxel2,
+//                                                 double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuess,
+//                                                 bool useInitialAngle, bool useInitialTranslation,
+//                                                 int numberOfPoints,
+//                                                 bool debug = false) {
+//        double goodGuessAlpha = -100;
+//        if (useInitialAngle) {
+//            goodGuessAlpha = std::atan2(initialGuess(1, 0),
+//                                        initialGuess(0, 0));
 //        }
-        double estimatedAngle;
-        if (numberOfPoints == 32) {
-            estimatedAngle = this->scanRegistrationObject32.sofftRegistrationVoxel2DRotationOnly(voxelData1,
-                                                                                                 voxelData2,
-                                                                                                 goodGuessAlpha, debug);
-        } else {
-            if (numberOfPoints == 64) {
-                estimatedAngle = this->scanRegistrationObject64.sofftRegistrationVoxel2DRotationOnly(voxelData1,
-                                                                                                     voxelData2,
-                                                                                                     goodGuessAlpha,
-                                                                                                     debug);
-            } else {
-                if (numberOfPoints == 128) {
-                    estimatedAngle = this->scanRegistrationObject128.sofftRegistrationVoxel2DRotationOnly(voxelData1,
-                                                                                                          voxelData2,
-                                                                                                          goodGuessAlpha,
-                                                                                                          debug);
+//
+//        //create a voxel of current scan (last rotation) and voxel of the rotation before that
+//        double *voxelData1;
+//        double *voxelData2;
+//        voxelData1 = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
+//        voxelData2 = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
+//        //still missing
+//        double maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity(),
+//                                                  numberOfPoints);//get voxel
+//        double maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, Eigen::Matrix4d::Identity(),
+//                                                  numberOfPoints);//get voxel
+////        double normalizationValue = 1;
+////        for (int i = 0; i < numberOfPoints * numberOfPoints; i++) {
+////            voxelData1[i] = normalizationValue * voxelData1[i] / maximumVoxel1;
+////            voxelData2[i] = normalizationValue * voxelData2[i] / maximumVoxel2;
+////        }
+//        double estimatedAngle;
+//        if (numberOfPoints == 32) {
+//            estimatedAngle = this->scanRegistrationObject32.sofftRegistrationVoxel2DRotationOnly(voxelData1,
+//                                                                                                 voxelData2,
+//                                                                                                 goodGuessAlpha, debug);
+//        } else {
+//            if (numberOfPoints == 64) {
+//                estimatedAngle = this->scanRegistrationObject64.sofftRegistrationVoxel2DRotationOnly(voxelData1,
+//                                                                                                     voxelData2,
+//                                                                                                     goodGuessAlpha,
+//                                                                                                     debug);
+//            } else {
+//                if (numberOfPoints == 128) {
+//                    estimatedAngle = this->scanRegistrationObject128.sofftRegistrationVoxel2DRotationOnly(voxelData1,
+//                                                                                                          voxelData2,
+//                                                                                                          goodGuessAlpha,
+//                                                                                                          debug);
+//
+//                } else {
+//                    if (numberOfPoints == 256) {
+//                        estimatedAngle = this->scanRegistrationObject256.sofftRegistrationVoxel2DRotationOnly(
+//                                voxelData1,
+//                                voxelData2,
+//                                goodGuessAlpha,
+//                                debug);
+//                    } else {
+//                        if (numberOfPoints == 512) {
+//                            estimatedAngle = this->scanRegistrationObject512.sofftRegistrationVoxel2DRotationOnly(
+//                                    voxelData1,
+//                                    voxelData2,
+//                                    goodGuessAlpha,
+//                                    debug);
+//                        } else {
+//                            std::cout << "that shouldnt happen" << std::endl;
+//                            exit(-1);
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//
+//        Eigen::Matrix4d rotationMatrixTMP = Eigen::Matrix4d::Identity();
+//        Eigen::AngleAxisd tmpRotVec(estimatedAngle, Eigen::Vector3d(0, 0, 1));
+//        Eigen::Matrix3d tmpMatrix3d = tmpRotVec.toRotationMatrix();
+//        rotationMatrixTMP.block<3, 3>(0, 0) = tmpMatrix3d;
+//        maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity(),
+//                                           numberOfPoints);//get voxel
+//        maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, rotationMatrixTMP, numberOfPoints);//get voxel
+//
+//        if (true) {
+//            cv::Mat magTMP1(numberOfPoints, numberOfPoints, CV_64F, voxelData1);
+//            //add gaussian blur
+//            cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+//            cv::imwrite("/home/tim-external/Documents/imreg_fmt/firstImage.jpg", magTMP1);
+//
+//            cv::Mat magTMP2(numberOfPoints, numberOfPoints, CV_64F, voxelData2);
+//            //add gaussian blur
+//            cv::GaussianBlur(magTMP2, magTMP2, cv::Size(9, 9), 0);
+//            cv::imwrite("/home/tim-external/Documents/imreg_fmt/secondImage.jpg", magTMP2);
+////        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+////        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+//        }
+//
+////        if (debug) {
+////            std::ofstream myFile3, myFile6;
+////            myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW1.csv");
+////            myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW2.csv");
+////            for (int i = 0; i < numberOfPoints; i++) {
+////                for (int j = 0; j < numberOfPoints; j++) {
+////
+////                    myFile3 << voxelData1[j + numberOfPoints * i]; // imaginary part
+////                    myFile3 << "\n";
+////                    myFile6 << voxelData2[j + numberOfPoints * i]; // imaginary part
+////                    myFile6 << "\n";
+////                }
+////            }
+////            myFile3.close();
+////            myFile6.close();
+////        }
+//
+//        Eigen::Vector2d translation;
+//        if (numberOfPoints == 32) {
+//            translation = this->scanRegistrationObject32.sofftRegistrationVoxel2DTranslation(voxelData1,
+//                                                                                             voxelData2,
+//                                                                                             fitnessX,
+//                                                                                             fitnessY,
+//                                                                                             (double) DIMENSION_OF_VOXEL_DATA /
+//                                                                                             (double) numberOfPoints,
+//                                                                                             initialGuessTransformation.block<3, 1>(
+//                                                                                                     0, 3),
+//                                                                                             useInitialTranslation,
+//                                                                                             debug);
+//        } else {
+//
+//
+//            if (numberOfPoints == 64) {
+//                translation = this->scanRegistrationObject64.sofftRegistrationVoxel2DTranslation(voxelData1,
+//                                                                                                 voxelData2,
+//                                                                                                 fitnessX,
+//                                                                                                 fitnessY,
+//                                                                                                 (double) DIMENSION_OF_VOXEL_DATA /
+//                                                                                                 (double) numberOfPoints,
+//                                                                                                 initialGuessTransformation.block<3, 1>(
+//                                                                                                         0, 3),
+//                                                                                                 useInitialTranslation,
+//                                                                                                 debug);
+//            } else {
+//                if (numberOfPoints == 128) {
+//                    translation = this->scanRegistrationObject128.sofftRegistrationVoxel2DTranslation(voxelData1,
+//                                                                                                      voxelData2,
+//                                                                                                      fitnessX,
+//                                                                                                      fitnessY,
+//                                                                                                      (double) DIMENSION_OF_VOXEL_DATA /
+//                                                                                                      (double) numberOfPoints,
+//                                                                                                      initialGuessTransformation.block<3, 1>(
+//                                                                                                              0, 3),
+//                                                                                                      useInitialTranslation,
+//                                                                                                      debug);
+//
+//                } else {
+//                    if (numberOfPoints == 256) {
+//                        translation = this->scanRegistrationObject256.sofftRegistrationVoxel2DTranslation(voxelData1,
+//                                                                                                          voxelData2,
+//                                                                                                          fitnessX,
+//                                                                                                          fitnessY,
+//                                                                                                          (double) DIMENSION_OF_VOXEL_DATA /
+//                                                                                                          (double) numberOfPoints,
+//                                                                                                          initialGuessTransformation.block<3, 1>(
+//                                                                                                                  0, 3),
+//                                                                                                          useInitialTranslation,
+//                                                                                                          debug);
+//                    } else {
+//                        if (numberOfPoints == 512) {
+//                            translation = this->scanRegistrationObject512.sofftRegistrationVoxel2DTranslation(
+//                                    voxelData1,
+//                                    voxelData2,
+//                                    fitnessX,
+//                                    fitnessY,
+//                                    (double) DIMENSION_OF_VOXEL_DATA /
+//                                    (double) numberOfPoints,
+//                                    initialGuessTransformation.block<3, 1>(
+//                                            0, 3),
+//                                    useInitialTranslation,
+//                                    debug);
+//                        } else {
+//                            std::cout << "that shouldnt happen" << std::endl;
+//                            exit(-1);
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//        Eigen::Matrix4d estimatedRotationScans;//from second scan to first
+//        //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
+//        Eigen::AngleAxisd rotation_vectorTMP(estimatedAngle, Eigen::Vector3d(0, 0, 1));
+//        Eigen::Matrix3d tmpRotMatrix3d = rotation_vectorTMP.toRotationMatrix();
+//        estimatedRotationScans.block<3, 3>(0, 0) = tmpRotMatrix3d;
+//        estimatedRotationScans(0, 3) = translation.x();
+//        estimatedRotationScans(1, 3) = translation.y();
+//        estimatedRotationScans(2, 3) = 0;
+//        estimatedRotationScans(3, 3) = 1;
+//
+//
+//        maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity(),
+//                                           numberOfPoints);//get voxel
+//        maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, estimatedRotationScans, numberOfPoints);//get voxel
+//
+//        if (debug) {
+//            std::ofstream myFile1, myFile2;
+//            myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel1.csv");
+//            myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel2.csv");
+//            for (int i = 0; i < numberOfPoints; i++) {
+//                for (int j = 0; j < numberOfPoints; j++) {
+//                    myFile1 << voxelData1[j + numberOfPoints * i]; // real part
+//                    myFile1 << "\n";
+//                    myFile2 << voxelData2[j + numberOfPoints * i]; // imaginary part
+//                    myFile2 << "\n";
+//                }
+//            }
+//            myFile1.close();
+//            myFile2.close();
+//        }
+//
+//
+////        maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, estimatedRotationScans.inverse());//get voxel
+////        maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, Eigen::Matrix4d::Identity());//get voxel
+////
+////        if (debug) {
+////            std::ofstream myFile1, myFile2;
+////            myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel1.csv");
+////            myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel2.csv");
+////            for (int i = 0; i < numberOfPoints; i++) {
+////                for (int j = 0; j < numberOfPoints; j++) {
+////                    myFile1 << voxelData1[j + numberOfPoints* i]; // real part
+////                    myFile1 << "\n";
+////                    myFile2 << voxelData2[j + numberOfPoints * i]; // imaginary part
+////                    myFile2 << "\n";
+////                }
+////            }
+////            myFile1.close();
+////            myFile2.close();
+////        }
+//
+//
+//        return estimatedRotationScans;//should be the transformation matrix from 1 to 2
+//    }
 
-                } else {
-                    if (numberOfPoints == 256) {
-                        estimatedAngle = this->scanRegistrationObject256.sofftRegistrationVoxel2DRotationOnly(
-                                voxelData1,
-                                voxelData2,
-                                goodGuessAlpha,
-                                debug);
-                    } else {
-                        if (numberOfPoints == 512) {
-                            estimatedAngle = this->scanRegistrationObject512.sofftRegistrationVoxel2DRotationOnly(
-                                    voxelData1,
-                                    voxelData2,
-                                    goodGuessAlpha,
-                                    debug);
-                        } else {
-                            std::cout << "that shouldnt happen" << std::endl;
-                            exit(-1);
-                        }
-                    }
-                }
-            }
-        }
-
-
-        Eigen::Matrix4d rotationMatrixTMP = Eigen::Matrix4d::Identity();
-        Eigen::AngleAxisd tmpRotVec(estimatedAngle, Eigen::Vector3d(0, 0, 1));
-        Eigen::Matrix3d tmpMatrix3d = tmpRotVec.toRotationMatrix();
-        rotationMatrixTMP.block<3, 3>(0, 0) = tmpMatrix3d;
-        maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity(),
-                                           numberOfPoints);//get voxel
-        maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, rotationMatrixTMP, numberOfPoints);//get voxel
-
-        if (true) {
-            cv::Mat magTMP1(numberOfPoints, numberOfPoints, CV_64F, voxelData1);
-            //add gaussian blur
-            cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
-            cv::imwrite("/home/tim-external/Documents/imreg_fmt/firstImage.jpg", magTMP1);
-
-            cv::Mat magTMP2(numberOfPoints, numberOfPoints, CV_64F, voxelData2);
-            //add gaussian blur
-            cv::GaussianBlur(magTMP2, magTMP2, cv::Size(9, 9), 0);
-            cv::imwrite("/home/tim-external/Documents/imreg_fmt/secondImage.jpg", magTMP2);
-//        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
-//        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
-        }
-
+//    Eigen::Matrix4d registrationOfTwoVoxelsSOFFTFasterTest(double voxelData1[],
+//                                                           double voxelData2[],
+//                                                           double &fitnessX, double &fitnessY,
+//                                                           Eigen::Matrix4d initialGuess,
+//                                                           bool useInitialAngle, bool useInitialTranslation,
+//                                                           int numberOfPoints,
+//                                                           bool debug = false) {
+//        double goodGuessAlpha = -100;
+//        if (useInitialAngle) {
+//            goodGuessAlpha = std::atan2(initialGuess(1, 0),
+//                                        initialGuess(0, 0));
+//        }
+//
+//        //create a voxel of current scan (last rotation) and voxel of the rotation before that
+////        double *voxelData1;
+////        double *voxelData2;
+////        voxelData1 = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
+////        voxelData2 = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
+//        //still missing
+////        double maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity(),
+////                                                  numberOfPoints);//get voxel
+////        double maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, Eigen::Matrix4d::Identity(),
+////                                                  numberOfPoints);//get voxel
+////        double normalizationValue = 1;
+////        for (int i = 0; i < numberOfPoints * numberOfPoints; i++) {
+////            voxelData1[i] = normalizationValue * voxelData1[i] / maximumVoxel1;
+////            voxelData2[i] = normalizationValue * voxelData2[i] / maximumVoxel2;
+////        }
+//        double estimatedAngle;
+//        if (numberOfPoints == 32) {
+//            estimatedAngle = this->scanRegistrationObject32.sofftRegistrationVoxel2DRotationOnly(voxelData1,
+//                                                                                                 voxelData2,
+//                                                                                                 goodGuessAlpha, debug);
+//        } else {
+//            if (numberOfPoints == 64) {
+//                estimatedAngle = this->scanRegistrationObject64.sofftRegistrationVoxel2DRotationOnly(voxelData1,
+//                                                                                                     voxelData2,
+//                                                                                                     goodGuessAlpha,
+//                                                                                                     debug);
+//            } else {
+//                if (numberOfPoints == 128) {
+//                    estimatedAngle = this->scanRegistrationObject128.sofftRegistrationVoxel2DRotationOnly(voxelData1,
+//                                                                                                          voxelData2,
+//                                                                                                          goodGuessAlpha,
+//                                                                                                          debug);
+//
+//                } else {
+//                    if (numberOfPoints == 256) {
+//                        estimatedAngle = this->scanRegistrationObject256.sofftRegistrationVoxel2DRotationOnly(
+//                                voxelData1,
+//                                voxelData2,
+//                                goodGuessAlpha,
+//                                debug);
+//                    } else {
+//                        if (numberOfPoints == 512) {
+//                            estimatedAngle = this->scanRegistrationObject512.sofftRegistrationVoxel2DRotationOnly(
+//                                    voxelData1,
+//                                    voxelData2,
+//                                    goodGuessAlpha,
+//                                    debug);
+//                        } else {
+//                            std::cout << "that shouldnt happen" << std::endl;
+//                            exit(-1);
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//
+//        Eigen::Matrix4d rotationMatrixTMP = Eigen::Matrix4d::Identity();
+//        Eigen::AngleAxisd tmpRotVec(estimatedAngle, Eigen::Vector3d(0, 0, 1));
+//        Eigen::Matrix3d tmpMatrix3d = tmpRotVec.toRotationMatrix();
+//        rotationMatrixTMP.block<3, 3>(0, 0) = tmpMatrix3d;
+//
+//
+//
+//
+////        maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity(),
+////                                           numberOfPoints);//get voxel
+////        maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, rotationMatrixTMP, numberOfPoints);//get voxel
+//
+//        if (true) {
+//            cv::Mat magTMP1(numberOfPoints, numberOfPoints, CV_64F, voxelData1);
+//            //add gaussian blur
+//            cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+////            cv::imwrite("/home/tim-external/Documents/imreg_fmt/firstImage.jpg", magTMP1);
+//
+//            cv::Mat magTMP2(numberOfPoints, numberOfPoints, CV_64F, voxelData2);
+//            //add gaussian blur
+//            cv::GaussianBlur(magTMP2, magTMP2, cv::Size(9, 9), 0);
+//
+//            cv::Point2f pc(magTMP2.cols / 2., magTMP2.rows / 2.);
+//            cv::Mat r = cv::getRotationMatrix2D(pc, -estimatedAngle * 180.0 / M_PI, 1.0);
+//
+//            cv::warpAffine(magTMP2, magTMP2, r, magTMP2.size()); // what size I should use?
+//
+////            cv::imwrite("/home/tim-external/Documents/imreg_fmt/secondImage.jpg", magTMP2);
+//
+////        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+////        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+//        }
+//
 //        if (debug) {
 //            std::ofstream myFile3, myFile6;
 //            myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW1.csv");
@@ -1023,114 +1201,94 @@ private:
 //            myFile3.close();
 //            myFile6.close();
 //        }
-
-        Eigen::Vector2d translation;
-        if (numberOfPoints == 32) {
-            translation = this->scanRegistrationObject32.sofftRegistrationVoxel2DTranslation(voxelData1,
-                                                                                             voxelData2,
-                                                                                             fitnessX,
-                                                                                             fitnessY,
-                                                                                             (double) DIMENSION_OF_VOXEL_DATA /
-                                                                                             (double) numberOfPoints,
-                                                                                             initialGuessTransformation.block<3, 1>(
-                                                                                                     0, 3),
-                                                                                             useInitialTranslation,
-                                                                                             debug);
-        } else {
-
-
-            if (numberOfPoints == 64) {
-                translation = this->scanRegistrationObject64.sofftRegistrationVoxel2DTranslation(voxelData1,
-                                                                                                 voxelData2,
-                                                                                                 fitnessX,
-                                                                                                 fitnessY,
-                                                                                                 (double) DIMENSION_OF_VOXEL_DATA /
-                                                                                                 (double) numberOfPoints,
-                                                                                                 initialGuessTransformation.block<3, 1>(
-                                                                                                         0, 3),
-                                                                                                 useInitialTranslation,
-                                                                                                 debug);
-            } else {
-                if (numberOfPoints == 128) {
-                    translation = this->scanRegistrationObject128.sofftRegistrationVoxel2DTranslation(voxelData1,
-                                                                                                      voxelData2,
-                                                                                                      fitnessX,
-                                                                                                      fitnessY,
-                                                                                                      (double) DIMENSION_OF_VOXEL_DATA /
-                                                                                                      (double) numberOfPoints,
-                                                                                                      initialGuessTransformation.block<3, 1>(
-                                                                                                              0, 3),
-                                                                                                      useInitialTranslation,
-                                                                                                      debug);
-
-                } else {
-                    if (numberOfPoints == 256) {
-                        translation = this->scanRegistrationObject256.sofftRegistrationVoxel2DTranslation(voxelData1,
-                                                                                                          voxelData2,
-                                                                                                          fitnessX,
-                                                                                                          fitnessY,
-                                                                                                          (double) DIMENSION_OF_VOXEL_DATA /
-                                                                                                          (double) numberOfPoints,
-                                                                                                          initialGuessTransformation.block<3, 1>(
-                                                                                                                  0, 3),
-                                                                                                          useInitialTranslation,
-                                                                                                          debug);
-                    } else {
-                        if (numberOfPoints == 512) {
-                            translation = this->scanRegistrationObject512.sofftRegistrationVoxel2DTranslation(
-                                    voxelData1,
-                                    voxelData2,
-                                    fitnessX,
-                                    fitnessY,
-                                    (double) DIMENSION_OF_VOXEL_DATA /
-                                    (double) numberOfPoints,
-                                    initialGuessTransformation.block<3, 1>(
-                                            0, 3),
-                                    useInitialTranslation,
-                                    debug);
-                        } else {
-                            std::cout << "that shouldnt happen" << std::endl;
-                            exit(-1);
-                        }
-                    }
-                }
-            }
-        }
-
-        Eigen::Matrix4d estimatedRotationScans;//from second scan to first
-        //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
-        Eigen::AngleAxisd rotation_vectorTMP(estimatedAngle, Eigen::Vector3d(0, 0, 1));
-        Eigen::Matrix3d tmpRotMatrix3d = rotation_vectorTMP.toRotationMatrix();
-        estimatedRotationScans.block<3, 3>(0, 0) = tmpRotMatrix3d;
-        estimatedRotationScans(0, 3) = translation.x();
-        estimatedRotationScans(1, 3) = translation.y();
-        estimatedRotationScans(2, 3) = 0;
-        estimatedRotationScans(3, 3) = 1;
-
-
-        maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity(),
-                                           numberOfPoints);//get voxel
-        maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, estimatedRotationScans, numberOfPoints);//get voxel
-
-        if (debug) {
-            std::ofstream myFile1, myFile2;
-            myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel1.csv");
-            myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel2.csv");
-            for (int i = 0; i < numberOfPoints; i++) {
-                for (int j = 0; j < numberOfPoints; j++) {
-                    myFile1 << voxelData1[j + numberOfPoints * i]; // real part
-                    myFile1 << "\n";
-                    myFile2 << voxelData2[j + numberOfPoints * i]; // imaginary part
-                    myFile2 << "\n";
-                }
-            }
-            myFile1.close();
-            myFile2.close();
-        }
-
-
-//        maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, estimatedRotationScans.inverse());//get voxel
-//        maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, Eigen::Matrix4d::Identity());//get voxel
+//
+//        Eigen::Vector2d translation;
+//        if (numberOfPoints == 32) {
+//            translation = this->scanRegistrationObject32.sofftRegistrationVoxel2DTranslation(voxelData1,
+//                                                                                             voxelData2,
+//                                                                                             fitnessX,
+//                                                                                             fitnessY,
+//                                                                                             (double) DIMENSION_OF_VOXEL_DATA /
+//                                                                                             (double) numberOfPoints,
+//                                                                                             initialGuessTransformation.block<3, 1>(
+//                                                                                                     0, 3),
+//                                                                                             useInitialTranslation,
+//                                                                                             debug);
+//        } else {
+//
+//
+//            if (numberOfPoints == 64) {
+//                translation = this->scanRegistrationObject64.sofftRegistrationVoxel2DTranslation(voxelData1,
+//                                                                                                 voxelData2,
+//                                                                                                 fitnessX,
+//                                                                                                 fitnessY,
+//                                                                                                 (double) DIMENSION_OF_VOXEL_DATA /
+//                                                                                                 (double) numberOfPoints,
+//                                                                                                 initialGuessTransformation.block<3, 1>(
+//                                                                                                         0, 3),
+//                                                                                                 useInitialTranslation,
+//                                                                                                 debug);
+//            } else {
+//                if (numberOfPoints == 128) {
+//                    translation = this->scanRegistrationObject128.sofftRegistrationVoxel2DTranslation(voxelData1,
+//                                                                                                      voxelData2,
+//                                                                                                      fitnessX,
+//                                                                                                      fitnessY,
+//                                                                                                      (double) DIMENSION_OF_VOXEL_DATA /
+//                                                                                                      (double) numberOfPoints,
+//                                                                                                      initialGuessTransformation.block<3, 1>(
+//                                                                                                              0, 3),
+//                                                                                                      useInitialTranslation,
+//                                                                                                      debug);
+//
+//                } else {
+//                    if (numberOfPoints == 256) {
+//                        translation = this->scanRegistrationObject256.sofftRegistrationVoxel2DTranslation(voxelData1,
+//                                                                                                          voxelData2,
+//                                                                                                          fitnessX,
+//                                                                                                          fitnessY,
+//                                                                                                          (double) DIMENSION_OF_VOXEL_DATA /
+//                                                                                                          (double) numberOfPoints,
+//                                                                                                          initialGuessTransformation.block<3, 1>(
+//                                                                                                                  0, 3),
+//                                                                                                          useInitialTranslation,
+//                                                                                                          debug);
+//                    } else {
+//                        if (numberOfPoints == 512) {
+//                            translation = this->scanRegistrationObject512.sofftRegistrationVoxel2DTranslation(
+//                                    voxelData1,
+//                                    voxelData2,
+//                                    fitnessX,
+//                                    fitnessY,
+//                                    (double) DIMENSION_OF_VOXEL_DATA /
+//                                    (double) numberOfPoints,
+//                                    initialGuessTransformation.block<3, 1>(
+//                                            0, 3),
+//                                    useInitialTranslation,
+//                                    debug);
+//                        } else {
+//                            std::cout << "that shouldnt happen" << std::endl;
+//                            exit(-1);
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//        Eigen::Matrix4d estimatedRotationScans;//from second scan to first
+//        //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
+//        Eigen::AngleAxisd rotation_vectorTMP(estimatedAngle, Eigen::Vector3d(0, 0, 1));
+//        Eigen::Matrix3d tmpRotMatrix3d = rotation_vectorTMP.toRotationMatrix();
+//        estimatedRotationScans.block<3, 3>(0, 0) = tmpRotMatrix3d;
+//        estimatedRotationScans(0, 3) = translation.x();
+//        estimatedRotationScans(1, 3) = translation.y();
+//        estimatedRotationScans(2, 3) = 0;
+//        estimatedRotationScans(3, 3) = 1;
+//
+//
+////        maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity(),
+////                                           numberOfPoints);//get voxel
+////        maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, estimatedRotationScans, numberOfPoints);//get voxel
 //
 //        if (debug) {
 //            std::ofstream myFile1, myFile2;
@@ -1138,7 +1296,7 @@ private:
 //            myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel2.csv");
 //            for (int i = 0; i < numberOfPoints; i++) {
 //                for (int j = 0; j < numberOfPoints; j++) {
-//                    myFile1 << voxelData1[j + numberOfPoints* i]; // real part
+//                    myFile1 << voxelData1[j + numberOfPoints * i]; // real part
 //                    myFile1 << "\n";
 //                    myFile2 << voxelData2[j + numberOfPoints * i]; // imaginary part
 //                    myFile2 << "\n";
@@ -1147,258 +1305,30 @@ private:
 //            myFile1.close();
 //            myFile2.close();
 //        }
-
-
-        return estimatedRotationScans;//should be the transformation matrix from 1 to 2
-    }
-
-    Eigen::Matrix4d registrationOfTwoVoxelsSOFFTFasterTest(double voxelData1[],
-                                                           double voxelData2[],
-                                                           double &fitnessX, double &fitnessY,
-                                                           Eigen::Matrix4d initialGuess,
-                                                           bool useInitialAngle, bool useInitialTranslation,
-                                                           int numberOfPoints,
-                                                           bool debug = false) {
-        double goodGuessAlpha = -100;
-        if (useInitialAngle) {
-            goodGuessAlpha = std::atan2(initialGuess(1, 0),
-                                        initialGuess(0, 0));
-        }
-
-        //create a voxel of current scan (last rotation) and voxel of the rotation before that
-//        double *voxelData1;
-//        double *voxelData2;
-//        voxelData1 = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
-//        voxelData2 = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
-        //still missing
-//        double maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity(),
-//                                                  numberOfPoints);//get voxel
-//        double maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, Eigen::Matrix4d::Identity(),
-//                                                  numberOfPoints);//get voxel
-//        double normalizationValue = 1;
-//        for (int i = 0; i < numberOfPoints * numberOfPoints; i++) {
-//            voxelData1[i] = normalizationValue * voxelData1[i] / maximumVoxel1;
-//            voxelData2[i] = normalizationValue * voxelData2[i] / maximumVoxel2;
-//        }
-        double estimatedAngle;
-        if (numberOfPoints == 32) {
-            estimatedAngle = this->scanRegistrationObject32.sofftRegistrationVoxel2DRotationOnly(voxelData1,
-                                                                                                 voxelData2,
-                                                                                                 goodGuessAlpha, debug);
-        } else {
-            if (numberOfPoints == 64) {
-                estimatedAngle = this->scanRegistrationObject64.sofftRegistrationVoxel2DRotationOnly(voxelData1,
-                                                                                                     voxelData2,
-                                                                                                     goodGuessAlpha,
-                                                                                                     debug);
-            } else {
-                if (numberOfPoints == 128) {
-                    estimatedAngle = this->scanRegistrationObject128.sofftRegistrationVoxel2DRotationOnly(voxelData1,
-                                                                                                          voxelData2,
-                                                                                                          goodGuessAlpha,
-                                                                                                          debug);
-
-                } else {
-                    if (numberOfPoints == 256) {
-                        estimatedAngle = this->scanRegistrationObject256.sofftRegistrationVoxel2DRotationOnly(
-                                voxelData1,
-                                voxelData2,
-                                goodGuessAlpha,
-                                debug);
-                    } else {
-                        if (numberOfPoints == 512) {
-                            estimatedAngle = this->scanRegistrationObject512.sofftRegistrationVoxel2DRotationOnly(
-                                    voxelData1,
-                                    voxelData2,
-                                    goodGuessAlpha,
-                                    debug);
-                        } else {
-                            std::cout << "that shouldnt happen" << std::endl;
-                            exit(-1);
-                        }
-                    }
-                }
-            }
-        }
-
-
-        Eigen::Matrix4d rotationMatrixTMP = Eigen::Matrix4d::Identity();
-        Eigen::AngleAxisd tmpRotVec(estimatedAngle, Eigen::Vector3d(0, 0, 1));
-        Eigen::Matrix3d tmpMatrix3d = tmpRotVec.toRotationMatrix();
-        rotationMatrixTMP.block<3, 3>(0, 0) = tmpMatrix3d;
-
-
-
-
-//        maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity(),
-//                                           numberOfPoints);//get voxel
-//        maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, rotationMatrixTMP, numberOfPoints);//get voxel
-
-        if (true) {
-            cv::Mat magTMP1(numberOfPoints, numberOfPoints, CV_64F, voxelData1);
-            //add gaussian blur
-            cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
-//            cv::imwrite("/home/tim-external/Documents/imreg_fmt/firstImage.jpg", magTMP1);
-
-            cv::Mat magTMP2(numberOfPoints, numberOfPoints, CV_64F, voxelData2);
-            //add gaussian blur
-            cv::GaussianBlur(magTMP2, magTMP2, cv::Size(9, 9), 0);
-
-            cv::Point2f pc(magTMP2.cols / 2., magTMP2.rows / 2.);
-            cv::Mat r = cv::getRotationMatrix2D(pc, -estimatedAngle * 180.0 / M_PI, 1.0);
-
-            cv::warpAffine(magTMP2, magTMP2, r, magTMP2.size()); // what size I should use?
-
-//            cv::imwrite("/home/tim-external/Documents/imreg_fmt/secondImage.jpg", magTMP2);
-
-//        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
-//        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
-        }
-
-        if (debug) {
-            std::ofstream myFile3, myFile6;
-            myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW1.csv");
-            myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW2.csv");
-            for (int i = 0; i < numberOfPoints; i++) {
-                for (int j = 0; j < numberOfPoints; j++) {
-
-                    myFile3 << voxelData1[j + numberOfPoints * i]; // imaginary part
-                    myFile3 << "\n";
-                    myFile6 << voxelData2[j + numberOfPoints * i]; // imaginary part
-                    myFile6 << "\n";
-                }
-            }
-            myFile3.close();
-            myFile6.close();
-        }
-
-        Eigen::Vector2d translation;
-        if (numberOfPoints == 32) {
-            translation = this->scanRegistrationObject32.sofftRegistrationVoxel2DTranslation(voxelData1,
-                                                                                             voxelData2,
-                                                                                             fitnessX,
-                                                                                             fitnessY,
-                                                                                             (double) DIMENSION_OF_VOXEL_DATA /
-                                                                                             (double) numberOfPoints,
-                                                                                             initialGuessTransformation.block<3, 1>(
-                                                                                                     0, 3),
-                                                                                             useInitialTranslation,
-                                                                                             debug);
-        } else {
-
-
-            if (numberOfPoints == 64) {
-                translation = this->scanRegistrationObject64.sofftRegistrationVoxel2DTranslation(voxelData1,
-                                                                                                 voxelData2,
-                                                                                                 fitnessX,
-                                                                                                 fitnessY,
-                                                                                                 (double) DIMENSION_OF_VOXEL_DATA /
-                                                                                                 (double) numberOfPoints,
-                                                                                                 initialGuessTransformation.block<3, 1>(
-                                                                                                         0, 3),
-                                                                                                 useInitialTranslation,
-                                                                                                 debug);
-            } else {
-                if (numberOfPoints == 128) {
-                    translation = this->scanRegistrationObject128.sofftRegistrationVoxel2DTranslation(voxelData1,
-                                                                                                      voxelData2,
-                                                                                                      fitnessX,
-                                                                                                      fitnessY,
-                                                                                                      (double) DIMENSION_OF_VOXEL_DATA /
-                                                                                                      (double) numberOfPoints,
-                                                                                                      initialGuessTransformation.block<3, 1>(
-                                                                                                              0, 3),
-                                                                                                      useInitialTranslation,
-                                                                                                      debug);
-
-                } else {
-                    if (numberOfPoints == 256) {
-                        translation = this->scanRegistrationObject256.sofftRegistrationVoxel2DTranslation(voxelData1,
-                                                                                                          voxelData2,
-                                                                                                          fitnessX,
-                                                                                                          fitnessY,
-                                                                                                          (double) DIMENSION_OF_VOXEL_DATA /
-                                                                                                          (double) numberOfPoints,
-                                                                                                          initialGuessTransformation.block<3, 1>(
-                                                                                                                  0, 3),
-                                                                                                          useInitialTranslation,
-                                                                                                          debug);
-                    } else {
-                        if (numberOfPoints == 512) {
-                            translation = this->scanRegistrationObject512.sofftRegistrationVoxel2DTranslation(
-                                    voxelData1,
-                                    voxelData2,
-                                    fitnessX,
-                                    fitnessY,
-                                    (double) DIMENSION_OF_VOXEL_DATA /
-                                    (double) numberOfPoints,
-                                    initialGuessTransformation.block<3, 1>(
-                                            0, 3),
-                                    useInitialTranslation,
-                                    debug);
-                        } else {
-                            std::cout << "that shouldnt happen" << std::endl;
-                            exit(-1);
-                        }
-                    }
-                }
-            }
-        }
-
-        Eigen::Matrix4d estimatedRotationScans;//from second scan to first
-        //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
-        Eigen::AngleAxisd rotation_vectorTMP(estimatedAngle, Eigen::Vector3d(0, 0, 1));
-        Eigen::Matrix3d tmpRotMatrix3d = rotation_vectorTMP.toRotationMatrix();
-        estimatedRotationScans.block<3, 3>(0, 0) = tmpRotMatrix3d;
-        estimatedRotationScans(0, 3) = translation.x();
-        estimatedRotationScans(1, 3) = translation.y();
-        estimatedRotationScans(2, 3) = 0;
-        estimatedRotationScans(3, 3) = 1;
-
-
-//        maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity(),
-//                                           numberOfPoints);//get voxel
-//        maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, estimatedRotationScans, numberOfPoints);//get voxel
-
-        if (debug) {
-            std::ofstream myFile1, myFile2;
-            myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel1.csv");
-            myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel2.csv");
-            for (int i = 0; i < numberOfPoints; i++) {
-                for (int j = 0; j < numberOfPoints; j++) {
-                    myFile1 << voxelData1[j + numberOfPoints * i]; // real part
-                    myFile1 << "\n";
-                    myFile2 << voxelData2[j + numberOfPoints * i]; // imaginary part
-                    myFile2 << "\n";
-                }
-            }
-            myFile1.close();
-            myFile2.close();
-        }
-
-
-//        maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, estimatedRotationScans.inverse());//get voxel
-//        maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, Eigen::Matrix4d::Identity());//get voxel
 //
-//        if (debug) {
-//            std::ofstream myFile1, myFile2;
-//            myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel1.csv");
-//            myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel2.csv");
-//            for (int i = 0; i < numberOfPoints; i++) {
-//                for (int j = 0; j < numberOfPoints; j++) {
-//                    myFile1 << voxelData1[j + numberOfPoints* i]; // real part
-//                    myFile1 << "\n";
-//                    myFile2 << voxelData2[j + numberOfPoints * i]; // imaginary part
-//                    myFile2 << "\n";
-//                }
-//            }
-//            myFile1.close();
-//            myFile2.close();
-//        }
-
-
-        return estimatedRotationScans;//should be the transformation matrix from 1 to 2
-    }
+//
+////        maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, estimatedRotationScans.inverse());//get voxel
+////        maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, Eigen::Matrix4d::Identity());//get voxel
+////
+////        if (debug) {
+////            std::ofstream myFile1, myFile2;
+////            myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel1.csv");
+////            myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultVoxel2.csv");
+////            for (int i = 0; i < numberOfPoints; i++) {
+////                for (int j = 0; j < numberOfPoints; j++) {
+////                    myFile1 << voxelData1[j + numberOfPoints* i]; // real part
+////                    myFile1 << "\n";
+////                    myFile2 << voxelData2[j + numberOfPoints * i]; // imaginary part
+////                    myFile2 << "\n";
+////                }
+////            }
+////            myFile1.close();
+////            myFile2.close();
+////        }
+//
+//
+//        return estimatedRotationScans;//should be the transformation matrix from 1 to 2
+//    }
 
     void groundTruthCallbackGazebo(const commonbluerovmsg::staterobotforevaluation::ConstPtr &msg) {
         std::lock_guard<std::mutex> lock(this->GTMutex);
@@ -1512,92 +1442,8 @@ private:
         return scan;
     }
 
-    Eigen::Matrix4d registrationOfTwoVoxelsFMSOld(int indexVoxel1,
-                                                  int indexVoxel2,
-                                                  double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuess,
-                                                  bool useInitialAngle, bool useInitialTranslation, int numberOfPoints,
-                                                  bool debug = false) {
-        //we always assume without initial guess for now.
-
-        double goodGuessAlpha = -100;
-        if (useInitialAngle) {
-            goodGuessAlpha = std::atan2(initialGuess(1, 0),
-                                        initialGuess(0, 0));
-        }
-
-        //create a voxel of current scan (last rotation) and voxel of the rotation before that
-        double *voxelData1;
-        double *voxelData2;
-        voxelData1 = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
-        voxelData2 = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
-        //still missing
-        double maximumVoxel1 = createVoxelOfGraph(voxelData1, indexVoxel1, Eigen::Matrix4d::Identity(),
-                                                  numberOfPoints);//get voxel
-        double maximumVoxel2 = createVoxelOfGraph(voxelData2, indexVoxel2, Eigen::Matrix4d::Identity(),
-                                                  numberOfPoints);//get voxel
-
-
-        if (debug) {
-            std::ofstream myFile3, myFile6;
-
-            myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW1.csv");
-            myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/voxelDataFFTW2.csv");
-            for (int i = 0; i < numberOfPoints; i++) {
-                for (int j = 0; j < numberOfPoints; j++) {
-                    myFile3 << voxelData1[j + numberOfPoints * i]; // imaginary part
-                    myFile3 << "\n";
-                    myFile6 << voxelData2[j + numberOfPoints * i]; // imaginary part
-                    myFile6 << "\n";
-                }
-            }
-
-            myFile3.close();
-            myFile6.close();
-        }
-
-        Eigen::Matrix4d estimatedTransformationScans;
-        if (numberOfPoints == 64) {
-            estimatedTransformationScans = this->scanRegistrationObject64.FMSRegistrationOld(voxelData1,
-                                                                                             voxelData2,
-                                                                                             (double) DIMENSION_OF_VOXEL_DATA /
-                                                                                             (double) numberOfPoints,
-                                                                                             debug);
-        } else {
-            if (numberOfPoints == 128) {
-                estimatedTransformationScans = this->scanRegistrationObject128.FMSRegistrationOld(voxelData1,
-                                                                                                  voxelData2,
-                                                                                                  (double) DIMENSION_OF_VOXEL_DATA /
-                                                                                                  (double) numberOfPoints,
-                                                                                                  debug);
-
-            } else {
-                if (numberOfPoints == 256) {
-                    estimatedTransformationScans = this->scanRegistrationObject256.FMSRegistrationOld(voxelData1,
-                                                                                                      voxelData2,
-                                                                                                      (double) DIMENSION_OF_VOXEL_DATA /
-                                                                                                      (double) numberOfPoints,
-                                                                                                      debug);
-                } else {
-                    if (numberOfPoints == 512) {
-                        estimatedTransformationScans = this->scanRegistrationObject512.FMSRegistrationOld(voxelData1,
-                                                                                                          voxelData2,
-                                                                                                          (double) DIMENSION_OF_VOXEL_DATA /
-                                                                                                          (double) numberOfPoints,
-                                                                                                          debug);
-                    } else {
-                        std::cout << "that shouldnt happen" << std::endl;
-                        exit(-1);
-                    }
-                }
-            }
-        }
-
-
-        return estimatedTransformationScans;//should be the transformation matrix from 1 to 2
-    }
-
     pcl::PointCloud<pcl::PointXYZ> createPCLFromGraphOnlyThreshold(int indexStart,
-                                                                   Eigen::Matrix4d transformationInTheEndOfCalculation) {
+                                                                   Eigen::Matrix4d transformationInTheEndOfCalculation, graphSlamSaveStructure &usedGraph) {
         pcl::PointCloud<pcl::PointXYZ> scan;
         //create array with all intencities.
         // Calculate maximum of intensities.
@@ -1605,18 +1451,25 @@ private:
 
         double maximumIntensity = 0;
         int i = 0;
+
+        int ignoreDistance = (int) (IGNORE_DISTANCE_TO_ROBOT /
+                                    (usedGraph.getVertexList()->at(indexStart - i).getIntensities().range /
+                                     ((double) usedGraph.getVertexList()->at(
+                                             indexStart - i).getIntensities().intensities.size())));
+
+
         do {
-            for (int j = 0;
-                 j < this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
-                if (this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[j] >
+            for (int j = ignoreDistance;
+                 j < usedGraph.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
+                if (usedGraph.getVertexList()->at(indexStart - i).getIntensities().intensities[j] >
                     maximumIntensity) {
-                    maximumIntensity = this->graphSaved.getVertexList()->at(
+                    maximumIntensity = usedGraph.getVertexList()->at(
                             indexStart - i).getIntensities().intensities[j];
                 }
             }
             i++;
-        } while (this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
-                 this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
+        } while (usedGraph.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
+                 usedGraph.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
                  INTENSITY_SAVED_AND_KEYFRAME);
 
         double thresholdIntensityScan = maximumIntensity * FACTOR_OF_THRESHOLD;//maximum intensity of 0.9
@@ -1626,22 +1479,22 @@ private:
         i = 0;
         do {
             Eigen::Matrix4d transformationOfIntensityRay =
-                    this->graphSaved.getVertexList()->at(indexStart).getTransformation().inverse() *
-                    this->graphSaved.getVertexList()->at(indexStart - i).getTransformation();
+                    usedGraph.getVertexList()->at(indexStart).getTransformation().inverse() *
+                    usedGraph.getVertexList()->at(indexStart - i).getTransformation();
 
             //positionOfIntensity has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
             Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
-                                                                                                             this->graphSaved.getVertexList()->at(
+                                                                                                             usedGraph.getVertexList()->at(
                                                                                                                      indexStart -
                                                                                                                      i).getIntensities().angle);
-            for (int j = 5;
-                 j < this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
-                if (this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[j] >
+            for (int j = ignoreDistance;
+                 j < usedGraph.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
+                if (usedGraph.getVertexList()->at(indexStart - i).getIntensities().intensities[j] >
                     thresholdIntensityScan) {
                     double distanceOfIntensity =
-                            j / ((double) this->graphSaved.getVertexList()->at(
+                            j / ((double) usedGraph.getVertexList()->at(
                                     indexStart - i).getIntensities().intensities.size()) *
-                            ((double) this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().range);
+                            ((double) usedGraph.getVertexList()->at(indexStart - i).getIntensities().range);
                     Eigen::Vector4d positionOfIntensity(
                             distanceOfIntensity,
                             0,
@@ -1657,11 +1510,12 @@ private:
                 }
             }
             i++;
-        } while (this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
-                 this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
+        } while (usedGraph.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
+                 usedGraph.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
                  INTENSITY_SAVED_AND_KEYFRAME);
         return scan;
     }
+
 
 };
 

@@ -32,16 +32,26 @@
 #define NUMBER_OF_CHANGED_SCANS 50.0
 #define ONLY_ANGLE_CHANGED false
 
-#define ADD_NOISE_TO_SCANS true
+#define ADD_NOISE_TO_SCANS false
+//very strong noise 0.2 and 0.03
+//strong noise 0.1 and 0.01
+//low noise 0.05 and 0.005
+
+#define GAUSS_NOISE 0.1
+#define SALT_AND_PEPPER_NOISE 0.01
 
 
-#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
-#define WHICH_FOLDER_SHOULD_BE_SAVED "highNoise305_52/"
 
 
-//#define HOME_LOCATION "/home/tim-external/dataFolder/StPereDataset/"
+
+
+//#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "lowNoise305_52/"
+
+
+#define HOME_LOCATION "/home/tim-external/dataFolder/StPereDataset/"
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "onlyAngle120/"
-//#define WHICH_FOLDER_SHOULD_BE_SAVED "veryVeryHighNoise/"
+#define WHICH_FOLDER_SHOULD_BE_SAVED "noNoise52/"
 
 
 
@@ -329,10 +339,8 @@ private:
 
                 if(ADD_NOISE_TO_SCANS){
                     //maybe add here NOISE or wrong angles complete wrong other things
-                    //very strong noise 0.2 and 0.03
-                    //strong noise 0.1 and 0.01
-                    //low noise 0.05 and 0.005
-                    randomNoiseGraph.addRandomNoiseToGraph(0.1,0.01);
+
+                    randomNoiseGraph.addRandomNoiseToGraph(GAUSS_NOISE,SALT_AND_PEPPER_NOISE);
                 }
 
 //                std::cout << randomTransformation << std::endl;

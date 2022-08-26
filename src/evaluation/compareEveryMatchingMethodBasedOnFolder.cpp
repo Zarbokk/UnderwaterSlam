@@ -159,7 +159,7 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
                                                                                       initialGuess);
         end = std::chrono::steady_clock::now();
         double timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-        std::cout << timeToCalculate << std::endl;
+//        std::cout << timeToCalculate << std::endl;
 //        std::cout << estimatedTransformation << std::endl;
         tmpMeasurements.calculationTime.push_back(timeToCalculate);
 
@@ -184,7 +184,7 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
 
         end = std::chrono::steady_clock::now();
         timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-        std::cout << timeToCalculate << std::endl;
+//        std::cout << timeToCalculate << std::endl;
         tmpMeasurements.calculationTime.push_back(timeToCalculate);
 //        std::cout << estimatedTransformation << std::endl;
 
@@ -208,9 +208,9 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
 
         end = std::chrono::steady_clock::now();
         timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-        std::cout << timeToCalculate << std::endl;
+//        std::cout << timeToCalculate << std::endl;
         tmpMeasurements.calculationTime.push_back(timeToCalculate);
-        std::cout << estimatedTransformation << std::endl;
+//        std::cout << estimatedTransformation << std::endl;
 
         //calculate the angle
         angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
@@ -232,7 +232,7 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
 
         end = std::chrono::steady_clock::now();
         timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-        std::cout << timeToCalculate << std::endl;
+//        std::cout << timeToCalculate << std::endl;
         tmpMeasurements.calculationTime.push_back(timeToCalculate);
 //        std::cout << estimatedTransformation << std::endl;
 
@@ -249,9 +249,9 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
         // FourierMellinTransform(oneSize) (currently missing)
 
 
-        tmpMeasurements.calculationTime.push_back(0);
-        tmpMeasurements.errorInRotation.push_back(0);
-        tmpMeasurements.errorInDistance.push_back(0);
+//        tmpMeasurements.calculationTime.push_back(0);
+//        tmpMeasurements.errorInRotation.push_back(0);
+//        tmpMeasurements.errorInDistance.push_back(0);
         for (int boolState = 0; boolState < 2; boolState++) {
             bool useInitialAngle = boolState == 0;
             bool useInitialTranslation = boolState == 0;
@@ -334,7 +334,7 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
 //                std::cout << estimatedTransformation << std::endl;
                 end = std::chrono::steady_clock::now();
                 timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-                std::cout << timeToCalculate << std::endl;
+//                std::cout << timeToCalculate << std::endl;
                 tmpMeasurements.calculationTime.push_back(timeToCalculate);
 //                std::cout << estimatedTransformation << std::endl;
 
@@ -348,6 +348,19 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
                 translationEstimated = estimatedTransformation.block<3, 1>(0, 3);
                 errorDistance = (translationGT - translationEstimated).norm();
                 tmpMeasurements.errorInDistance.push_back(errorDistance);
+                tmpMeasurements.calculationTime.push_back(0);
+
+
+
+
+
+
+
+
+
+
+
+
                 free(voxelDataShifted);
                 free(voxelData);
                 //            scanRegistrationObject.~scanRegistrationClass();
@@ -355,39 +368,25 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
                 //        std::cout << "test123" << std::endl;
             }
         }
+
+        // ####################################################### Calculate error of Initial Guess  #######################################################
+        //calculate the angle
+        angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
+        angleEstimated = std::atan2(initialGuess(1, 0), initialGuess(0, 0));
+        angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
+        tmpMeasurements.errorInRotation.push_back(angleDiff);
+        //calculate difference angle and take abs
+        translationGT = gtTransformation.block<3, 1>(0, 3);
+        translationEstimated = initialGuess.block<3, 1>(0, 3);
+        errorDistance = (translationGT - translationEstimated).norm();
+        tmpMeasurements.errorInDistance.push_back(errorDistance);
+
         returnMeasurementsList.push_back(tmpMeasurements);
     }
     return returnMeasurementsList;
 }
 
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle15 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle20 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle25 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle30 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle35 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle40 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle45 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle50 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle55 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle60 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle65 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle70 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle75 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle80 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle85 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle90 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle95 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle100 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle105 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle110 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle115 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ 4_7_Bunker_range_30_5_OnlyAngle120 1
 
-
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/ onlyAngles15 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/ onlyAngles20 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/ onlyAngles25 1
-// rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/ onlyAngles30 1
 
 
 

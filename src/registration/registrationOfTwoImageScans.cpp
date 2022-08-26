@@ -5,8 +5,8 @@
 //
 // Created by jurobotics on 13.09.21.
 //
-
-
+// /home/tim-external/dataFolder/StPereDataset/lowNoise52/scanNumber_0/00_ForShow.jpg /home/tim-external/dataFolder/StPereDataset/lowNoise52/scanNumber_1/00_ForShow.jpg
+// /home/tim-external/dataFolder/ValentinBunkerData/noNoise305_52/scanNumber_0/00_ForShow.jpg  /home/tim-external/dataFolder/ValentinBunkerData/noNoise305_52/scanNumber_1/00_ForShow.jpg
 #include "generalHelpfulTools.h"
 #include "slamToolsRos.h"
 #include <opencv2/core.hpp>
@@ -38,36 +38,38 @@ void convertMatToDoubleArray(cv::Mat inputImg, double voxelData[]) {
 
 
 int main(int argc, char **argv) {
+    // input needs to be two scans as voxelData
 
 
 
+    std::string current_exec_name = argv[0]; // Name of the current exec program
+    std::vector<std::string> all_args;
 
-//    std::string current_exec_name = argv[0]; // Name of the current exec program
-//    std::vector<std::string> all_args;
-//
-//    if (argc > 0) {
-//        //std::cout << "temp1" << std::endl;
-//        all_args.assign(argv + 1, argv + argc);
-//        //std::cout << "12"<< all_args[1]<<std::endl;
-//    }else{
-//        std::cout << "no arguments given" << std::endl;
-//        exit(-1);
-//    }
+    if (argc > 0) {
+        //std::cout << "temp1" << std::endl;
+        all_args.assign(argv + 1, argv + argc);
+        //std::cout << "12"<< all_args[1]<<std::endl;
+    } else {
+        std::cout << "no arguments given" << std::endl;
+        exit(-1);
+    }
+
 
     cv::Mat img1 = cv::imread(
-            "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/FMT/lena_cropped.bmp",
+            all_args[0],
             cv::IMREAD_GRAYSCALE);
     cv::Mat img2 = cv::imread(
-            "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/FMT/lena_cropped_rotated.bmp",
+            all_args[1],
             cv::IMREAD_GRAYSCALE);
+
 //    cv::Mat img1 = cv::imread("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/FMT/firstImage.jpg", cv::IMREAD_GRAYSCALE);
 //    cv::Mat img2 = cv::imread("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/FMT/secondImage.jpg", cv::IMREAD_GRAYSCALE);
-
-
+    int dimensionScan = img1.rows;
+    std::cout << "image size: " << dimensionScan << std::endl;
     double *voxelData1;
     double *voxelData2;
-    voxelData1 = (double *) malloc(sizeof(double) * img1.rows * img1.rows);
-    voxelData2 = (double *) malloc(sizeof(double) * img2.rows * img2.rows);
+    voxelData1 = (double *) malloc(sizeof(double) * dimensionScan * dimensionScan);
+    voxelData2 = (double *) malloc(sizeof(double) * dimensionScan * dimensionScan);
 
     convertMatToDoubleArray(img1, voxelData1);
     convertMatToDoubleArray(img2, voxelData2);
@@ -81,10 +83,49 @@ int main(int argc, char **argv) {
                                                                                                       Eigen::Matrix4d::Identity(),
                                                                                                       false, false,
                                                                                                       1,
-                                                                                                      true,
+                                                                                                      false,
                                                                                                       true);
 
-    
+    cv::Mat trans_mat = (cv::Mat_<double>(2, 3) << estimatedTransformation(0,0),
+            estimatedTransformation(0,1),
+            estimatedTransformation(0, 3),
+            estimatedTransformation(1,0),
+            estimatedTransformation(1,1),
+            estimatedTransformation(1, 3));
+
+
+
+
+
+
+    cv::Mat magTMP1(dimensionScan, dimensionScan, CV_64F, voxelData1);
+    //add gaussian blur
+    //            cv::imwrite("/home/tim-external/Documents/imreg_fmt/firstImage.jpg", magTMP1);
+
+    cv::Mat magTMP2(dimensionScan, dimensionScan, CV_64F, voxelData2);
+
+    std::cout << trans_mat << std::endl;
+    warpAffine(magTMP2, magTMP2, trans_mat, magTMP2.size());
+//            convertMatToDoubleArray(img1, voxelData1);
+//            convertMatToDoubleArray(img2, voxelData2);
+
+    std::ofstream myFile1, myFile2;
+    myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultVoxel1.csv");
+    myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultVoxel2.csv");
+    for (int i = 0; i < dimensionScan; i++) {
+        for (int j = 0; j < dimensionScan; j++) {
+            myFile1 << voxelData1[j + dimensionScan * i]; // real part
+            myFile1 << "\n";
+            myFile2 << voxelData2[j + dimensionScan * i]; // imaginary part
+            myFile2 << "\n";
+        }
+    }
+    myFile1.close();
+    myFile2.close();
+
+
+
+
 
 
 
