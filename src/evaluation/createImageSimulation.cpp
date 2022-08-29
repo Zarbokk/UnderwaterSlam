@@ -18,10 +18,10 @@
 #include <filesystem>
 #define NUMBER_OF_POINTS_MAP 1024
 #define DIMENSION_OF_MAP 150.0
-#define NUMBER_OF_CONSECUTIVE_SCANS 2
+#define NUMBER_OF_CONSECUTIVE_SCANS 5
 
 //1: our 256 2:GICP 3:super 4: NDT d2d 5: NDT P2D 6: our global 256
-#define WHICH_METHOD_USED 3
+#define WHICH_METHOD_USED 4
 
 //Simulation : all 0
 #define ROLL_TRANSFORMATION_ANGLE 0
@@ -920,10 +920,9 @@ public:
 
         int whichMethod = WHICH_METHOD_USED;
         int ignoreFirstNSteps = 0;
-        double correctionFactorMatchingYaw = 0;// M_PI/2.0 at real data
-        double correctionFactorMatchingRoll = M_PI;// M_PI/2.0 at real data
-        double correctionFactorCreationMapYaw = 0;// M_PI/2.0 at real data
-        double correctionFactorCreationRoll = 0;// M_PI at real data
+        double correctionFactorMatching = 0;// M_PI/2.0 at real data
+        double correctionFactorCreationMap = 0;// M_PI/2.0 at real data
+        double correctionFactorCreationRoll = 0;// M_PI/2.0 at real data
 
 
         int *voxelDataIndex;
@@ -966,7 +965,7 @@ public:
 
                 this->currentTransformation = this->calculateRegistration(this->initialGuessTransformation, whichMethod,
                                                                           indexFirstPCL, indexSecondPCL,
-                                                                          correctionFactorMatchingYaw,correctionFactorMatchingRoll);
+                                                                          correctionFactorMatching);
             }
             std::cout << "init guess:" << std::endl;
             std::cout << this->initialGuessTransformation << std::endl;
@@ -982,7 +981,7 @@ public:
 
             int indexStart = indexSecondPCL;
             this->mapCalculation(indexStart, completeTransformationForCurrentScan, correctionFactorCreationRoll,
-                                 correctionFactorCreationMapYaw,
+                                 correctionFactorCreationMap,
                                  voxelDataIndex, mapData);
 
             //make sure next iteration the correct registrationis calculated
@@ -1008,7 +1007,7 @@ public:
 
             this->currentTransformation = this->calculateRegistration(
                     this->initialGuessTransformation, whichMethod, indexFirstPCL, indexSecondPCL,
-                    correctionFactorMatchingYaw,correctionFactorMatchingRoll);
+                    correctionFactorMatching);
 
 
             std::cout << "init guess:" << std::endl;
@@ -1022,7 +1021,7 @@ public:
                     completeTransformationForCurrentScan * this->currentTransformation.inverse();
             int indexStart = indexFirstPCL;
             this->mapCalculation(indexStart, completeTransformationForCurrentScan, correctionFactorCreationRoll,
-                                 correctionFactorCreationMapYaw,
+                                 correctionFactorCreationMap,
                                  voxelDataIndex, mapData);
 
             //make sure next iteration the correct registrationis calculated
@@ -1052,25 +1051,25 @@ public:
 
     Eigen::Matrix4d
     calculateRegistration(Eigen::Matrix4d ourInitialGuess, int whichMethod, int indexFirstPCL, int indexSecondPCL,
-                          double correctionFactorMatchingYaw,double correctionFactorMatchingRoll) {
+                          double correctionFactorMatching) {
         pcl::PointCloud<pcl::PointXYZ> final;
         double maximumVoxel1 = createVoxelOfGraph(voxelData1,
                                                   indexFirstPCL,
                                                   generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
-                                                                                                      correctionFactorMatchingYaw),
+                                                                                                      correctionFactorMatching),
                                                   NUMBER_OF_POINTS_DIMENSION);//get
         // voxel
         double maximumVoxel2 = createVoxelOfGraph(voxelData2,
                                                   indexSecondPCL,
                                                   generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
-                                                                                                      correctionFactorMatchingYaw),
+                                                                                                      correctionFactorMatching),
                                                   NUMBER_OF_POINTS_DIMENSION);//get voxel
 
-        Eigen::Matrix4d tmpMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(correctionFactorMatchingRoll, 0, correctionFactorMatchingYaw);
+        Eigen::Matrix4d tmpMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(ROLL_TRANSFORMATION_ANGLE, 0, YAW_TRANSFORMATION_ANGLE);
         pcl::PointCloud<pcl::PointXYZ> cloudFirstScan;
-        cloudFirstScan = createPCLFromGraphOnlyThreshold(indexFirstPCL, tmpMatrix);
+        cloudFirstScan = createPCLFromGraphOneValue(indexFirstPCL, tmpMatrix);
         pcl::PointCloud<pcl::PointXYZ> cloudSecondScan;
-        cloudSecondScan = createPCLFromGraphOnlyThreshold(indexSecondPCL, tmpMatrix);
+        cloudSecondScan = createPCLFromGraphOneValue(indexSecondPCL, tmpMatrix);
         double fitnessScoreX;
 
 
@@ -1104,21 +1103,21 @@ public:
         if (whichMethod == 3) {
             //SUPER4PCS
             Eigen::Matrix4d ourInitGuessTMP = this->initialGuessTransformation;
-            ourInitGuessTMP(1, 3) = this->initialGuessTransformation(0, 3);
-            ourInitGuessTMP(0, 3) = this->initialGuessTransformation(1, 3);
+//            ourInitGuessTMP(1, 3) = this->initialGuessTransformation(0, 3);
+//            ourInitGuessTMP(0, 3) = this->initialGuessTransformation(1, 3);
 
 //            ourInitGuessTMP(0, 1) = -ourInitGuessTMP(0, 1);
 //            ourInitGuessTMP(1, 0) = -ourInitGuessTMP(1, 0);
-            ourInitGuessTMP(1, 3) = -ourInitGuessTMP(1, 3);
+//            ourInitGuessTMP(1, 3) = -ourInitGuessTMP(1, 3);
 //            ourInitGuessTMP(0, 1) = -ourInitGuessTMP(0, 1);
 //            ourInitGuessTMP(1, 0) = -ourInitGuessTMP(1, 0);
 //            ourInitGuessTMP(1, 3) = -ourInitGuessTMP(1, 3);
 //            ourInitGuessTMP(0, 3) = -ourInitGuessTMP(0, 3);
 
 
-//            Eigen::Matrix4d transformationX180Degree = generalHelpfulTools::getTransformationMatrixFromRPY(M_PI, 0, 0);
-//            pcl::transformPointCloud(cloudFirstScan, cloudFirstScan, transformationX180Degree);
-//            pcl::transformPointCloud(cloudSecondScan, cloudSecondScan, transformationX180Degree);
+            Eigen::Matrix4d transformationX180Degree = generalHelpfulTools::getTransformationMatrixFromRPY(M_PI, 0, 0);
+            pcl::transformPointCloud(cloudFirstScan, cloudFirstScan, transformationX180Degree);
+            pcl::transformPointCloud(cloudSecondScan, cloudSecondScan, transformationX180Degree);
 
 
 //            std::cout << "our initial guess" << std::endl;
@@ -1128,35 +1127,23 @@ public:
                                                                                        ourInitGuessTMP,
                                                                                        true, false);
 
-//            this->currentTransformation(0, 3) = -this->currentTransformation(0, 3);
-
-
-
-
-
-
+            this->currentTransformation(0, 3) = -this->currentTransformation(0, 3);
         }
         if (whichMethod == 4) {
             //NDT D2D 2D,
 
 
             Eigen::Matrix4d ourInitGuessTMP = this->initialGuessTransformation;
-            ourInitGuessTMP(0, 1) = -ourInitGuessTMP(0, 1);
-            ourInitGuessTMP(1, 0) = -ourInitGuessTMP(1, 0);
-            ourInitGuessTMP(1, 3) = -ourInitGuessTMP(1, 3);
-
-            std::cout << ourInitGuessTMP << std::endl;
+//            ourInitGuessTMP(0, 1) = -ourInitGuessTMP(0, 1);
+//            ourInitGuessTMP(1, 0) = -ourInitGuessTMP(1, 0);
+//            ourInitGuessTMP(1, 3) = -ourInitGuessTMP(1, 3);
             this->currentTransformation = scanRegistrationObject.ndt_d2d_2d(cloudFirstScan,
                                                                             cloudSecondScan,
                                                                             ourInitGuessTMP,
                                                                             true);
-            std::cout << this->currentTransformation << std::endl;
             this->currentTransformation(0, 1) = -this->currentTransformation(0, 1);
             this->currentTransformation(1, 0) = -this->currentTransformation(1, 0);
             this->currentTransformation(1, 3) = -this->currentTransformation(1, 3);
-            std::cout << this->currentTransformation << std::endl;
-
-
         }
         if (whichMethod == 5) {
             //NDT P2D
@@ -1183,13 +1170,13 @@ public:
             double maximumVoxel1tmp = createVoxelOfGraph(voxelData1,
                                                          indexFirstPCL,
                                                          generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
-                                                                                                             correctionFactorMatchingYaw),
+                                                                                                             correctionFactorMatching),
                                                          NUMBER_OF_POINTS_DIMENSION);//get
             double maximumVoxel2tmp = createVoxelOfGraph(voxelData2,
                                                          indexSecondPCL,
                                                          this->currentTransformation *
                                                          generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
-                                                                                                             correctionFactorMatchingYaw),
+                                                                                                             correctionFactorMatching),
                                                          NUMBER_OF_POINTS_DIMENSION);//get voxel
 
             std::ofstream myFile1, myFile2;

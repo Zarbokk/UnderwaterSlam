@@ -110,3 +110,6 @@ target_link_libraries(compareEveryMatchingMethodBasedOnFolder gr::algo fftw3 Ope
 add_executable(createImageOfWholeBunker src/evaluation/createImageOfWholeBunker.cpp ${SOURCE_FILES})
 target_link_libraries(createImageOfWholeBunker gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
+add_executable(createImageSimulation src/evaluation/createImageSimulation.cpp ${SOURCE_FILES})
+target_link_libraries(createImageSimulation gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+

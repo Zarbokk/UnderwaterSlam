@@ -115,7 +115,7 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
                 gtTransformation(i, j) = std::stod(transformationMatrixList[j]);
             }
         }
-        std::cout << gtTransformation << std::endl;
+//        std::cout << gtTransformation << std::endl;
         pcl::PointCloud<pcl::PointXYZ> final;
 
         pcl::PointCloud<pcl::PointXYZ> pclNotShifted;
@@ -348,7 +348,7 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
                 translationEstimated = estimatedTransformation.block<3, 1>(0, 3);
                 errorDistance = (translationGT - translationEstimated).norm();
                 tmpMeasurements.errorInDistance.push_back(errorDistance);
-                tmpMeasurements.calculationTime.push_back(0);
+
 
 
 
@@ -370,6 +370,7 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
         }
 
         // ####################################################### Calculate error of Initial Guess  #######################################################
+        tmpMeasurements.calculationTime.push_back(0);
         //calculate the angle
         angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
         angleEstimated = std::atan2(initialGuess(1, 0), initialGuess(0, 0));
@@ -418,7 +419,7 @@ int main(int argc, char **argv) {
 
 
     for (int i = 0; i < listOfDirectories.size(); i++) {
-
+//    for (int i = 0; i < 1; i++) {
         std::vector<measurementResults> tmpVector = handleRegistrationsOfDirectory(listOfDirectories[i],
                                                                                    scanRegistrationObject32,
                                                                                    scanRegistrationObject64,
