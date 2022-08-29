@@ -188,8 +188,8 @@ softDescriptorRegistration::getSpectrumFromVoxelData2D(double voxelData[], doubl
 
 
     //from voxel data to row and input for fftw
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
+    for (int j = 0; j < N; j++) {
+        for (int i = 0; i < N; i++) {
             inputSpacialData[j + N * i][0] = voxelData[j + N * i]; // real part
             inputSpacialData[j + N * i][1] = 0; // imaginary part
         }
@@ -201,8 +201,8 @@ softDescriptorRegistration::getSpectrumFromVoxelData2D(double voxelData[], doubl
     double maximumMagnitude = 0;
 
     //get magnitude and find maximum
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
+    for (int j = 0; j < N; j++) {
+        for (int i = 0; i < N; i++) {
             magnitude[j + N * i] = sqrt(
                     spectrumOut[j + N * i][0] *
                     spectrumOut[j + N * i][0] +
@@ -274,29 +274,25 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
 
     if (debug) {
         std::ofstream myFile1, myFile2, myFile3, myFile4, myFile5, myFile6;
-        myFile1.open(
-                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW1.csv");
+        myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW1.csv");
         myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/phaseFFTW1.csv");
-        myFile3.open(
-                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW1.csv");
-        myFile4.open(
-                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW2.csv");
+        myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW1.csv");
+        myFile4.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW2.csv");
         myFile5.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/phaseFFTW2.csv");
-        myFile6.open(
-                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW2.csv");
+        myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW2.csv");
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
-                myFile1 << magnitude1[j + N * i]; // real part
+                myFile1 << magnitude1[i + N * j]; // real part
                 myFile1 << "\n";
-                myFile2 << phase1[j + N * i]; // imaginary part
+                myFile2 << phase1[i + N * j]; // imaginary part
                 myFile2 << "\n";
-                myFile3 << voxelData1[j + N * i]; // imaginary part
+                myFile3 << this->voxelData1[i + N * j]; // imaginary part
                 myFile3 << "\n";
-                myFile4 << magnitude2[j + N * i]; // real part
+                myFile4 << magnitude2[i + N * j]; // real part
                 myFile4 << "\n";
-                myFile5 << phase2[j + N * i]; // imaginary part
+                myFile5 << phase2[i + N * j]; // imaginary part
                 myFile5 << "\n";
-                myFile6 << voxelData2[j + N * i]; // imaginary part
+                myFile6 << this->voxelData2[i + N * j]; // imaginary part
                 myFile6 << "\n";
             }
         }
@@ -924,8 +920,8 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
         myFile4.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW2.csv");
         myFile5.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/phaseFFTW2.csv");
         myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW2.csv");
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
+        for (int j = 0; j < N; j++) {
+            for (int i = 0; i < N; i++) {
                 myFile1 << magnitude1[j + N * i]; // real part
                 myFile1 << "\n";
                 myFile2 << phase1[j + N * i]; // imaginary part
@@ -957,8 +953,8 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
     }
 
     //normalize and fftshift
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
+    for (int j = 0; j < N; j++) {
+        for (int i = 0; i < N; i++) {
             //for (int k = 0; k < N; k++) {
             int indexX = (N / 2 + i) % N;
             int indexY = (N / 2 + j) % N;
@@ -994,9 +990,9 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
                                         std::sin(phiIncrement((double) k + 1, bandwidth)) + bandwidth) - 1;
 //                int zIndex =
 //                        std::round((double) r * std::cos(thetaIncrement((double) j + 1, bandwidth)) + bandwidth) - 1;
-                resampledMagnitudeSO3_1TMP[k + j * bandwidth * 2] =
+                resampledMagnitudeSO3_1TMP[j + k * bandwidth * 2] =
                         255 * magnitude1Shifted[yIndex + N * xIndex];
-                resampledMagnitudeSO3_2TMP[k + j * bandwidth * 2] =
+                resampledMagnitudeSO3_2TMP[j + k * bandwidth * 2] =
                         255 * magnitude2Shifted[yIndex + N * xIndex];
             }
         }
@@ -1010,10 +1006,10 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
         clahe->apply(magTMP2, magTMP2);
         for (int j = 0; j < 2 * bandwidth; j++) {
             for (int k = 0; k < 2 * bandwidth; k++) {
-                resampledMagnitudeSO3_1[k + j * bandwidth * 2] = resampledMagnitudeSO3_1[k + j * bandwidth * 2] +
-                                                                 ((double) magTMP1.data[k + j * bandwidth * 2]) / 255.0;
-                resampledMagnitudeSO3_2[k + j * bandwidth * 2] = resampledMagnitudeSO3_2[k + j * bandwidth * 2] +
-                                                                 ((double) magTMP2.data[k + j * bandwidth * 2]) / 255.0;
+                resampledMagnitudeSO3_1[j + k * bandwidth * 2] = resampledMagnitudeSO3_1[j + k * bandwidth * 2] +
+                                                                 ((double) magTMP1.data[j + k * bandwidth * 2]) / 255.0;
+                resampledMagnitudeSO3_2[j + k * bandwidth * 2] = resampledMagnitudeSO3_2[j + k * bandwidth * 2] +
+                                                                 ((double) magTMP2.data[j + k * bandwidth * 2]) / 255.0;
             }
         }
 
@@ -1025,9 +1021,9 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
 
         for (int j = 0; j < N; j++) {
             for (int k = 0; k < N; k++) {
-                myFile7 << resampledMagnitudeSO3_1[k + j * bandwidth * 2]; // real part
+                myFile7 << resampledMagnitudeSO3_1[j + k * bandwidth * 2]; // real part
                 myFile7 << "\n";
-                myFile8 << resampledMagnitudeSO3_2[k + j * bandwidth * 2]; // real part
+                myFile8 << resampledMagnitudeSO3_2[j + k * bandwidth * 2]; // real part
                 myFile8 << "\n";
             }
         }
@@ -1052,17 +1048,17 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
     double currentPsiAngle;
     double maxCorrelation = 0;
     std::vector<angleAndCorrelation> correlationOfAngle;
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            currentThetaAngle = i * 2.0 * M_PI / N;
-            currentPsiAngle = j * 2.0 * M_PI / N;
+    for (int j = 0; j < N; j++) {
+        for (int i = 0; i < N; i++) {
+            currentThetaAngle = j * 2.0 * M_PI / N;
+            currentPsiAngle = i * 2.0 * M_PI / N;
             //[i + N * j]
             angleAndCorrelation tmpHolding;
-            tmpHolding.correlation = resultingCorrelationComplex[i + N * (j + N * 0)][0]; // real part
+            tmpHolding.correlation = resultingCorrelationComplex[j + N * (i + N * 0)][0]; // real part
             if (tmpHolding.correlation > maxCorrelation) {
                 maxCorrelation = tmpHolding.correlation;
             }
-            tmpHolding.angle = std::fmod(-(currentThetaAngle + currentPsiAngle) + 6 * M_PI, 2 * M_PI);
+            tmpHolding.angle = std::fmod(-(currentThetaAngle + currentPsiAngle)/2 + 6 * M_PI, 2 * M_PI);
             correlationOfAngle.push_back(tmpHolding);
         }
     }
@@ -1178,17 +1174,17 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
         myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW2.csv");
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
-                myFile1 << magnitude1[j + N * i]; // real part
+                myFile1 << magnitude1[i + N * j]; // real part
                 myFile1 << "\n";
-                myFile2 << phase1[j + N * i]; // imaginary part
+                myFile2 << phase1[i + N * j]; // imaginary part
                 myFile2 << "\n";
-                myFile3 << voxelData1Input[j + N * i]; // imaginary part
+                myFile3 << voxelData1Input[i + N * j]; // imaginary part
                 myFile3 << "\n";
-                myFile4 << magnitude2[j + N * i]; // real part
+                myFile4 << magnitude2[i + N * j]; // real part
                 myFile4 << "\n";
-                myFile5 << phase2[j + N * i]; // imaginary part
+                myFile5 << phase2[i + N * j]; // imaginary part
                 myFile5 << "\n";
-                myFile6 << voxelData2Input[j + N * i]; // imaginary part
+                myFile6 << voxelData2Input[i + N * j]; // imaginary part
                 myFile6 << "\n";
             }
         }
@@ -1633,22 +1629,24 @@ Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoVoxelsSOFFTFast(dou
     //        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
 
 
-        if (debug) {
-            std::ofstream myFile3, myFile6;
-            myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW1.csv");
-            myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW2.csv");
-            for (int i = 0; i < this->N; i++) {
-                for (int j = 0; j < this->N; j++) {
+//        if (debug) {
+//            std::ofstream myFile3, myFile6;
+//            myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW1.csv");
+//            myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW2.csv");
+//            for (int i = 0; i < this->N; i++) {
+//                for (int j = 0; j < this->N; j++) {
+//
+//                    myFile3 << voxelData1[j + this->N * i]; // imaginary part
+//                    myFile3 << "\n";
+//                    myFile6 << voxelData2[j + this->N * i]; // imaginary part
+//                    myFile6 << "\n";
+//                }
+//            }
+//            myFile3.close();
+//            myFile6.close();
+//        }
 
-                    myFile3 << voxelData1[j + this->N * i]; // imaginary part
-                    myFile3 << "\n";
-                    myFile6 << voxelData2[j + this->N * i]; // imaginary part
-                    myFile6 << "\n";
-                }
-            }
-            myFile3.close();
-            myFile6.close();
-        }
+
         double fitnessX = 0;
         double fitnessY = 0;
         double maximumPeakOfThisTranslation;

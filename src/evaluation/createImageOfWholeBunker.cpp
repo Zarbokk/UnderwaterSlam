@@ -21,7 +21,7 @@
 #define NUMBER_OF_CONSECUTIVE_SCANS 2
 
 //1: our 256 2:GICP 3:super 4: NDT d2d 5: NDT P2D 6: our global 256
-#define WHICH_METHOD_USED 3
+#define WHICH_METHOD_USED 1
 
 //Simulation : all 0
 #define ROLL_TRANSFORMATION_ANGLE 0
