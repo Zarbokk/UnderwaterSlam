@@ -121,31 +121,35 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
         pcl::PointCloud<pcl::PointXYZ> pclNotShifted;
         pcl::PointCloud<pcl::PointXYZ> pclShifted;
 
-
+        
         if (thresholdUsage) {
-            pcl::io::loadPLYFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_Threshold.ply",
+            pcl::io::loadPCDFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_Threshold.pcd",
                                  pclNotShifted);
-            pcl::io::loadPLYFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_ThresholdShifted.ply",
+            pcl::io::loadPCDFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_ThresholdShifted.pcd",
                                  pclShifted);
         } else {
-            pcl::io::loadPLYFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_OneValue.ply",
+            pcl::io::loadPCDFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_OneValue.pcd",
                                  pclNotShifted);
-            pcl::io::loadPLYFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_OneValueShifted.ply",
+            pcl::io::loadPCDFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_OneValueShifted.pcd",
                                  pclShifted);
         }
 
 //        pcl::PointCloud<pcl::PointXYZ> ThresholdPCL;
 //        pcl::PointCloud<pcl::PointXYZ> ThresholdPCLShifted;
 //
-//        pcl::io::loadPLYFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_Threshold.ply",
+//        pcl::io::loadPCDFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_Threshold.pcd",
 //                             ThresholdPCL);
-//        pcl::io::loadPLYFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_ThresholdShifted.ply",
+//        pcl::io::loadPCDFile(s + "/" + std::to_string(currentNumberOfScanInDirectory) + "_ThresholdShifted.pcd",
 //                             ThresholdPCLShifted);
 
 
         std::chrono::steady_clock::time_point begin;
         std::chrono::steady_clock::time_point end;
+//        Eigen::Matrix4d initialGuess = gtTransformation;
         Eigen::Matrix4d initialGuess = Eigen::Matrix4d::Identity();
+
+
+
         Eigen::Matrix4d estimatedTransformation;
         double fitnessScoreX, fitnessScoreY;
 
@@ -158,6 +162,12 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
                                                                                       fitnessScoreX,
                                                                                       initialGuess);
         end = std::chrono::steady_clock::now();
+
+//        std::cout << "estimatedTransformation" << std::endl;
+//        std::cout << estimatedTransformation << std::endl;
+//        std::cout << "translationGT" << std::endl;
+//        std::cout << gtTransformation << std::endl;
+
         double timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
 //        std::cout << timeToCalculate << std::endl;
 //        std::cout << estimatedTransformation << std::endl;
@@ -183,6 +193,14 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
                                                                                  true, false);
 
         end = std::chrono::steady_clock::now();
+
+//        std::cout << "estimatedTransformation" << std::endl;
+//        std::cout << estimatedTransformation << std::endl;
+//        std::cout << "translationGT" << std::endl;
+//        std::cout << gtTransformation << std::endl;
+
+
+
         timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
 //        std::cout << timeToCalculate << std::endl;
         tmpMeasurements.calculationTime.push_back(timeToCalculate);
@@ -201,10 +219,16 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
 
         //NDT D2D 2D,
         begin = std::chrono::steady_clock::now();
+//        std::cout << "initialGuess" << std::endl;
+//        std::cout << initialGuess << std::endl;
         estimatedTransformation = scanRegistrationObject32.ndt_d2d_2d(pclNotShifted,
                                                                       pclShifted,
                                                                       initialGuess,
                                                                       true);
+//        std::cout << "estimatedTransformation" << std::endl;
+//        std::cout << estimatedTransformation << std::endl;
+//        std::cout << "translationGT" << std::endl;
+//        std::cout << gtTransformation << std::endl;
 
         end = std::chrono::steady_clock::now();
         timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
@@ -229,6 +253,10 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
                                                                    pclShifted,
                                                                    initialGuess,
                                                                    true);
+//        std::cout << "estimatedTransformation" << std::endl;
+//        std::cout << estimatedTransformation << std::endl;
+//        std::cout << "translationGT" << std::endl;
+//        std::cout << gtTransformation << std::endl;
 
         end = std::chrono::steady_clock::now();
         timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
@@ -299,31 +327,33 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
                 if (numberOfPoints == 32) {
 
                     estimatedTransformation = scanRegistrationObject32.registrationOfTwoVoxelsSOFFTFast(
-                            voxelDataShifted, voxelData,
+                            voxelData,voxelDataShifted,
                             Eigen::Matrix4d::Identity(), useInitialAngle,
                             useInitialTranslation, (double) sizeOfVoxelGrid /
                                                    (double) numberOfPoints, true, debug);
                 } else {
                     if (numberOfPoints == 64) {
                         estimatedTransformation = scanRegistrationObject64.registrationOfTwoVoxelsSOFFTFast(
-                                voxelDataShifted, voxelData,
+                                voxelData,voxelDataShifted,
                                 Eigen::Matrix4d::Identity(), useInitialAngle,
                                 useInitialTranslation, (double) sizeOfVoxelGrid /
                                                        (double) numberOfPoints, true, debug);
                     } else {
                         if (numberOfPoints == 128) {
                             estimatedTransformation = scanRegistrationObject128.registrationOfTwoVoxelsSOFFTFast(
-                                    voxelDataShifted, voxelData,
+                                    voxelData,voxelDataShifted,
                                     Eigen::Matrix4d::Identity(), useInitialAngle,
                                     useInitialTranslation, (double) sizeOfVoxelGrid /
                                                            (double) numberOfPoints, true, debug);
                         } else {
                             if (numberOfPoints == 256) {
                                 estimatedTransformation = scanRegistrationObject256.registrationOfTwoVoxelsSOFFTFast(
-                                        voxelDataShifted, voxelData,
+                                         voxelData,voxelDataShifted,
                                         Eigen::Matrix4d::Identity(), useInitialAngle,
                                         useInitialTranslation, (double) sizeOfVoxelGrid /
                                                                (double) numberOfPoints, true, debug);
+
+
                             } else {
                                 std::cout << "should never happen" << std::endl;
                                 exit(-1);
@@ -332,6 +362,12 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
                     }
                 }
 //                std::cout << estimatedTransformation << std::endl;
+
+//                std::cout << "estimatedTransformation" << std::endl;
+//                std::cout << estimatedTransformation << std::endl;
+//                std::cout << "translationGT" << std::endl;
+//                std::cout << gtTransformation << std::endl;
+
                 end = std::chrono::steady_clock::now();
                 timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
 //                std::cout << timeToCalculate << std::endl;
@@ -352,15 +388,6 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
 
 
 
-
-
-
-
-
-
-
-
-
                 free(voxelDataShifted);
                 free(voxelData);
                 //            scanRegistrationObject.~scanRegistrationClass();
@@ -368,7 +395,7 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
                 //        std::cout << "test123" << std::endl;
             }
         }
-
+//        exit(-1);
         // ####################################################### Calculate error of Initial Guess  #######################################################
         tmpMeasurements.calculationTime.push_back(0);
         //calculate the angle
@@ -381,7 +408,8 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
         translationEstimated = initialGuess.block<3, 1>(0, 3);
         errorDistance = (translationGT - translationEstimated).norm();
         tmpMeasurements.errorInDistance.push_back(errorDistance);
-
+//        std::cout << "done"<< std::endl;
+//        exit(-1);
         returnMeasurementsList.push_back(tmpMeasurements);
     }
     return returnMeasurementsList;

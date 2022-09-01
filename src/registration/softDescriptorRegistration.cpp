@@ -274,12 +274,16 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
 
     if (debug) {
         std::ofstream myFile1, myFile2, myFile3, myFile4, myFile5, myFile6;
-        myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW1.csv");
+        myFile1.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW1.csv");
         myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/phaseFFTW1.csv");
-        myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW1.csv");
-        myFile4.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW2.csv");
+        myFile3.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW1.csv");
+        myFile4.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW2.csv");
         myFile5.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/phaseFFTW2.csv");
-        myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW2.csv");
+        myFile6.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW2.csv");
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
                 myFile1 << magnitude1[i + N * j]; // real part
@@ -914,12 +918,16 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
 
     if (debug) {
         std::ofstream myFile1, myFile2, myFile3, myFile4, myFile5, myFile6;
-        myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW1.csv");
+        myFile1.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW1.csv");
         myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/phaseFFTW1.csv");
-        myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW1.csv");
-        myFile4.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW2.csv");
+        myFile3.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW1.csv");
+        myFile4.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW2.csv");
         myFile5.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/phaseFFTW2.csv");
-        myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW2.csv");
+        myFile6.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW2.csv");
         for (int j = 0; j < N; j++) {
             for (int i = 0; i < N; i++) {
                 myFile1 << magnitude1[j + N * i]; // real part
@@ -1006,18 +1014,21 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
         clahe->apply(magTMP2, magTMP2);
         for (int j = 0; j < 2 * bandwidth; j++) {
             for (int k = 0; k < 2 * bandwidth; k++) {
+                // HERE THE COORDINATES ARE CHANGING
                 resampledMagnitudeSO3_1[j + k * bandwidth * 2] = resampledMagnitudeSO3_1[j + k * bandwidth * 2] +
-                                                                 ((double) magTMP1.data[j + k * bandwidth * 2]) / 255.0;
+                                                                 ((double) magTMP1.data[k + j * bandwidth * 2]) / 255.0;
                 resampledMagnitudeSO3_2[j + k * bandwidth * 2] = resampledMagnitudeSO3_2[j + k * bandwidth * 2] +
-                                                                 ((double) magTMP2.data[j + k * bandwidth * 2]) / 255.0;
+                                                                 ((double) magTMP2.data[k + j * bandwidth * 2]) / 255.0;
             }
         }
 
     }
     if (debug) {
         std::ofstream myFile7, myFile8;
-        myFile7.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resampledVoxel1.csv");
-        myFile8.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resampledVoxel2.csv");
+        myFile7.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resampledVoxel1.csv");
+        myFile8.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resampledVoxel2.csv");
 
         for (int j = 0; j < N; j++) {
             for (int k = 0; k < N; k++) {
@@ -1036,8 +1047,9 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
                                                               resultingCorrelationComplex);
     if (debug) {
         FILE *fp;
-        fp = fopen("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultCorrelation3D.csv",
-                   "w");
+        fp = fopen(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultCorrelation3D.csv",
+                "w");
         for (int i = 0; i < 8 * bwOut * bwOut * bwOut; i++)
             fprintf(fp, "%.16f\n", resultingCorrelationComplex[i][0]);
         fclose(fp);
@@ -1058,7 +1070,8 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
             if (tmpHolding.correlation > maxCorrelation) {
                 maxCorrelation = tmpHolding.correlation;
             }
-            tmpHolding.angle = std::fmod(-(currentThetaAngle + currentPsiAngle)/2 + 6 * M_PI, 2 * M_PI);
+
+            tmpHolding.angle = std::fmod(-(currentThetaAngle + currentPsiAngle) + 6 * M_PI, 2 * M_PI);
             correlationOfAngle.push_back(tmpHolding);
         }
     }
@@ -1156,8 +1169,10 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
 
     return bestMatchAngle;
 }
+
 std::vector<double>
-softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(double voxelData1Input[], double voxelData2Input[], bool debug) {
+softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(double voxelData1Input[],
+                                                                            double voxelData2Input[], bool debug) {
 
     double maximumScan1 = this->getSpectrumFromVoxelData2D(voxelData1Input, this->magnitude1,
                                                            this->phase1, false);
@@ -1166,25 +1181,29 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
 
     if (debug) {
         std::ofstream myFile1, myFile2, myFile3, myFile4, myFile5, myFile6;
-        myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW1.csv");
+        myFile1.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW1.csv");
         myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/phaseFFTW1.csv");
-        myFile3.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW1.csv");
-        myFile4.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW2.csv");
+        myFile3.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW1.csv");
+        myFile4.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW2.csv");
         myFile5.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/phaseFFTW2.csv");
-        myFile6.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW2.csv");
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                myFile1 << magnitude1[i + N * j]; // real part
+        myFile6.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW2.csv");
+        for (int j = 0; j < N; j++) {
+            for (int i = 0; i < N; i++) {
+                myFile1 << magnitude1[j + N * i]; // real part
                 myFile1 << "\n";
-                myFile2 << phase1[i + N * j]; // imaginary part
+                myFile2 << phase1[j + N * i]; // imaginary part
                 myFile2 << "\n";
-                myFile3 << voxelData1Input[i + N * j]; // imaginary part
+                myFile3 << voxelData1Input[j + N * i]; // imaginary part
                 myFile3 << "\n";
-                myFile4 << magnitude2[i + N * j]; // real part
+                myFile4 << magnitude2[j + N * i]; // real part
                 myFile4 << "\n";
-                myFile5 << phase2[i + N * j]; // imaginary part
+                myFile5 << phase2[j + N * i]; // imaginary part
                 myFile5 << "\n";
-                myFile6 << voxelData2Input[i + N * j]; // imaginary part
+                myFile6 << voxelData2Input[j + N * i]; // imaginary part
                 myFile6 << "\n";
             }
         }
@@ -1205,8 +1224,8 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
     }
 
     //normalize and fftshift
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
+    for (int j = 0; j < N; j++) {
+        for (int i = 0; i < N; i++) {
             //for (int k = 0; k < N; k++) {
             int indexX = (N / 2 + i) % N;
             int indexY = (N / 2 + j) % N;
@@ -1242,9 +1261,9 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
                                         std::sin(phiIncrement((double) k + 1, bandwidth)) + bandwidth) - 1;
 //                int zIndex =
 //                        std::round((double) r * std::cos(thetaIncrement((double) j + 1, bandwidth)) + bandwidth) - 1;
-                resampledMagnitudeSO3_1TMP[k + j * bandwidth * 2] =
+                resampledMagnitudeSO3_1TMP[j + k * bandwidth * 2] =
                         255 * magnitude1Shifted[yIndex + N * xIndex];
-                resampledMagnitudeSO3_2TMP[k + j * bandwidth * 2] =
+                resampledMagnitudeSO3_2TMP[j + k * bandwidth * 2] =
                         255 * magnitude2Shifted[yIndex + N * xIndex];
             }
         }
@@ -1258,9 +1277,10 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
         clahe->apply(magTMP2, magTMP2);
         for (int j = 0; j < 2 * bandwidth; j++) {
             for (int k = 0; k < 2 * bandwidth; k++) {
-                resampledMagnitudeSO3_1[k + j * bandwidth * 2] = resampledMagnitudeSO3_1[k + j * bandwidth * 2] +
+                // HERE THE COORDINATES ARE CHANGING
+                resampledMagnitudeSO3_1[j + k * bandwidth * 2] = resampledMagnitudeSO3_1[j + k * bandwidth * 2] +
                                                                  ((double) magTMP1.data[k + j * bandwidth * 2]) / 255.0;
-                resampledMagnitudeSO3_2[k + j * bandwidth * 2] = resampledMagnitudeSO3_2[k + j * bandwidth * 2] +
+                resampledMagnitudeSO3_2[j + k * bandwidth * 2] = resampledMagnitudeSO3_2[j + k * bandwidth * 2] +
                                                                  ((double) magTMP2.data[k + j * bandwidth * 2]) / 255.0;
             }
         }
@@ -1268,14 +1288,16 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
     }
     if (debug) {
         std::ofstream myFile7, myFile8;
-        myFile7.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resampledVoxel1.csv");
-        myFile8.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resampledVoxel2.csv");
+        myFile7.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resampledVoxel1.csv");
+        myFile8.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resampledVoxel2.csv");
 
         for (int j = 0; j < N; j++) {
             for (int k = 0; k < N; k++) {
-                myFile7 << resampledMagnitudeSO3_1[k + j * bandwidth * 2]; // real part
+                myFile7 << resampledMagnitudeSO3_1[j + k * bandwidth * 2]; // real part
                 myFile7 << "\n";
-                myFile8 << resampledMagnitudeSO3_2[k + j * bandwidth * 2]; // real part
+                myFile8 << resampledMagnitudeSO3_2[j + k * bandwidth * 2]; // real part
                 myFile8 << "\n";
             }
         }
@@ -1288,8 +1310,9 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
                                                               resultingCorrelationComplex);
     if (debug) {
         FILE *fp;
-        fp = fopen("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultCorrelation3D.csv",
-                   "w");
+        fp = fopen(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultCorrelation3D.csv",
+                "w");
         for (int i = 0; i < 8 * bwOut * bwOut * bwOut; i++)
             fprintf(fp, "%.16f\n", resultingCorrelationComplex[i][0]);
         fclose(fp);
@@ -1300,16 +1323,17 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
     double currentPsiAngle;
     double maxCorrelation = 0;
     std::vector<angleAndCorrelation> correlationOfAngle;
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            currentThetaAngle = i * 2.0 * M_PI / N;
-            currentPsiAngle = j * 2.0 * M_PI / N;
+    for (int j = 0; j < N; j++) {
+        for (int i = 0; i < N; i++) {
+            currentThetaAngle = j * 2.0 * M_PI / N;
+            currentPsiAngle = i * 2.0 * M_PI / N;
             //[i + N * j]
             angleAndCorrelation tmpHolding;
-            tmpHolding.correlation = resultingCorrelationComplex[i + N * (j + N * 0)][0]; // real part
+            tmpHolding.correlation = resultingCorrelationComplex[j + N * (i + N * 0)][0]; // real part
             if (tmpHolding.correlation > maxCorrelation) {
                 maxCorrelation = tmpHolding.correlation;
             }
+
             tmpHolding.angle = std::fmod(-(currentThetaAngle + currentPsiAngle) + 6 * M_PI, 2 * M_PI);
             correlationOfAngle.push_back(tmpHolding);
         }
@@ -1387,7 +1411,8 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTranslation(
                                                                                 double &fitnessX, double &fitnessY,
                                                                                 double cellSize,
                                                                                 Eigen::Vector3d initialGuess,
-                                                                                bool useInitialGuess,double &heightMaximumPeak, bool debug) {
+                                                                                bool useInitialGuess,
+                                                                                double &heightMaximumPeak, bool debug) {
 
     //std::vector<double> xShiftList, yShiftList, heightPeakList, estimatedAngleList, heightPeakAngleList;
 
@@ -1397,8 +1422,8 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTranslation(
                                                            this->phase2, false);
 
     //fftshift and calculate convolution of spectrums
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
+    for (int j = 0; j < N; j++) {
+        for (int i = 0; i < N; i++) {
 
             int indexX = (N / 2 + i) % N;
             int indexY = (N / 2 + j) % N;
@@ -1426,15 +1451,15 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTranslation(
 
 
 
-    // fftshift and calc magnitude + change x and y axis(dont really know why)
+    // fftshift and calc magnitude
     //double meanCorrelation = 0;
     int indexMaximumCorrelationI;
     int indexMaximumCorrelationJ;
     double maximumCorrelation = 0;
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            int indexX = (N / 2 + j) % N;
-            int indexY = (N / 2 + i) % N;
+    for (int j = 0; j < N; j++) {
+        for (int i = 0; i < N; i++) {
+            int indexX = (N / 2 - i + N) % N;// changed j and i here
+            int indexY = (N / 2 - j + N) % N;
 
             resultingCorrelationDouble[indexY + N * indexX] = sqrt(
                     resultingShiftPeaks2D[j + N * i][0] *
@@ -1451,7 +1476,7 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTranslation(
         }
     }
 
-
+    //89 131
     if (useInitialGuess) {
         //find local maximum in 2d array
         int initialIndexX = (int) (initialGuess[0] / cellSize + N / 2);
@@ -1478,7 +1503,8 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTranslation(
         indexMaximumCorrelationI = initialIndexX;
         indexMaximumCorrelationJ = initialIndexY;
     }
-    heightMaximumPeak = resultingCorrelationDouble[indexMaximumCorrelationJ + N * indexMaximumCorrelationI];//Hope that is correct
+    heightMaximumPeak = resultingCorrelationDouble[indexMaximumCorrelationJ +
+                                                   N * indexMaximumCorrelationI];//Hope that is correct
     // @TODO find SubPixel accuracy
 
 
@@ -1504,8 +1530,8 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTranslation(
         myFile10.open(
                 "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultingCorrelationShift.csv");
 
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
+        for (int j = 0; j < N; j++) {
+            for (int i = 0; i < N; i++) {
                 myFile10 << resultingCorrelationDouble[j + N * i];
                 myFile10 << "\n";
             }
@@ -1565,13 +1591,11 @@ Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTranslation(
 Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoVoxelsSOFFTFast(double voxelData1Input[],
                                                                              double voxelData2Input[],
                                                                              Eigen::Matrix4d &initialGuess,
-                                                                             bool useInitialAngle, bool useInitialTranslation,
+                                                                             bool useInitialAngle,
+                                                                             bool useInitialTranslation,
                                                                              double cellSize,
                                                                              bool useGauss,
-                                                                             bool debug){
-
-
-
+                                                                             bool debug) {
 
 
     double goodGuessAlpha = -100;
@@ -1583,27 +1607,30 @@ Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoVoxelsSOFFTFast(dou
     std::vector<Eigen::Matrix4d> listOfTransformations;
     std::vector<double> maximumHeightPeakList;
     std::vector<double> estimatedAngles;
-    if(useInitialAngle){
-        double angleTMP = this->sofftRegistrationVoxel2DRotationOnly(voxelData1Input,voxelData2Input,goodGuessAlpha,debug);
+    if (useInitialAngle) {
+        double angleTMP = this->sofftRegistrationVoxel2DRotationOnly(voxelData1Input, voxelData2Input, goodGuessAlpha,
+                                                                     debug);
         estimatedAngles.push_back(angleTMP);
-    }else{
-        estimatedAngles = this->sofftRegistrationVoxel2DListOfPossibleRotations(voxelData1Input,voxelData2Input,debug);
+//        std::cout << "estimated angle reg: " << angleTMP << std::endl;
+    } else {
+        estimatedAngles = this->sofftRegistrationVoxel2DListOfPossibleRotations(voxelData1Input, voxelData2Input,
+                                                                                debug);
     }
 
 //    std::cout << "number of possible solutions: " << estimatedAngles.size() << std::endl;
 
     int angleIndex = 0;
-    for(double estimatedAngle : estimatedAngles){
+    for (double estimatedAngle: estimatedAngles) {
 
         //copy data
-        for(int i = 0 ; i<N*N;i++){
+        for (int i = 0; i < N * N; i++) {
             this->voxelData1[i] = voxelData1Input[i];
             this->voxelData2[i] = voxelData2Input[i];
         }
-        Eigen::Matrix4d rotationMatrixTMP = Eigen::Matrix4d::Identity();
-        Eigen::AngleAxisd tmpRotVec(estimatedAngle, Eigen::Vector3d(0, 0, 1));
-        Eigen::Matrix3d tmpMatrix3d = tmpRotVec.toRotationMatrix();
-        rotationMatrixTMP.block<3, 3>(0, 0) = tmpMatrix3d;
+//        Eigen::Matrix4d rotationMatrixTMP = Eigen::Matrix4d::Identity();
+//        Eigen::AngleAxisd tmpRotVec(estimatedAngle, Eigen::Vector3d(0, 0, 1));
+//        Eigen::Matrix3d tmpMatrix3d = tmpRotVec.toRotationMatrix();
+//        rotationMatrixTMP.block<3, 3>(0, 0) = tmpMatrix3d;
 
 
         cv::Mat magTMP1(this->N, this->N, CV_64F, voxelData1);
@@ -1611,22 +1638,30 @@ Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoVoxelsSOFFTFast(dou
         //            cv::imwrite("/home/tim-external/Documents/imreg_fmt/firstImage.jpg", magTMP1);
 
         cv::Mat magTMP2(this->N, this->N, CV_64F, voxelData2);
-            //add gaussian blur
+        //add gaussian blur
         if (useGauss) {
             for (int i = 0; i < 2; i++) {
                 cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
                 cv::GaussianBlur(magTMP2, magTMP2, cv::Size(9, 9), 0);
             }
         }
-        cv::Point2f pc(magTMP2.cols / 2., magTMP2.rows / 2.);
-        cv::Mat r = cv::getRotationMatrix2D(pc, -estimatedAngle * 180.0 / M_PI, 1.0);
+        cv::Point2f pc(magTMP1.cols / 2., magTMP1.rows / 2.);
+        //positive values mean COUNTER CLOCK WISE (open cv description) threfore negative rotation
+        cv::Mat r = cv::getRotationMatrix2D(pc, estimatedAngle * 180.0 / M_PI, 1.0);
+//        cv::imshow("Display window", magTMP1);
+//        int k = cv::waitKey(0); // Wait for a keystroke in the window
 
-        cv::warpAffine(magTMP2, magTMP2, r, magTMP2.size()); // what size I should use?
+        cv::warpAffine(magTMP1, magTMP1, r, magTMP1.size()); // what size I should use?
+//        cv::imshow("Display window2", magTMP1);
+//        cv::imshow("Display window3", magTMP2);
+//        int k = cv::waitKey(0); // Wait for a keystroke in the window
 
-    //            cv::imwrite("/home/tim-external/Documents/imreg_fmt/secondImage.jpg", magTMP2);
 
-    //        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
-    //        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+
+//        cv::imwrite("/home/tim-external/Documents/imreg_fmt/secondImage.jpg", magTMP1);
+
+        //        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+        //        cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
 
 
 //        if (debug) {
@@ -1650,12 +1685,13 @@ Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoVoxelsSOFFTFast(dou
         double fitnessX = 0;
         double fitnessY = 0;
         double maximumPeakOfThisTranslation;
-        Eigen::Vector2d translation = this->sofftRegistrationVoxel2DTranslation(voxelData1,voxelData2,
-                                                                                                 fitnessX,
-                                                                                                 fitnessY,cellSize,
+        Eigen::Vector2d translation = this->sofftRegistrationVoxel2DTranslation(voxelData1, voxelData2,
+                                                                                fitnessX,
+                                                                                fitnessY, cellSize,
                                                                                 initialGuess.block<3, 1>(0, 3),
-                                                                                                 useInitialTranslation,maximumPeakOfThisTranslation,
-                                                                                                 debug);
+                                                                                useInitialTranslation,
+                                                                                maximumPeakOfThisTranslation,
+                                                                                debug);
 
         Eigen::Matrix4d estimatedRotationScans = Eigen::Matrix4d::Identity();//from second scan to first
         //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
@@ -1671,16 +1707,14 @@ Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoVoxelsSOFFTFast(dou
         maximumHeightPeakList.push_back(maximumPeakOfThisTranslation);
 
 
-
-
         if (debug) {
             std::ofstream myFile10;
             myFile10.open(
                     "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultingCorrelationShift" +
                     std::to_string(angleIndex) + ".csv");
 
-            for (int i = 0; i < N; i++) {
-                for (int j = 0; j < N; j++) {
+            for (int j = 0; j < N; j++) {
+                for (int i = 0; i < N; i++) {
                     myFile10 << resultingCorrelationDouble[j + N * i];
                     myFile10 << "\n";
                 }
@@ -1730,37 +1764,32 @@ Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoVoxelsSOFFTFast(dou
 
             cv::Mat magTMP2(this->N, this->N, CV_64F, voxelData2);
 
-            std::cout << estimatedRotationScans1To2 << std::endl;
-            std::cout << trans_mat << std::endl;
+//            std::cout << estimatedRotationScans1To2 << std::endl;
+//            std::cout << trans_mat << std::endl;
             warpAffine(magTMP2, magTMP2, trans_mat, magTMP2.size());
 //            convertMatToDoubleArray(img1, voxelData1);
 //            convertMatToDoubleArray(img2, voxelData2);
-
-            std::ofstream myFile1, myFile2;
-            myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultVoxel1"+std::to_string(angleIndex) +".csv");
-            myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultVoxel2"+std::to_string(angleIndex) +".csv");
-            for (int i = 0; i < this->N; i++) {
+            if (debug) {
+                std::ofstream myFile1, myFile2;
+                myFile1.open(
+                        "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultVoxel1" +
+                        std::to_string(angleIndex) + ".csv");
+                myFile2.open(
+                        "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultVoxel2" +
+                        std::to_string(angleIndex) + ".csv");
                 for (int j = 0; j < this->N; j++) {
-                    myFile1 << voxelData1[j + this->N * i]; // real part
-                    myFile1 << "\n";
-                    myFile2 << voxelData2[j + this->N * i]; // imaginary part
-                    myFile2 << "\n";
+                    for (int i = 0; i < this->N; i++) {
+                        myFile1 << voxelData1[j + this->N * i]; // real part
+                        myFile1 << "\n";
+                        myFile2 << voxelData2[j + this->N * i]; // imaginary part
+                        myFile2 << "\n";
+                    }
                 }
+                myFile1.close();
+                myFile2.close();
             }
-            myFile1.close();
-            myFile2.close();
-
 
         }
-
-
-
-
-
-
-
-
-
 
 
         angleIndex++;

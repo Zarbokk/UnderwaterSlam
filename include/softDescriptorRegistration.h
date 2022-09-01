@@ -15,6 +15,7 @@
 #include <pcl/common/transforms.h>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
+//#include <opencv2/highgui.hpp>
 
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Min_sphere_of_spheres_d.h>

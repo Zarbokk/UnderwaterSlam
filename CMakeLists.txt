@@ -64,11 +64,11 @@ include_directories(
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-add_executable(stPereDatasetRosPub src/stPereDataset/stPereDatasetPublication.cpp  src/slamTools/generalHelpfulTools.cpp)
-target_link_libraries(stPereDatasetRosPub ${catkin_LIBRARIES})
+#add_executable(stPereDatasetRosPub src/stPereDataset/stPereDatasetPublication.cpp  src/slamTools/generalHelpfulTools.cpp)
+#target_link_libraries(stPereDatasetRosPub ${catkin_LIBRARIES})
 
-add_executable(graphSlamIntensitiesOnlyTest src/completeSlamRuns/graphSlam_W_E_E_IntensitiesOnly.cpp ${SOURCE_FILES})
-target_link_libraries(graphSlamIntensitiesOnlyTest fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+#add_executable(graphSlamIntensitiesOnlyTest src/completeSlamRuns/graphSlam_W_E_E_IntensitiesOnly.cpp ${SOURCE_FILES})
+#target_link_libraries(graphSlamIntensitiesOnlyTest fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(registrationOfTwoPCLs src/registration/registrationOfTwoPCLScans.cpp ${SOURCE_FILES})
 target_link_libraries(registrationOfTwoPCLs fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
@@ -79,8 +79,8 @@ target_link_libraries(registrationOfTwoPCLICP fftw3 OpenMP::OpenMP_CXX ${PCL_LIB
 #add_executable(testGraphOptimization src/testFiles/graphOptimizationTest.cpp ${SOURCE_FILES})
 #target_link_libraries(testGraphOptimization fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-add_executable(2DOurMethod src/evaluation/2DOurMethodTesting.cpp ${SOURCE_FILES})
-target_link_libraries(2DOurMethod gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+#add_executable(2DOurMethod src/evaluation/2DOurMethodTesting.cpp ${SOURCE_FILES})
+#target_link_libraries(2DOurMethod gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 add_executable(registrationOfTwoImages src/registration/registrationOfTwoImageScans.cpp ${SOURCE_FILES})
 target_link_libraries(registrationOfTwoImages fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
@@ -95,8 +95,8 @@ target_link_libraries(registrationOfTwoImages fftw3 OpenMP::OpenMP_CXX ${PCL_LIB
 #target_link_libraries(testFMSOld fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 
-#add_executable(ndtTests src/registration/ndtMatching/simple.cc  )
-#target_link_libraries(ndtTests  ${PCL_LIBRARIES} ${catkin_LIBRARIES} )
+add_executable(ndtTests src/registration/ndtMatching/simple.cc  )
+target_link_libraries(ndtTests  ${PCL_LIBRARIES} ${catkin_LIBRARIES} )
 
 add_executable(comparisonMatchingLiveRosBag src/evaluation/comparisonEveryMatchingMethod.cpp ${SOURCE_FILES})
 target_link_libraries(comparisonMatchingLiveRosBag gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
@@ -110,6 +110,10 @@ target_link_libraries(compareEveryMatchingMethodBasedOnFolder gr::algo fftw3 Ope
 add_executable(createImageOfWholeBunker src/evaluation/createImageOfWholeBunker.cpp ${SOURCE_FILES})
 target_link_libraries(createImageOfWholeBunker gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-add_executable(createImageSimulation src/evaluation/createImageSimulation.cpp ${SOURCE_FILES})
-target_link_libraries(createImageSimulation gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+#add_executable(createImageSimulation src/evaluation/createImageSimulation.cpp ${SOURCE_FILES})
+#target_link_libraries(createImageSimulation gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
+#add_executable(testExtraction src/evaluation/testExtraction.cpp ${SOURCE_FILES})
+#target_link_libraries(testExtraction gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+
 

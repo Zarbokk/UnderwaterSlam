@@ -11,8 +11,10 @@ scanRegistrationClass::generalizedIcpRegistration(pcl::PointCloud<pcl::PointXYZ>
                                                   double &fitnessScore, Eigen::Matrix4d &initialGuessTransformation) {
 
     pcl::GeneralizedIterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> gicp;
-    gicp.setInputSource(cloudFirstScan.makeShared());
-    gicp.setInputTarget(cloudSecondScan.makeShared());
+
+    // change here again the direction because we want to have the transformation from 1 to 2 and not from 2 to 1(which is the registration)
+    gicp.setInputSource(cloudSecondScan.makeShared());
+    gicp.setInputTarget(cloudFirstScan.makeShared());
 //    gicp.setSourceCovariances(source_covariances);
 //    gicp.setTargetCovariances(target_covariances);
     gicp.setMaxCorrespondenceDistance(1.0);
@@ -125,6 +127,9 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(pcl::PointCloud<pcl
                                                              pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                                              Eigen::Matrix4d initialGuess, bool useInitialGuess,
                                                              bool debug) {
+    Eigen::Matrix4d initialGuessTMP = initialGuess.inverse();
+    initialGuess = initialGuessTMP;
+
 
     using TrVisitor = gr::DummyTransformVisitor;
 
@@ -145,18 +150,19 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(pcl::PointCloud<pcl
 //    pcl::io::loadPLYFile("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan1.ply",*scan1);
 //    pcl::io::loadPLYFile("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan2.ply",*scan2);
 
-    Eigen::Matrix4d transformationX180Degree;
-    Eigen::AngleAxisd rotation_vector2(180.0 / 180.0 * 3.14159, Eigen::Vector3d(1, 0, 0));
-    Eigen::Matrix3d tmpMatrix3d = rotation_vector2.toRotationMatrix();
-    transformationX180Degree.block<3, 3>(0, 0) = tmpMatrix3d;
-    transformationX180Degree(3, 3) = 1;
+//    Eigen::Matrix4d transformationX180Degree;
+//    Eigen::AngleAxisd rotation_vector2(180.0 / 180.0 * 3.14159, Eigen::Vector3d(1, 0, 0));
+//    Eigen::Matrix3d tmpMatrix3d = rotation_vector2.toRotationMatrix();
+//    transformationX180Degree.block<3, 3>(0, 0) = tmpMatrix3d;
+//    transformationX180Degree(3, 3) = 1;
 
 //    pcl::transformPointCloud(*scan1, *scan1, transformationX180Degree);
 //    pcl::transformPointCloud(*scan2, *scan2, transformationX180Degree);
 
 
-
-
+//    std::cout << cloudFirstScan.points.size() << std::endl;
+//
+//    std::cout << cloudSecondScan.points.size() << std::endl;
 
     for (int i = 0; i < cloudFirstScan.points.size(); i++) {
         gr::Point3D<float> tmpPoint;
@@ -188,11 +194,13 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(pcl::PointCloud<pcl
 //    std::cout << "we are here1" << std::endl;
 
     for (int i = 2; i < 8; i++) {
+//        std::cout << i << std::endl;
         // test different Overlap
         double overlap(0.1 + 0.1 * i);
         options.configureOverlap(overlap);
         options.delta = 0.1;
-        options.sample_size = 2000;
+//        options.sample_size = 1000;
+        options.sample_size = (cloudFirstScan.points.size()+cloudSecondScan.points.size())/2;
 
 
         typename gr::Point3D<float>::Scalar score = 0;
@@ -209,10 +217,10 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(pcl::PointCloud<pcl
 
         //change to NED
 
-        mat(0, 1) = -mat(0, 1);
-        mat(1, 0) = -mat(1, 0);
-        mat(1, 3) = -mat(1, 3);
-        mat(0, 3) = -mat(0, 3);
+//        mat(0, 1) = -mat(0, 1);
+//        mat(1, 0) = -mat(1, 0);
+//        mat(1, 3) = -mat(1, 3);
+//        mat(0, 3) = -mat(0, 3);
         //calculate a score how good that is.
         Eigen::Matrix4d saveMat;
         for (int j = 0; j < 4; j++) {
@@ -220,7 +228,12 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(pcl::PointCloud<pcl
                 saveMat(k, j) = mat(k, j);
             }
         }
-
+//        std::cout << "Init guess: " << std::endl;
+//        std::cout << initialGuess << std::endl;
+//        std::cout << "current test: " << std::endl;
+//        std::cout << saveMat << std::endl;
+        Eigen::Matrix4d tmpMat=saveMat.inverse();
+        saveMat = tmpMat;
 
         double initialGuessAngle = std::atan2(initialGuess(1, 0),
                                               initialGuess(0, 0));
@@ -254,7 +267,7 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(pcl::PointCloud<pcl
     //copy mat to Eigen Matrix4d
 
 
-    return transformationsList[distanceToMaxElement];
+    return transformationsList[distanceToMaxElement].inverse();
 }
 
 
@@ -314,12 +327,12 @@ Eigen::Matrix4d scanRegistrationClass::ndt_d2d_2d(pcl::PointCloud<pcl::PointXYZ>
                                                   Eigen::Matrix4d initialGuess,
                                                   bool useInitialGuess) {
 
-    initialGuess(0, 1) = -initialGuess(0, 1);
-    initialGuess(1, 0) = -initialGuess(1, 0);
-    initialGuess(1, 3) = -initialGuess(1, 3);
+//    initialGuess(0, 1) = -initialGuess(0, 1);
+//    initialGuess(1, 0) = -initialGuess(1, 0);
+//    initialGuess(1, 3) = -initialGuess(1, 3);
 
 
-    double __res[] = {0.5, 1, 2, 4};
+    double __res[] = { 0.5, 1, 2,4};
     std::vector<double> resolutions(__res, __res + sizeof(__res) / sizeof(double));
 
 
@@ -329,7 +342,7 @@ Eigen::Matrix4d scanRegistrationClass::ndt_d2d_2d(pcl::PointCloud<pcl::PointXYZ>
 
 //    std::cout<<"Transform Before: \n"<<Tout.matrix()<<std::endl;
     lslgeneric::NDTMatcherD2D_2D <pcl::PointXYZ, pcl::PointXYZ> matcherD2D(false, false, resolutions);
-    bool ret = matcherD2D.match(cloudSecondScan, cloudFirstScan, Tout, true);
+    bool ret = matcherD2D.match( cloudFirstScan,cloudSecondScan, Tout, useInitialGuess);
 
 //    Tout(0, 1) = -Tout(0, 1);
 //    Tout(1, 0) = -Tout(1, 0);
@@ -344,9 +357,9 @@ Eigen::Matrix4d scanRegistrationClass::ndt_p2d(pcl::PointCloud<pcl::PointXYZ> &c
                                                Eigen::Matrix4d initialGuess,
                                                bool useInitialGuess) {
 
-    initialGuess(0, 1) = -initialGuess(0, 1);
-    initialGuess(1, 0) = -initialGuess(1, 0);
-    initialGuess(1, 3) = -initialGuess(1, 3);
+//    initialGuess(0, 1) = -initialGuess(0, 1);
+//    initialGuess(1, 0) = -initialGuess(1, 0);
+//    initialGuess(1, 3) = -initialGuess(1, 3);
 //
 //    printf("X %f Y %f Z %f Roll %f Pitch %f Yaw %f \n",xoffset,yoffset,zoffset,roll,pitch,yaw);
 
@@ -357,7 +370,7 @@ Eigen::Matrix4d scanRegistrationClass::ndt_p2d(pcl::PointCloud<pcl::PointXYZ> &c
 
     lslgeneric::NDTMatcherP2D <pcl::PointXYZ, pcl::PointXYZ> matcherP2D;
 
-    bool ret = matcherP2D.match(cloudSecondScan, cloudFirstScan, Tout);
+    bool ret = matcherP2D.match(cloudFirstScan, cloudSecondScan, Tout);
 
 //    Tout(0, 1) = Tout(0, 1);
 //    Tout(1, 0) = Tout(1, 0);
@@ -392,8 +405,11 @@ Eigen::Matrix4d scanRegistrationClass::registrationOfTwoVoxelsSOFFTFast(double v
                                                                         bool useGauss,
                                                                         bool debug){
 
-    return mySofftRegistrationClass.registrationOfTwoVoxelsSOFFTFast(voxelData1Input,
-                                                                     voxelData2Input,
+
+
+    //changing voxel 1 and 2 because we want to have the transformation from 1 to 2 and not from 2 to 1(which is the registration)
+    return mySofftRegistrationClass.registrationOfTwoVoxelsSOFFTFast(voxelData2Input,
+                                                                     voxelData1Input,
                                                                      initialGuess,
                                                                      useInitialAngle, useInitialTranslation,
                                                                      cellSize,
