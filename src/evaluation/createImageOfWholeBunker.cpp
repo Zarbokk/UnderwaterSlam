@@ -17,13 +17,25 @@
 #include "std_srvs/SetBool.h"
 #include <filesystem>
 
-#define NUMBER_OF_POINTS_MAP 1024
-#define DIMENSION_OF_MAP 150.0
-#define NUMBER_OF_CONSECUTIVE_SCANS 50
+#define NUMBER_OF_POINTS_MAP 512
+
+
+#define NUMBER_OF_SKIPPING_SCANS 1
+
+
+// 50 simulation 30 valentin
+#define NUMBER_OF_CONSECUTIVE_SCANS 30
+// 80 simulation 120 valentin
+#define DIMENSION_OF_MAP 120.0
+// 50 simulation 30 valentin
+#define USING_INITIAL_GUESS_CHANGE_VALENTIN true
+
+
+
 
 //1: our 256 2:GICP 3:super 4: NDT d2d 5: NDT P2D 6: our global 256
-#define WHICH_METHOD_USED 3
-
+#define WHICH_METHOD_USED 6
+#define IGNORE_FIRST_STEPS 0
 //Simulation : all 0
 #define ROLL_TRANSFORMATION_ANGLE 0
 #define YAW_TRANSFORMATION_ANGLE 0
@@ -32,14 +44,14 @@
 #define NUMBER_OF_POINTS_DIMENSION 256
 #define DIMENSION_OF_VOXEL_DATA 60
 
-#define FACTOR_OF_THRESHOLD 0.3
+//StPere 0.6 seems fine
+//Valentin 0.2 seems OK
+//simulation 0.9
+#define FACTOR_OF_THRESHOLD 0.2
 #define IGNORE_DISTANCE_TO_ROBOT 1.5
 
 #define SHOULD_USE_ROSBAG true
 
-
-#define SHIFT_VALUE_ANGLE 10.0
-#define SHIFT_VALUE_POSITION 5.0
 
 
 //#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
@@ -393,7 +405,7 @@ private:
             this->lastGTPosition = currentGTlocalPosition;
             this->numberOfScan++;
             if (numberOfScan > NUMBER_OF_CONSECUTIVE_SCANS) {
-                this->createImageOfAllScans(mapOfBunker, 1);
+                this->createImageOfAllScans(mapOfBunker, NUMBER_OF_SKIPPING_SCANS);
 
                 std::ofstream outMatrix(
                         "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultsOfManyMatching/completeMapTest.csv");
@@ -942,7 +954,7 @@ public:
         //size of mapData is defined in NUMBER_OF_POINTS_MAP
 
         int whichMethod = WHICH_METHOD_USED;
-        int ignoreFirstNSteps = 0;
+        int ignoreFirstNSteps = IGNORE_FIRST_STEPS;
         double correctionFactorMatchingYaw = 0;// M_PI/2.0 at real data
         double correctionFactorMatchingRoll = 0.001;// M_PI/2.0 at real data
         double correctionFactorCreationMapYaw = 0;// M_PI/2.0 at real data
@@ -1089,8 +1101,20 @@ public:
     }
 
     Eigen::Matrix4d
-    calculateRegistration(Eigen::Matrix4d ourInitialGuess, int whichMethod, int indexFirstPCL, int indexSecondPCL,
+    calculateRegistration(Eigen::Matrix4d &ourInitialGuess, int whichMethod, int indexFirstPCL, int indexSecondPCL,
                           double correctionFactorMatchingYaw, double correctionFactorPCLMatchingRoll) {
+        if(USING_INITIAL_GUESS_CHANGE_VALENTIN){
+            Eigen::Matrix4d initialGuessTMP = ourInitialGuess;
+
+            ourInitialGuess(0,3) = initialGuessTMP(1,3);
+            ourInitialGuess(1,3) = -initialGuessTMP(0,3);
+        }
+
+
+
+
+
+
         pcl::PointCloud<pcl::PointXYZ> final;
         double maximumVoxel1 = generalHelpfulTools::createVoxelOfGraph(voxelData1,
                                                                        indexFirstPCL,

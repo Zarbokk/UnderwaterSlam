@@ -216,6 +216,10 @@ softDescriptorRegistration::getSpectrumFromVoxelData2D(double voxelData[], doubl
 
         }
     }
+
+
+
+
     return maximumMagnitude;
 }
 
@@ -916,6 +920,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
     double maximumScan2 = this->getSpectrumFromVoxelData2D(voxelData2Input, this->magnitude2,
                                                            this->phase2, false);
 
+
     if (debug) {
         std::ofstream myFile1, myFile2, myFile3, myFile4, myFile5, myFile6;
         myFile1.open(
@@ -989,7 +994,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
     int maxRNumber = N / 2 - 2;
     int bandwidth = N / 2;
 
-    for (int r = minRNumber; r < maxRNumber; r++) {
+    for (int r = maxRNumber - 1; r < maxRNumber; r++) {
         for (int j = 0; j < 2 * bandwidth; j++) {
             for (int k = 0; k < 2 * bandwidth; k++) {
                 int xIndex = std::round((double) r * std::sin(thetaIncrement((double) j + 1, bandwidth)) *
@@ -998,9 +1003,9 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
                                         std::sin(phiIncrement((double) k + 1, bandwidth)) + bandwidth) - 1;
 //                int zIndex =
 //                        std::round((double) r * std::cos(thetaIncrement((double) j + 1, bandwidth)) + bandwidth) - 1;
-                resampledMagnitudeSO3_1TMP[j + k * bandwidth * 2] =
+                resampledMagnitudeSO3_1TMP[k + j * bandwidth * 2] =
                         255 * magnitude1Shifted[yIndex + N * xIndex];
-                resampledMagnitudeSO3_2TMP[j + k * bandwidth * 2] =
+                resampledMagnitudeSO3_2TMP[k + j * bandwidth * 2] =
                         255 * magnitude2Shifted[yIndex + N * xIndex];
             }
         }
@@ -1012,13 +1017,17 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
         clahe->setClipLimit(3);
         clahe->apply(magTMP1, magTMP1);
         clahe->apply(magTMP2, magTMP2);
+
+
+
+
         for (int j = 0; j < 2 * bandwidth; j++) {
             for (int k = 0; k < 2 * bandwidth; k++) {
                 // HERE THE COORDINATES ARE CHANGING
                 resampledMagnitudeSO3_1[j + k * bandwidth * 2] = resampledMagnitudeSO3_1[j + k * bandwidth * 2] +
-                                                                 ((double) magTMP1.data[k + j * bandwidth * 2]) / 255.0;
+                                                                 ((double) magTMP1.data[j + k * bandwidth * 2]) / 255.0;
                 resampledMagnitudeSO3_2[j + k * bandwidth * 2] = resampledMagnitudeSO3_2[j + k * bandwidth * 2] +
-                                                                 ((double) magTMP2.data[k + j * bandwidth * 2]) / 255.0;
+                                                                 ((double) magTMP2.data[j + k * bandwidth * 2]) / 255.0;
             }
         }
 
@@ -1179,6 +1188,9 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
     double maximumScan2 = this->getSpectrumFromVoxelData2D(voxelData2Input, this->magnitude2,
                                                            this->phase2, false);
 
+
+
+
     if (debug) {
         std::ofstream myFile1, myFile2, myFile3, myFile4, myFile5, myFile6;
         myFile1.open(
@@ -1251,8 +1263,8 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
     int minRNumber = 10;//was 4
     int maxRNumber = N / 2 - 2;
     int bandwidth = N / 2;
-
-    for (int r = minRNumber; r < maxRNumber; r++) {
+    //CHANGE HERE HAPPEND TESTS
+    for (int r = maxRNumber - 1; r < maxRNumber; r++) {
         for (int j = 0; j < 2 * bandwidth; j++) {
             for (int k = 0; k < 2 * bandwidth; k++) {
                 int xIndex = std::round((double) r * std::sin(thetaIncrement((double) j + 1, bandwidth)) *
@@ -1261,9 +1273,9 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
                                         std::sin(phiIncrement((double) k + 1, bandwidth)) + bandwidth) - 1;
 //                int zIndex =
 //                        std::round((double) r * std::cos(thetaIncrement((double) j + 1, bandwidth)) + bandwidth) - 1;
-                resampledMagnitudeSO3_1TMP[j + k * bandwidth * 2] =
+                resampledMagnitudeSO3_1TMP[k + j * bandwidth * 2] =
                         255 * magnitude1Shifted[yIndex + N * xIndex];
-                resampledMagnitudeSO3_2TMP[j + k * bandwidth * 2] =
+                resampledMagnitudeSO3_2TMP[k + j * bandwidth * 2] =
                         255 * magnitude2Shifted[yIndex + N * xIndex];
             }
         }
@@ -1275,17 +1287,23 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
         clahe->setClipLimit(3);
         clahe->apply(magTMP1, magTMP1);
         clahe->apply(magTMP2, magTMP2);
+
+
+
+
         for (int j = 0; j < 2 * bandwidth; j++) {
             for (int k = 0; k < 2 * bandwidth; k++) {
-                // HERE THE COORDINATES ARE CHANGING
                 resampledMagnitudeSO3_1[j + k * bandwidth * 2] = resampledMagnitudeSO3_1[j + k * bandwidth * 2] +
-                                                                 ((double) magTMP1.data[k + j * bandwidth * 2]) / 255.0;
+                                                                 ((double) magTMP1.data[j + k * bandwidth * 2]) / 255.0;
                 resampledMagnitudeSO3_2[j + k * bandwidth * 2] = resampledMagnitudeSO3_2[j + k * bandwidth * 2] +
-                                                                 ((double) magTMP2.data[k + j * bandwidth * 2]) / 255.0;
+                                                                 ((double) magTMP2.data[j + k * bandwidth * 2]) / 255.0;
             }
         }
-
+//        std::cout << resampledMagnitudeSO3_1[100 + 100 * bandwidth * 2] << std::endl;
+//        std::cout << resampledMagnitudeSO3_1[100 + 100 * bandwidth * 2] << std::endl;
     }
+
+
     if (debug) {
         std::ofstream myFile7, myFile8;
         myFile7.open(
@@ -1721,17 +1739,7 @@ Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoVoxelsSOFFTFast(dou
             }
             myFile10.close();
 
-//            Eigen::Matrix4d estimatedRotationScans = Eigen::Matrix4d::Identity();//from second scan to first
-//            //Eigen::AngleAxisd rotation_vector2(65.0 / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
-//            Eigen::AngleAxisd rotation_vectorTMP(estimatedAngle, Eigen::Vector3d(0, 0, 1));
-//            Eigen::Matrix3d tmpRotMatrix3d = rotation_vectorTMP.toRotationMatrix();
-//            estimatedRotationScans.block<3, 3>(0, 0) = tmpRotMatrix3d;
-//            estimatedRotationScans(0, 3) = xShiftList[angleIndex];
-//            estimatedRotationScans(1, 3) = yShiftList[angleIndex];
-//            estimatedRotationScans(2, 3) = 0;
-//            estimatedRotationScans(3, 3) = 1;
-
-            Eigen::Matrix4d estimatedRotationScans1To2 = estimatedRotationScans;
+            Eigen::Matrix4d estimatedRotationScans1To2 = estimatedRotationScans.inverse();
 
 
             cv::Mat trans_mat = (cv::Mat_<double>(2, 3) << 1,
@@ -1740,22 +1748,6 @@ Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoVoxelsSOFFTFast(dou
                     0,
                     1,
                     estimatedRotationScans1To2(0, 3));
-//    cv::Mat trans_mat = (cv::Mat_<double>(2, 3) << estimatedTransformation(0, 0),
-//            estimatedTransformation(0,1),
-//            50,
-//            estimatedTransformation(1, 0),
-//            estimatedTransformation(1, 1),
-//            0);
-//    cv::Mat trans_mat = (cv::Mat_<double>(2, 3) << estimatedTransformation(0, 0),
-//            estimatedTransformation(0,1),
-//            estimatedTransformation(0, 3),
-//            estimatedTransformation(1, 0),
-//            estimatedTransformation(1, 1),
-//            estimatedTransformation(1, 3));
-
-
-
-
 
 
             cv::Mat magTMP1(this->N, this->N, CV_64F, voxelData1);

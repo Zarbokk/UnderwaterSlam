@@ -1,71 +1,68 @@
 #!/bin/bash
 
 
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle5 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle10 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle15 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle20 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle25 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle30 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle35 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle40 1 1
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle45 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle50 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle55 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle60 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle65 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle70 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle75 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle80 1 1
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle85 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle90 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle95 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle100 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle105 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle110 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle115 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/onlyAngleDataset/ onlyAngle120 1 1
-
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle5 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle10 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle15 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle20 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle25 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle30 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle35 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle40 1 1
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle45 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle50 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle55 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle60 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle65 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle70 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle75 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle80 1 1
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle85 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle90 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle95 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle100 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle105 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle110 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle115 1 1 &
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/compareAnglesDataset/ 4_7_Bunker_range_30_5_OnlyAngle120 1 1
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/  5degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 10degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 15degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 20degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 25degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 30degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 35degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 40degree 1 1
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 45degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 50degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 55degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 60degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 65degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 70degree 1 1
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 75degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 80degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 85degree 1 1 &
+rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 90degree 1 1 &
+rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 95degree 1 1 &
+rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 100degree 1 1 &
+rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 105degree 1 1 &
+rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 110degree 1 1 &
+rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 115degree 1 1 &
+rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/ 120degree 1 1
 
 
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ noNoise305_1510 10 1 &
 
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ highNoise305_1510 10 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/   5degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/  10degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/  15degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/  20degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/  25degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/  30degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/  35degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/  40degree 1 1
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/  45degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/  50degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/  55degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/  60degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/  65degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/  70degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/  75degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/  80degree 1 1
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/  85degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/  90degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/  95degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/ 100degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/ 105degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/ 110degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/ 115degree 1 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/onlyAngleValentin/ 120degree 1 1
+#
+#
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/ stPereNoNoise1510 50 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/ stPereHighNoise52 50 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/ stPereNoNoise52 50 1 &
+#
+#
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/ valentinNoNoise1510 50 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/ valentinNoNoise52 50 1 &
+#rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/ valentinHighNoise52 50 1
 
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ noNoise305_52 50 1 &
+rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/ stPereHighNoise52NEW 50 1
 
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/ValentinBunkerData/ highNoise305_52 50 1 
-
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/ noNoise1510 10 1 &
-
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/ highNoise1510 10 1 &
-
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/ highNoise52 50 1 &
-
-rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/StPereDataset/ noNoise52 50 1
-
-
+rosrun underwaterslam compareEveryMatchingMethodBasedOnFolder /home/tim-external/dataFolder/2022FinalPaperData/ stPereNoNoise52NEW 50 1

@@ -24,12 +24,12 @@
 
 //#define NUMBER_OF_POINTS_MAP 512.0
 //#define DIMENSION_OF_MAP 200.0
-#define FACTOR_OF_THRESHOLD 0.4
+#define FACTOR_OF_THRESHOLD 0.8
 #define IGNORE_DISTANCE_TO_ROBOT 0.5
 
 #define SHOULD_USE_ROSBAG true
 
-#define HOME_LOCATION "/home/tim-external/dataFolder/rosbagRecord/gazebo/"
+#define HOME_LOCATION "/home/tim-external/dataFolder/2022FinalPaperData/SimulationResults/"
 
 #define WHICH_FOLDER_SHOULD_BE_SAVED "lowNoise305_52/"
 
@@ -84,7 +84,8 @@ public:
                                                                                        512 / 2 -
                                                                                        1) {
 
-//        comparisonFile.open ("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/comparisonAllMethods.csv");
+
+
 //        comparisonFile << "GICP Error, GICP Time, Super4PCS Error, Super4PCS Time, NDT D2D 2D Error, NDT D2D 2D Time, NDT P2D Error, NDT P2D Time,";
 ////        comparisonFile << " FMS OLD 64 Error, FMS OLD 64 Time, FMS OLD 128 Error, FMS OLD 128,";
 //        comparisonFile << " Our FMS 32 Error, Our FMS 32 Time, Our FMS 64 Error, Our FMS 64 Time, Our FMS 128 Error, Our FMS 128 Time, Our FMS 256 Error, Our FMS 256 Time,";
@@ -95,11 +96,11 @@ public:
         ros::Duration(1).sleep();
         subscriberIntensitySonar = n_.subscribe("sonar/intensity", 1000, &rosClassEKF::scanCallback, this);
 
-        subscriberGroundTruth = n_.subscribe("/magnetic_heading", 1000, &rosClassEKF::groundTruthCallbackStPere, this);
-//        subscriberGroundTruth = n_.subscribe("/positionGT", 1000, &rosClassEKF::groundTruthCallbackGazebo, this);
+//        subscriberGroundTruth = n_.subscribe("/magnetic_heading", 1000, &rosClassEKF::groundTruthCallbackStPere, this);
+        subscriberGroundTruth = n_.subscribe("/positionGT", 1000, &rosClassEKF::groundTruthCallbackGazebo, this);
 
 
-        if(SHOULD_USE_ROSBAG){
+        if (SHOULD_USE_ROSBAG) {
 //            std::cout <<"doesnt work" << std::endl;
             pauseRosbag = n_.serviceClient<std_srvs::SetBoolRequest>(nameOfTheServiceCall);
         }
@@ -123,15 +124,22 @@ public:
         this->firstCompleteSonarScan = true;
 
 
-
-
-
         std::filesystem::create_directory(std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED));
+        std::cout << std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) << std::endl;
+
+        comparisonFileTime.open(std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) +
+                                std::string("calculationTime1.csv"));
+        comparisonFileAngleError.open(std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) +
+                                      std::string("errorAngle1.csv"));
+        comparisonFileL2Error.open(std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) +
+                                   std::string("errorDistance1.csv"));
+        comparisonFileTime.close();
+        comparisonFileAngleError.close();
+        comparisonFileL2Error.close();
     }
 
 
 private:
-
 
 
     ros::Subscriber subscriberEKF, subscriberIntensitySonar, subscriberGroundTruth;
@@ -165,7 +173,7 @@ private:
     double fitnessScore;
     double sigmaScaling;
 
-    std::ofstream comparisonFileTime,comparisonFileL2Error, comparisonFileAngleError;
+    std::ofstream comparisonFileTime, comparisonFileL2Error, comparisonFileAngleError;
 
 
     graphSlamSaveStructure graphSaved;
@@ -258,11 +266,11 @@ private:
                 return;
             }
 
-            if(SHOULD_USE_ROSBAG){
+            if (SHOULD_USE_ROSBAG) {
 
-            std_srvs::SetBool srv;
-            srv.request.data = true;
-            pauseRosbag.call(srv);
+                std_srvs::SetBool srv;
+                srv.request.data = true;
+                pauseRosbag.call(srv);
             }
 
             //angleDiff = angleBetweenLastKeyframeAndNow(false);
@@ -287,37 +295,40 @@ private:
 //                    FACTOR_OF_THRESHOLD);
 //            scan2Threshold = generalHelpfulTools::createPCLFromGraphOneValue(this->graphSaved.getVertexList()->size() - 1, tmpMatrix, IGNORE_DISTANCE_TO_ROBOT,
 //                    FACTOR_OF_THRESHOLD);
-            scan1Threshold = generalHelpfulTools::createPCLFromGraphOnlyThreshold(indexOfLastKeyframe, tmpMatrix,this->graphSaved, IGNORE_DISTANCE_TO_ROBOT,
+            scan1Threshold = generalHelpfulTools::createPCLFromGraphOnlyThreshold(indexOfLastKeyframe, tmpMatrix,
+                                                                                  this->graphSaved,
+                                                                                  IGNORE_DISTANCE_TO_ROBOT,
                                                                                   FACTOR_OF_THRESHOLD);
-            scan2Threshold = generalHelpfulTools::createPCLFromGraphOnlyThreshold(this->graphSaved.getVertexList()->size() - 1, tmpMatrix,this->graphSaved, IGNORE_DISTANCE_TO_ROBOT,
-                                                                                  FACTOR_OF_THRESHOLD);
+            scan2Threshold = generalHelpfulTools::createPCLFromGraphOnlyThreshold(
+                    this->graphSaved.getVertexList()->size() - 1, tmpMatrix, this->graphSaved, IGNORE_DISTANCE_TO_ROBOT,
+                    FACTOR_OF_THRESHOLD);
 
             this->initialGuessTransformation.block<3, 1>(0, 3) =
                     this->initialGuessTransformation.block<3, 1>(0, 3) + Eigen::Vector3d(0, -0, 0);
-            
+
             Eigen::Matrix4d gtTransformation =
                     gtToTranformation(this->lastGTPosition).inverse() * gtToTranformation(currentGTlocalPosition);
-            
-            
 
-//            pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan1.ply",
-//                                       scan1Threshold);
-//            pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan2.ply",
-//                                       scan2Threshold);
-            std::cout << "GT to compare with:" << std::endl;
-            std::cout << gtTransformation << std::endl;
-            std::cout << "Initial Guess:" << std::endl;
-            std::cout << this->initialGuessTransformation << std::endl;
+
+
+            pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan1.ply",
+                                       scan1Threshold);
+            pcl::io::savePLYFileBinary("/home/tim-external/Documents/matlabTestEnvironment/showPointClouds/scan2.ply",
+                                       scan2Threshold);
+//            std::cout << "GT to compare with:" << std::endl;
+//            std::cout << gtTransformation << std::endl;
+//            std::cout << "Initial Guess:" << std::endl;
+//            std::cout << this->initialGuessTransformation << std::endl;
 /////////////////////////////////////////////////////// start of Registration ////////////////////////////////////////////////////
 
 
 
-            comparisonFileTime.open (std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) +std::string("calculationTime.csv"),std::ios_base::app);
-            comparisonFileAngleError.open (std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) + std::string("errorDistance.csv"),std::ios_base::app);
-            comparisonFileL2Error.open (std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) +std::string("errorAngle.csv"),std::ios_base::app);
-
-
-
+            comparisonFileTime.open(std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) +
+                                    std::string("calculationTime1.csv"), std::ios_base::app);
+            comparisonFileAngleError.open(std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) +
+                                          std::string("errorAngle1.csv"), std::ios_base::app);
+            comparisonFileL2Error.open(std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) +
+                                       std::string("errorDistance1.csv"), std::ios_base::app);
 
 
             std::chrono::steady_clock::time_point begin;
@@ -347,20 +358,26 @@ private:
                                                                                                     fitnessScoreX,
                                                                                                     initialGuessTransformation);
             end = std::chrono::steady_clock::now();
+//            std::cout << "estimatedTransformation" << std::endl;
+//            std::cout << this->currentTransformation << std::endl;
+//            std::cout << "translationGT" << std::endl;
+//            std::cout << gtTransformation << std::endl;
+
+
             double timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-            comparisonFileTime << timeToCalculate<<",";//time
+            comparisonFileTime << timeToCalculate << ",";//time
 
             //calculate the angle
             double angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
             double angleEstimated = std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0));
             double angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
-            comparisonFileAngleError << angleDiff<<",";//time
+            comparisonFileAngleError << angleDiff << ",";//time
 
             //calculate difference angle and take abs
             Eigen::Vector3d translationGT = gtTransformation.block<3, 1>(0, 3);
             Eigen::Vector3d translationEstimated = this->currentTransformation.block<3, 1>(0, 3);
             double errorDistance = (translationGT - translationEstimated).norm();
-            comparisonFileL2Error << errorDistance<<",";//time
+            comparisonFileL2Error << errorDistance << ",";//time
 
 
 
@@ -370,20 +387,25 @@ private:
                                                                                                this->initialGuessTransformation,
                                                                                                true, false);
             end = std::chrono::steady_clock::now();
+//            std::cout << "estimatedTransformation" << std::endl;
+//            std::cout << this->currentTransformation << std::endl;
+//            std::cout << "translationGT" << std::endl;
+//            std::cout << gtTransformation << std::endl;
+
             timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-            comparisonFileTime << timeToCalculate<<",";//time
+            comparisonFileTime << timeToCalculate << ",";//time
 
             //calculate the angle
             angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
             angleEstimated = std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0));
             angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
-            comparisonFileAngleError << angleDiff<<",";//time
+            comparisonFileAngleError << angleDiff << ",";//time
 
             //calculate difference angle and take abs
             translationGT = gtTransformation.block<3, 1>(0, 3);
             translationEstimated = this->currentTransformation.block<3, 1>(0, 3);
             errorDistance = (translationGT - translationEstimated).norm();
-            comparisonFileL2Error << errorDistance<<",";//time
+            comparisonFileL2Error << errorDistance << ",";//time
 
 
 
@@ -392,117 +414,161 @@ private:
             this->currentTransformation = this->scanRegistrationObject64.ndt_d2d_2d(scan1Threshold, scan2Threshold,
                                                                                     initialGuessTransformation, true);
             end = std::chrono::steady_clock::now();
+
+//            std::cout << "estimatedTransformation" << std::endl;
+//            std::cout << this->currentTransformation << std::endl;
+//            std::cout << "translationGT" << std::endl;
+//            std::cout << gtTransformation << std::endl;
+
             timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-            comparisonFileTime << timeToCalculate<<",";//time
+            comparisonFileTime << timeToCalculate << ",";//time
 
             //calculate the angle
             angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
             angleEstimated = std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0));
             angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
-            comparisonFileAngleError << angleDiff<<",";//time
+            comparisonFileAngleError << angleDiff << ",";//time
 
             //calculate difference angle and take abs
             translationGT = gtTransformation.block<3, 1>(0, 3);
             translationEstimated = this->currentTransformation.block<3, 1>(0, 3);
             errorDistance = (translationGT - translationEstimated).norm();
-            comparisonFileL2Error << errorDistance<<",";//time
+            comparisonFileL2Error << errorDistance << ",";//time
 
 
             begin = std::chrono::steady_clock::now();
             this->currentTransformation = this->scanRegistrationObject64.ndt_p2d(scan2Threshold, scan1Threshold,
                                                                                  initialGuessTransformation, true);
             end = std::chrono::steady_clock::now();
+
+//            std::cout << "estimatedTransformation" << std::endl;
+//            std::cout << this->currentTransformation << std::endl;
+//            std::cout << "translationGT" << std::endl;
+//            std::cout << gtTransformation << std::endl;
+
             timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-            comparisonFileTime << timeToCalculate<<",";//time
+            comparisonFileTime << timeToCalculate << ",";//time
 
             //calculate the angle
             angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
             angleEstimated = std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0));
             angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
-            comparisonFileAngleError << angleDiff<<",";//time
+            comparisonFileAngleError << angleDiff << ",";//time
 
             //calculate difference angle and take abs
             translationGT = gtTransformation.block<3, 1>(0, 3);
             translationEstimated = this->currentTransformation.block<3, 1>(0, 3);
             errorDistance = (translationGT - translationEstimated).norm();
-            comparisonFileL2Error << errorDistance<<",";//time
+            comparisonFileL2Error << errorDistance << ",";//time
+
+            bool debug = false;
+            for (int boolState = 0; boolState < 2; boolState++) {
+                bool useInitialAngle = boolState == 0;
+                bool useInitialTranslation = boolState == 0;
+
+                for (int i = 32; i <= 256; i = i * 2) {
+                    int numberOfPoints = i;
+                    double *voxelData1;
+                    double *voxelData2;
+                    voxelData1 = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
+                    voxelData2 = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
+                    //still missing
+                    double maximumVoxel1 = generalHelpfulTools::createVoxelOfGraph(voxelData1,
+                                                                                   indexOfLastKeyframe,
+                                                                                   Eigen::Matrix4d::Identity(),
+                                                                                   numberOfPoints, this->graphSaved,
+                                                                                   IGNORE_DISTANCE_TO_ROBOT,
+                                                                                   DIMENSION_OF_VOXEL_DATA);//get voxel
 
 
+                    double maximumVoxel2 = generalHelpfulTools::createVoxelOfGraph(voxelData2,
+                                                                                   this->graphSaved.getVertexList()->size() -
+                                                                                   1,
+                                                                                   Eigen::Matrix4d::Identity(),
+                                                                                   numberOfPoints, this->graphSaved,
+                                                                                   IGNORE_DISTANCE_TO_ROBOT,
+                                                                                   DIMENSION_OF_VOXEL_DATA);//get voxel
 
-            for (int i = 32; i <= 256; i = i * 2) {
-                int numberOfPoints = i;
-                double *voxelData1;
-                double *voxelData2;
-                voxelData1 = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
-                voxelData2 = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
-                //still missing
-                double maximumVoxel1 = generalHelpfulTools::createVoxelOfGraph(voxelData1,
-                                                          indexOfLastKeyframe,
-                                                          Eigen::Matrix4d::Identity(),
-                                                          numberOfPoints,this->graphSaved,IGNORE_DISTANCE_TO_ROBOT,DIMENSION_OF_VOXEL_DATA);//get voxel
+                    begin = std::chrono::steady_clock::now();
+                    if (numberOfPoints == 32) {
 
-
-                double maximumVoxel2 = generalHelpfulTools::createVoxelOfGraph(voxelData2,
-                                                          this->graphSaved.getVertexList()->size() - 1,
-                                                          Eigen::Matrix4d::Identity(),
-                                                          numberOfPoints,this->graphSaved,IGNORE_DISTANCE_TO_ROBOT,DIMENSION_OF_VOXEL_DATA);//get voxel
-
-                begin = std::chrono::steady_clock::now();
-                if (numberOfPoints == 32) {
-
-                    this->currentTransformation = scanRegistrationObject32.registrationOfTwoVoxelsSOFFTFast(
-                            voxelData1, voxelData2,
-                            Eigen::Matrix4d::Identity(), true,
-                            true, (double) DIMENSION_OF_VOXEL_DATA /
-                                                   (double) numberOfPoints, true, true);
-                } else {
-                    if (numberOfPoints == 64) {
-                        this->currentTransformation = scanRegistrationObject64.registrationOfTwoVoxelsSOFFTFast(
+                        this->currentTransformation = scanRegistrationObject32.registrationOfTwoVoxelsSOFFTFast(
                                 voxelData1, voxelData2,
-                                Eigen::Matrix4d::Identity(), true,
-                                true, (double) DIMENSION_OF_VOXEL_DATA /
-                                      (double) numberOfPoints, true, true);
+                                initialGuessTransformation, useInitialAngle,
+                                useInitialTranslation, (double) DIMENSION_OF_VOXEL_DATA /
+                                      (double) numberOfPoints, true, debug);
                     } else {
-                        if (numberOfPoints == 128) {
-                            this->currentTransformation = scanRegistrationObject128.registrationOfTwoVoxelsSOFFTFast(
+                        if (numberOfPoints == 64) {
+                            this->currentTransformation = scanRegistrationObject64.registrationOfTwoVoxelsSOFFTFast(
                                     voxelData1, voxelData2,
-                                    Eigen::Matrix4d::Identity(), true,
-                                    true, (double) DIMENSION_OF_VOXEL_DATA /
-                                          (double) numberOfPoints, true, true);
+                                    initialGuessTransformation, useInitialAngle,
+                                    useInitialTranslation, (double) DIMENSION_OF_VOXEL_DATA /
+                                          (double) numberOfPoints, true, debug);
                         } else {
-                            if (numberOfPoints == 256) {
-                                this->currentTransformation = scanRegistrationObject256.registrationOfTwoVoxelsSOFFTFast(
+                            if (numberOfPoints == 128) {
+                                this->currentTransformation = scanRegistrationObject128.registrationOfTwoVoxelsSOFFTFast(
                                         voxelData1, voxelData2,
-                                        Eigen::Matrix4d::Identity(), true,
-                                        true, (double) DIMENSION_OF_VOXEL_DATA /
-                                              (double) numberOfPoints, true, true);
+                                        initialGuessTransformation, useInitialAngle,
+                                        useInitialTranslation, (double) DIMENSION_OF_VOXEL_DATA /
+                                              (double) numberOfPoints, true, debug);
                             } else {
-                                std::cout << "should never happen" << std::endl;
-                                exit(-1);
+                                if (numberOfPoints == 256) {
+                                    this->currentTransformation = scanRegistrationObject256.registrationOfTwoVoxelsSOFFTFast(
+                                            voxelData1, voxelData2,
+                                            initialGuessTransformation, useInitialAngle,
+                                            useInitialTranslation, (double) DIMENSION_OF_VOXEL_DATA /
+                                                  (double) numberOfPoints, true, debug);
+                                } else {
+                                    std::cout << "should never happen" << std::endl;
+                                    exit(-1);
+                                }
                             }
                         }
                     }
+                    end = std::chrono::steady_clock::now();
+
+//                    std::cout << "estimatedTransformation" << std::endl;
+//                    std::cout << this->currentTransformation << std::endl;
+//                    std::cout << "translationGT" << std::endl;
+//                    std::cout << gtTransformation << std::endl;
+
+                    timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+                    comparisonFileTime << timeToCalculate << ",";//time
+
+                    //calculate the angle
+                    angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
+                    angleEstimated = std::atan2(this->currentTransformation(1, 0),
+                                                this->currentTransformation(0, 0));
+                    angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
+                    comparisonFileAngleError << angleDiff << ",";//time
+
+                    //calculate difference angle and take abs
+                    translationGT = gtTransformation.block<3, 1>(0, 3);
+                    translationEstimated = this->currentTransformation.block<3, 1>(0, 3);
+                    errorDistance = (translationGT - translationEstimated).norm();
+                    comparisonFileL2Error << errorDistance << ",";//time
+
+
+                    std::free(voxelData1);
+                    std::free(voxelData2);
                 }
-                end = std::chrono::steady_clock::now();
-                timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-                comparisonFileTime << timeToCalculate<<",";//time
-
-                //calculate the angle
-                angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
-                angleEstimated = std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0));
-                angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
-                comparisonFileAngleError << angleDiff<<",";//time
-
-                //calculate difference angle and take abs
-                translationGT = gtTransformation.block<3, 1>(0, 3);
-                translationEstimated = this->currentTransformation.block<3, 1>(0, 3);
-                errorDistance = (translationGT - translationEstimated).norm();
-                comparisonFileL2Error << errorDistance<<",";//time
-
-
-                std::free(voxelData1);
-                std::free(voxelData2);
             }
+
+            //Initial GUess Error
+            comparisonFileTime << 0 << ",";//time
+
+            //calculate the angle
+            angleGT = std::atan2(gtTransformation(1, 0), gtTransformation(0, 0));
+            angleEstimated = std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0));
+            angleDiff = abs(generalHelpfulTools::angleDiff(angleGT, angleEstimated));
+            comparisonFileAngleError << angleDiff << ",";//time
+
+            //calculate difference angle and take abs
+            translationGT = gtTransformation.block<3, 1>(0, 3);
+            translationEstimated = this->initialGuessTransformation.block<3, 1>(0, 3);
+            errorDistance = (translationGT - translationEstimated).norm();
+            comparisonFileL2Error << errorDistance << ",";//time
+
 
 
 
@@ -515,11 +581,14 @@ private:
 /////////////////////////////////////////////////////// end of Registration ////////////////////////////////////////////////////
 
 
-            std::cout << "########################################################## NEW SCAN ##########################################################"<< std::endl;
+            std::cout
+                    << "########################################################## NEW SCAN ##########################################################"
+                    << std::endl;
+
             this->lastGTPosition = currentGTlocalPosition;
 //            exit(-1);
 
-            if(SHOULD_USE_ROSBAG){
+            if (SHOULD_USE_ROSBAG) {
 
                 std_srvs::SetBool srv;
                 srv.request.data = false;
@@ -1550,22 +1619,20 @@ int main(int argc, char **argv) {
     ros::NodeHandle n;
 //
     ros::V_string nodes;
-    int i=0;
+    int i = 0;
     std::string stringForRosClass;
-    if(SHOULD_USE_ROSBAG){
+    if (SHOULD_USE_ROSBAG) {
         getNodes(nodes);
-
-
 
 
         for (i = 0; i < nodes.size(); i++) {
 
             if (nodes[i].substr(1, 4) == "play") {
-    //            std::cout << "we found it" << std::endl;
+                //            std::cout << "we found it" << std::endl;
                 break;
             }
         }
-    //    std::cout << nodes[i]+"/pause_playback" << std::endl;
+        //    std::cout << nodes[i]+"/pause_playback" << std::endl;
         ros::ServiceServer serviceResetEkf;
 
 

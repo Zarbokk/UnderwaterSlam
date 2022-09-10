@@ -23,22 +23,29 @@
 #define DIMENSION_OF_MAP 200.0
 
 
-
-
-//StPere 0.6 seems fine
-//Valentin 0.2 seems OK
-#define FACTOR_OF_THRESHOLD 0.2
-#define IGNORE_DISTANCE_TO_ROBOT 1.5
+//10 neu
 
 #define SHOULD_USE_ROSBAG true
 
 
+
+//StPere 0.6 seems fine
+//Valentin 0.2 seems OK
+#define FACTOR_OF_THRESHOLD 0.6
+#define IGNORE_DISTANCE_TO_ROBOT 1.5
+//85 next
 #define SHIFT_VALUE_ANGLE 5.0
+
+
+
+
+
+
 #define SHIFT_VALUE_POSITION 2.0
 #define NUMBER_OF_CHANGED_SCANS 50.0
 #define ONLY_ANGLE_CHANGED false
 
-#define ADD_NOISE_TO_SCANS false
+#define ADD_NOISE_TO_SCANS true
 //very strong noise 0.2 and 0.03
 //strong noise 0.1 and 0.01
 //low noise 0.05 and 0.005
@@ -49,12 +56,15 @@
 
 
 
+//#define HOME_LOCATION "/home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/"
+
+
+
+
 #define HOME_LOCATION "/home/tim-external/dataFolder/2022FinalPaperData/"
+#define WHICH_FOLDER_SHOULD_BE_SAVED "stPereHighNoise52NEW/"
 
 
-
-//#define WHICH_FOLDER_SHOULD_BE_SAVED "valentinNoNoise52/"
-//#define WHICH_FOLDER_SHOULD_BE_SAVED "valentinNoNoise52/"
 
 
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "valentinNoNoise1510/"
@@ -65,7 +75,7 @@
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "stPereHighNoise52/"
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "stPereNoNoise52/"
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "valentinHighNoise52/"
-#define WHICH_FOLDER_SHOULD_BE_SAVED "valentinNoNoise52/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "valentinNoNoise52/"
 
 
 
@@ -306,6 +316,14 @@ private:
 
 //            pcl::PointCloud<pcl::PointXYZ> scan1OneValue;
 //            pcl::PointCloud<pcl::PointXYZ> scan1OneValueShifted;
+            graphSlamSaveStructure randomNoiseGraph1 = graphSaved;
+
+
+            if (ADD_NOISE_TO_SCANS) {
+                //maybe add here NOISE or wrong angles complete wrong other things
+
+                randomNoiseGraph1.addRandomNoiseToGraph(GAUSS_NOISE, SALT_AND_PEPPER_NOISE);
+            }
 
             Eigen::Matrix4d tmpMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0.001, 0, 0);
 
@@ -314,7 +332,7 @@ private:
 //                    this->graphSaved.getVertexList()->size() - 1, tmpMatrix, this->graphSaved, IGNORE_DISTANCE_TO_ROBOT,
 //                    FACTOR_OF_THRESHOLD);
             scan1Threshold = generalHelpfulTools::createPCLFromGraphOnlyThreshold(
-                    this->graphSaved.getVertexList()->size() - 1, tmpMatrix, this->graphSaved, IGNORE_DISTANCE_TO_ROBOT,
+                    this->graphSaved.getVertexList()->size() - 1, tmpMatrix, randomNoiseGraph1, IGNORE_DISTANCE_TO_ROBOT,
                     FACTOR_OF_THRESHOLD);
 
             this->initialGuessTransformation.block<3, 1>(0, 3) =
@@ -373,13 +391,13 @@ private:
 
                 Eigen::Matrix4d tmpMatrixForInverse = randomTransformation.inverse();
                 randomTransformation = tmpMatrixForInverse;
-                graphSlamSaveStructure randomNoiseGraph = graphSaved;
+                graphSlamSaveStructure randomNoiseGraph2 = graphSaved;
 
 
                 if (ADD_NOISE_TO_SCANS) {
                     //maybe add here NOISE or wrong angles complete wrong other things
 
-                    randomNoiseGraph.addRandomNoiseToGraph(GAUSS_NOISE, SALT_AND_PEPPER_NOISE);
+                    randomNoiseGraph2.addRandomNoiseToGraph(GAUSS_NOISE, SALT_AND_PEPPER_NOISE);
                 }
 
 //                std::cout << randomTransformation << std::endl;
@@ -388,7 +406,7 @@ private:
 //                        this->graphSaved.getVertexList()->size() - 1, tmpMatrix, randomNoiseGraph,
 //                        IGNORE_DISTANCE_TO_ROBOT, FACTOR_OF_THRESHOLD);
                 scan1ThresholdShifted = generalHelpfulTools::createPCLFromGraphOnlyThreshold(
-                        this->graphSaved.getVertexList()->size() - 1, tmpMatrix, randomNoiseGraph,
+                        this->graphSaved.getVertexList()->size() - 1, tmpMatrix, randomNoiseGraph2,
                         IGNORE_DISTANCE_TO_ROBOT, FACTOR_OF_THRESHOLD);
 
 
@@ -424,7 +442,7 @@ private:
                                                                                    this->graphSaved.getVertexList()->size() -
                                                                                    1,
                                                                                    Eigen::Matrix4d::Identity(),
-                                                                                   numberOfPoints, this->graphSaved,
+                                                                                   numberOfPoints, randomNoiseGraph1,
                                                                                    IGNORE_DISTANCE_TO_ROBOT,
                                                                                    DIMENSION_OF_VOXEL_DATA);//get voxel
                     for (int j = 0; j < numberOfPoints; j++) {
@@ -442,7 +460,7 @@ private:
                                                                                    this->graphSaved.getVertexList()->size() -
                                                                                    1,
                                                                                    randomTransformation,
-                                                                                   numberOfPoints, randomNoiseGraph,
+                                                                                   numberOfPoints, randomNoiseGraph2,
                                                                                    IGNORE_DISTANCE_TO_ROBOT,
                                                                                    DIMENSION_OF_VOXEL_DATA);//get voxel
                     for (int j = 0; j < numberOfPoints; j++) {
