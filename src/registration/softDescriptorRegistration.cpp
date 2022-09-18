@@ -40,7 +40,7 @@ bool compareTwoPeaks(indexPeak i1, indexPeak i2) {
 }
 
 double thetaIncrement(double index, int bandwidth) {
-    return M_PI * (2 * index + 1) / (4.0 * bandwidth);
+    return M_PI * (1 * index + 0) / (2.0 * bandwidth);
 }
 
 double phiIncrement(double index, int bandwidth) {
@@ -352,10 +352,10 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
     for (int r = minRNumber; r < maxRNumber; r++) {
         for (int j = 0; j < 2 * bandwidth; j++) {
             for (int k = 0; k < 2 * bandwidth; k++) {
-                int xIndex = std::round((double) r * std::sin(thetaIncrement((double) j + 1, bandwidth)) *
-                                        std::cos(phiIncrement((double) k + 1, bandwidth)) + bandwidth) - 1;
-                int yIndex = std::round((double) r * std::sin(thetaIncrement((double) j + 1, bandwidth)) *
-                                        std::sin(phiIncrement((double) k + 1, bandwidth)) + bandwidth) - 1;
+                int xIndex = std::round((double) r * std::sin(thetaIncrement((double) j , bandwidth)) *
+                                        std::cos(phiIncrement((double) k, bandwidth)) + bandwidth) - 1;
+                int yIndex = std::round((double) r * std::sin(thetaIncrement((double) j , bandwidth)) *
+                                        std::sin(phiIncrement((double) k, bandwidth)) + bandwidth) - 1;
 //                int zIndex =
 //                        std::round((double) r * std::cos(thetaIncrement((double) j + 1, bandwidth)) + bandwidth) - 1;
                 resampledMagnitudeSO3_1TMP[k + j * bandwidth * 2] =
@@ -416,20 +416,20 @@ softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointCloud<pcl::PointXYZ
 
     //calcs the rotation angle around z axis for 2D scans
     double currentThetaAngle;
-    double currentPsiAngle;
+    double currentPhiAngle;
     double maxCorrelation = 0;
     std::vector<angleAndCorrelation> correlationOfAngle;
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
             currentThetaAngle = i * 2.0 * M_PI / N;
-            currentPsiAngle = j * 2.0 * M_PI / N;
+            currentPhiAngle = j * 2.0 * M_PI / N;
             //[i + N * j]
             angleAndCorrelation tmpHolding;
             tmpHolding.correlation = resultingCorrelationComplex[i + N * (j + N * 0)][0]; // real part
             if (tmpHolding.correlation > maxCorrelation) {
                 maxCorrelation = tmpHolding.correlation;
             }
-            tmpHolding.angle = std::fmod(currentThetaAngle + currentPsiAngle + 4 * M_PI, 2 * M_PI);
+            tmpHolding.angle = std::fmod(currentThetaAngle + currentPhiAngle + 4 * M_PI, 2 * M_PI);
             correlationOfAngle.push_back(tmpHolding);
         }
     }
@@ -914,269 +914,16 @@ Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoPCL2D(pcl::PointClo
 double
 softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[], double voxelData2Input[],
                                                                  double goodGuessAlpha, bool debug) {
+    std::vector<double> allAnglesList = this->sofftRegistrationVoxel2DListOfPossibleRotations(voxelData1Input,voxelData2Input, debug);
 
-    double maximumScan1 = this->getSpectrumFromVoxelData2D(voxelData1Input, this->magnitude1,
-                                                           this->phase1, false);
-    double maximumScan2 = this->getSpectrumFromVoxelData2D(voxelData2Input, this->magnitude2,
-                                                           this->phase2, false);
-
-
-    if (debug) {
-        std::ofstream myFile1, myFile2, myFile3, myFile4, myFile5, myFile6;
-        myFile1.open(
-                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW1.csv");
-        myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/phaseFFTW1.csv");
-        myFile3.open(
-                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW1.csv");
-        myFile4.open(
-                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/magnitudeFFTW2.csv");
-        myFile5.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/phaseFFTW2.csv");
-        myFile6.open(
-                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/voxelDataFFTW2.csv");
-        for (int j = 0; j < N; j++) {
-            for (int i = 0; i < N; i++) {
-                myFile1 << magnitude1[j + N * i]; // real part
-                myFile1 << "\n";
-                myFile2 << phase1[j + N * i]; // imaginary part
-                myFile2 << "\n";
-                myFile3 << voxelData1Input[j + N * i]; // imaginary part
-                myFile3 << "\n";
-                myFile4 << magnitude2[j + N * i]; // real part
-                myFile4 << "\n";
-                myFile5 << phase2[j + N * i]; // imaginary part
-                myFile5 << "\n";
-                myFile6 << voxelData2Input[j + N * i]; // imaginary part
-                myFile6 << "\n";
-            }
-        }
-
-        myFile1.close();
-        myFile2.close();
-        myFile3.close();
-        myFile4.close();
-        myFile5.close();
-        myFile6.close();
-    }
-
-    double globalMaximumMagnitude;
-    if (maximumScan2 < maximumScan1) {
-        globalMaximumMagnitude = maximumScan1;
-    } else {
-        globalMaximumMagnitude = maximumScan2;
-    }
-
-    //normalize and fftshift
-    for (int j = 0; j < N; j++) {
-        for (int i = 0; i < N; i++) {
-            //for (int k = 0; k < N; k++) {
-            int indexX = (N / 2 + i) % N;
-            int indexY = (N / 2 + j) % N;
-//                int indexZ = (N / 2 + k) % N;
-
-            magnitude1Shifted[indexY + N * indexX] =
-                    magnitude1[j + N * i] / globalMaximumMagnitude;
-            magnitude2Shifted[indexY + N * indexX] =
-                    magnitude2[j + N * i] / globalMaximumMagnitude;
-            // }
-        }
-    }
-
-
-    //re-initialize to zero
-    for (int i = 0; i < N * N; i++) {
-        resampledMagnitudeSO3_1[i] = 0;
-        resampledMagnitudeSO3_2[i] = 0;
-        resampledMagnitudeSO3_1TMP[i] = 0;
-        resampledMagnitudeSO3_2TMP[i] = 0;
-    }
-
-    int minRNumber = 10;//was 4
-    int maxRNumber = N / 2 - 2;
-    int bandwidth = N / 2;
-
-    for (int r = maxRNumber - 1; r < maxRNumber; r++) {
-        for (int j = 0; j < 2 * bandwidth; j++) {
-            for (int k = 0; k < 2 * bandwidth; k++) {
-                int xIndex = std::round((double) r * std::sin(thetaIncrement((double) j + 1, bandwidth)) *
-                                        std::cos(phiIncrement((double) k + 1, bandwidth)) + bandwidth) - 1;
-                int yIndex = std::round((double) r * std::sin(thetaIncrement((double) j + 1, bandwidth)) *
-                                        std::sin(phiIncrement((double) k + 1, bandwidth)) + bandwidth) - 1;
-//                int zIndex =
-//                        std::round((double) r * std::cos(thetaIncrement((double) j + 1, bandwidth)) + bandwidth) - 1;
-                resampledMagnitudeSO3_1TMP[k + j * bandwidth * 2] =
-                        255 * magnitude1Shifted[yIndex + N * xIndex];
-                resampledMagnitudeSO3_2TMP[k + j * bandwidth * 2] =
-                        255 * magnitude2Shifted[yIndex + N * xIndex];
-            }
-        }
-        cv::Mat magTMP1(N, N, CV_64FC1, resampledMagnitudeSO3_1TMP);
-        cv::Mat magTMP2(N, N, CV_64FC1, resampledMagnitudeSO3_2TMP);
-        magTMP1.convertTo(magTMP1, CV_8UC1);
-        magTMP2.convertTo(magTMP2, CV_8UC1);
-        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
-        clahe->setClipLimit(3);
-        clahe->apply(magTMP1, magTMP1);
-        clahe->apply(magTMP2, magTMP2);
-
-
-
-
-        for (int j = 0; j < 2 * bandwidth; j++) {
-            for (int k = 0; k < 2 * bandwidth; k++) {
-                // HERE THE COORDINATES ARE CHANGING
-                resampledMagnitudeSO3_1[j + k * bandwidth * 2] = resampledMagnitudeSO3_1[j + k * bandwidth * 2] +
-                                                                 ((double) magTMP1.data[j + k * bandwidth * 2]) / 255.0;
-                resampledMagnitudeSO3_2[j + k * bandwidth * 2] = resampledMagnitudeSO3_2[j + k * bandwidth * 2] +
-                                                                 ((double) magTMP2.data[j + k * bandwidth * 2]) / 255.0;
-            }
-        }
-
-    }
-    if (debug) {
-        std::ofstream myFile7, myFile8;
-        myFile7.open(
-                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resampledVoxel1.csv");
-        myFile8.open(
-                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resampledVoxel2.csv");
-
-        for (int j = 0; j < N; j++) {
-            for (int k = 0; k < N; k++) {
-                myFile7 << resampledMagnitudeSO3_1[j + k * bandwidth * 2]; // real part
-                myFile7 << "\n";
-                myFile8 << resampledMagnitudeSO3_2[j + k * bandwidth * 2]; // real part
-                myFile8 << "\n";
-            }
-        }
-        myFile7.close();
-        myFile8.close();
-    }
-
-    //use sofft descriptor to calculate the correlation
-    this->sofftCorrelationObject.correlationOfTwoSignalsInSO3(resampledMagnitudeSO3_1, resampledMagnitudeSO3_2,
-                                                              resultingCorrelationComplex);
-    if (debug) {
-        FILE *fp;
-        fp = fopen(
-                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultCorrelation3D.csv",
-                "w");
-        for (int i = 0; i < 8 * bwOut * bwOut * bwOut; i++)
-            fprintf(fp, "%.16f\n", resultingCorrelationComplex[i][0]);
-        fclose(fp);
-    }
-
-    //calcs the rotation angle around z axis for 2D scans
-    double currentThetaAngle;
-    double currentPsiAngle;
-    double maxCorrelation = 0;
-    std::vector<angleAndCorrelation> correlationOfAngle;
-    for (int j = 0; j < N; j++) {
-        for (int i = 0; i < N; i++) {
-            currentThetaAngle = j * 2.0 * M_PI / N;
-            currentPsiAngle = i * 2.0 * M_PI / N;
-            //[i + N * j]
-            angleAndCorrelation tmpHolding;
-            tmpHolding.correlation = resultingCorrelationComplex[j + N * (i + N * 0)][0]; // real part
-            if (tmpHolding.correlation > maxCorrelation) {
-                maxCorrelation = tmpHolding.correlation;
-            }
-
-            tmpHolding.angle = std::fmod(-(currentThetaAngle + currentPsiAngle) + 6 * M_PI, 2 * M_PI);
-            correlationOfAngle.push_back(tmpHolding);
-        }
-    }
-
-    std::sort(correlationOfAngle.begin(), correlationOfAngle.end(), compareTwoAngleCorrelation);
-
-    std::vector<float> correlationAveraged, angleList;
-    double currentAverageAngle = correlationOfAngle[0].angle;
-    //angleList.push_back(currentAverageAngle);
-    int numberOfAngles = 1;
-    double averageCorrelation = correlationOfAngle[0].correlation;
-    for (int i = 1; i < correlationOfAngle.size(); i++) {
-
-        if (std::abs(currentAverageAngle - correlationOfAngle[i].angle) < 1.0 / N / 4.0) {
-            numberOfAngles = numberOfAngles + 1;
-            averageCorrelation = averageCorrelation + correlationOfAngle[i].correlation;
-        } else {
-
-            correlationAveraged.push_back((float) (averageCorrelation / numberOfAngles));
-            angleList.push_back((float) currentAverageAngle);
-            numberOfAngles = 1;
-            averageCorrelation = correlationOfAngle[i].correlation;
-            currentAverageAngle = correlationOfAngle[i].angle;
-
-        }
-    }
-    correlationAveraged.push_back((float) (averageCorrelation / numberOfAngles));
-
-    angleList.push_back((float) currentAverageAngle);
-    if (debug) {
-        std::ofstream myFile9;
-        myFile9.open(
-                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultingCorrelation1D.csv");
-
-        for (int i = 0; i < correlationAveraged.size(); i++) {
-            myFile9 << correlationAveraged[i]; // real part
-            myFile9 << "\n";
-
-        }
-        myFile9.close();
-    }
-
-    auto minmax = std::min_element(correlationAveraged.begin(), correlationAveraged.end());
-    long distanceToMinElement = std::distance(correlationAveraged.begin(), minmax);
-    std::rotate(correlationAveraged.begin(), correlationAveraged.begin() + distanceToMinElement,
-                correlationAveraged.end());
-
-    std::vector<int> out;
-
-    PeakFinder::findPeaks(correlationAveraged, out, true, 4.0);
-
-    std::rotate(correlationAveraged.begin(),
-                correlationAveraged.begin() + correlationAveraged.size() - distanceToMinElement,
-                correlationAveraged.end());
-    for (int i = 0; i < out.size(); ++i) {
-        out[i] = out[i] + (int) distanceToMinElement;
-        if (out[i] >= correlationAveraged.size()) {
-            out[i] = out[i] - correlationAveraged.size();
-        }
-    }
-//    std::cout << "peaks at: "<< std::endl;
-//    for (auto&& i : out){
-//        std::cout << i << std::endl;
-//    }
-    //goodGuessAlpha=-goodGuessAlpha;
     int indexCorrectAngle = 0;
-    for (int i = 1; i < out.size(); i++) {
-        if (std::abs(angleDifference(angleList[out[indexCorrectAngle]], goodGuessAlpha)) >
-            std::abs(angleDifference(angleList[out[i]], goodGuessAlpha))) {
+    for (int i = 1; i < allAnglesList.size(); i++) {
+        if (std::abs(angleDifference(allAnglesList[indexCorrectAngle], goodGuessAlpha)) >
+            std::abs(angleDifference(allAnglesList[i], goodGuessAlpha))) {
             indexCorrectAngle = i;
         }
     }
-    double bestMatchAngle = angleList[out[indexCorrectAngle]];//this angle is from Pos1 to Pos 2
-//    std::cout << "best Match Angle : "<< bestMatchAngle <<std::endl;
-    // for each angle calculate the shift correlation of that angle
-    //for( int angleIndex=0; angleIndex<out.size(); ++angleIndex){
-
-//    int startIndex, endIndex;
-//    if (abs(goodGuessAlpha + 100) < 0.0001) {
-//        //this means that
-//        startIndex = 0;
-//        endIndex = out.size();
-//    } else {
-//        //guess known therefore take the angle which is closest to the initial guess
-//        int indexCorrectAngle = 0;
-//        for (int i = 1; i < out.size(); i++) {
-//            if (std::abs(angleDifference(angleList[out[indexCorrectAngle]], goodGuessAlpha)) >
-//                std::abs(angleDifference(angleList[out[i]], goodGuessAlpha))) {
-//                indexCorrectAngle = i;
-//            }
-//        }
-//        startIndex = indexCorrectAngle;
-//        endIndex = indexCorrectAngle + 1;
-//    }
-
-    return bestMatchAngle;
+    return allAnglesList[indexCorrectAngle];//this angle is from Pos1 to Pos 2
 }
 
 std::vector<double>
@@ -1267,10 +1014,10 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
     for (int r = maxRNumber - 1; r < maxRNumber; r++) {
         for (int j = 0; j < 2 * bandwidth; j++) {
             for (int k = 0; k < 2 * bandwidth; k++) {
-                int xIndex = std::round((double) r * std::sin(thetaIncrement((double) j + 1, bandwidth)) *
-                                        std::cos(phiIncrement((double) k + 1, bandwidth)) + bandwidth) - 1;
-                int yIndex = std::round((double) r * std::sin(thetaIncrement((double) j + 1, bandwidth)) *
-                                        std::sin(phiIncrement((double) k + 1, bandwidth)) + bandwidth) - 1;
+                int xIndex = std::round((double) r * std::sin(thetaIncrement((double) j, bandwidth)) *
+                                        std::cos(phiIncrement((double) k , bandwidth)) + bandwidth) - 1;
+                int yIndex = std::round((double) r * std::sin(thetaIncrement((double) j , bandwidth)) *
+                                        std::sin(phiIncrement((double) k , bandwidth)) + bandwidth) - 1;
 //                int zIndex =
 //                        std::round((double) r * std::cos(thetaIncrement((double) j + 1, bandwidth)) + bandwidth) - 1;
                 resampledMagnitudeSO3_1TMP[k + j * bandwidth * 2] =
@@ -1338,21 +1085,21 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
 
     //calcs the rotation angle around z axis for 2D scans
     double currentThetaAngle;
-    double currentPsiAngle;
+    double currentPhiAngle;
     double maxCorrelation = 0;
     std::vector<angleAndCorrelation> correlationOfAngle;
     for (int j = 0; j < N; j++) {
         for (int i = 0; i < N; i++) {
             currentThetaAngle = j * 2.0 * M_PI / N;
-            currentPsiAngle = i * 2.0 * M_PI / N;
+            currentPhiAngle = i * 2.0 * M_PI / N;
             //[i + N * j]
             angleAndCorrelation tmpHolding;
             tmpHolding.correlation = resultingCorrelationComplex[j + N * (i + N * 0)][0]; // real part
             if (tmpHolding.correlation > maxCorrelation) {
                 maxCorrelation = tmpHolding.correlation;
             }
-
-            tmpHolding.angle = std::fmod(-(currentThetaAngle + currentPsiAngle) + 6 * M_PI, 2 * M_PI);
+            // test on dataset with N and N/2 and 0   first test + n/2
+            tmpHolding.angle = std::fmod(-(currentThetaAngle + currentPhiAngle) + 6 * M_PI+0.0*M_PI/(N), 2 * M_PI);
             correlationOfAngle.push_back(tmpHolding);
         }
     }
@@ -1422,6 +1169,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
 
     return returnVectorWithAngles;
 }
+
 
 
 Eigen::Vector2d softDescriptorRegistration::sofftRegistrationVoxel2DTranslation(double voxelData1Input[],

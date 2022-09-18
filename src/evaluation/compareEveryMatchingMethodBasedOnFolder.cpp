@@ -187,10 +187,10 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
 
         //SUPER4PCS
         begin = std::chrono::steady_clock::now();
-        estimatedTransformation = scanRegistrationObject32.super4PCSRegistration(pclNotShifted,
-                                                                                 pclShifted,
-                                                                                 initialGuess,
-                                                                                 true, false);
+//        estimatedTransformation = scanRegistrationObject32.super4PCSRegistration(pclNotShifted,
+//                                                                                 pclShifted,
+//                                                                                 initialGuess,
+//                                                                                 true, false);
 
         end = std::chrono::steady_clock::now();
 
@@ -221,10 +221,10 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
         begin = std::chrono::steady_clock::now();
 //        std::cout << "initialGuess" << std::endl;
 //        std::cout << initialGuess << std::endl;
-        estimatedTransformation = scanRegistrationObject32.ndt_d2d_2d(pclNotShifted,
-                                                                      pclShifted,
-                                                                      initialGuess,
-                                                                      true);
+//        estimatedTransformation = scanRegistrationObject32.ndt_d2d_2d(pclNotShifted,
+//                                                                      pclShifted,
+//                                                                      initialGuess,
+//                                                                      true);
 //        std::cout << "estimatedTransformation" << std::endl;
 //        std::cout << estimatedTransformation << std::endl;
 //        std::cout << "translationGT" << std::endl;
@@ -249,10 +249,10 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
 
         //NDT P2D
         begin = std::chrono::steady_clock::now();
-        estimatedTransformation = scanRegistrationObject32.ndt_p2d(pclNotShifted,
-                                                                   pclShifted,
-                                                                   initialGuess,
-                                                                   true);
+//        estimatedTransformation = scanRegistrationObject32.ndt_p2d(pclNotShifted,
+//                                                                   pclShifted,
+//                                                                   initialGuess,
+//                                                                   true);
 //        std::cout << "estimatedTransformation" << std::endl;
 //        std::cout << estimatedTransformation << std::endl;
 //        std::cout << "translationGT" << std::endl;
@@ -367,7 +367,7 @@ handleRegistrationsOfDirectory(const std::string &s, scanRegistrationClass &scan
 //                std::cout << estimatedTransformation << std::endl;
 //                std::cout << "translationGT" << std::endl;
 //                std::cout << gtTransformation << std::endl;
-
+                // THIS IS N/2
                 end = std::chrono::steady_clock::now();
                 timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
 //                std::cout << timeToCalculate << std::endl;

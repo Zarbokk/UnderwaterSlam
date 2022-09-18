@@ -85,7 +85,11 @@ int main(int argc, char **argv) {
                                                                                                       1,
                                                                                                       false,
                                                                                                       true);
+//    Eigen::Matrix4d tmpMatrix4d = estimatedTransformation.inverse();
+//    estimatedTransformation = tmpMatrix4d;
 
+//    estimatedTransformation(1, 3) = estimatedTransformation(1, 3)-5;
+//    estimatedTransformation(0, 3) = estimatedTransformation(0, 3)-2;
     cv::Mat trans_mat = (cv::Mat_<double>(2, 3) << estimatedTransformation(0,0),
             estimatedTransformation(0,1),
             estimatedTransformation(0, 3),

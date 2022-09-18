@@ -417,7 +417,7 @@ private:
                     outMatrix << '\n';
                 }
                 outMatrix.close();
-                exit(-1);
+//                exit(-1);
             }
 
             if (SHOULD_USE_ROSBAG) {
