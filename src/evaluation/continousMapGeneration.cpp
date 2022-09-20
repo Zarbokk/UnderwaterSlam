@@ -24,9 +24,9 @@
 
 
 // 50 simulation 30 valentin
-#define NUMBER_OF_CONSECUTIVE_SCANS 3
+#define NUMBER_OF_CONSECUTIVE_SCANS 1
 // 80 simulation 120 valentin
-#define DIMENSION_OF_MAP 120.0
+#define DIMENSION_OF_MAP 80.0
 // 50 simulation 30 valentin
 #define USING_INITIAL_GUESS_CHANGE_VALENTIN false
 
@@ -34,7 +34,7 @@
 
 
 //1: our 256 2:GICP 3:super 4: NDT d2d 5: NDT P2D 6: our global 256
-#define WHICH_METHOD_USED 2
+#define WHICH_METHOD_USED 6
 #define IGNORE_FIRST_STEPS 0
 //Simulation : all 0
 #define ROLL_TRANSFORMATION_ANGLE 0
@@ -47,7 +47,7 @@
 //StPere 0.6 seems fine
 //Valentin 0.2 seems OK
 //simulation 0.9
-#define FACTOR_OF_THRESHOLD 0.2
+#define FACTOR_OF_THRESHOLD 0.9
 #define IGNORE_DISTANCE_TO_ROBOT 1.5
 
 #define SHOULD_USE_ROSBAG true
@@ -92,6 +92,14 @@ public:
 
 
         this->mapOfBunker = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP);
+        this->voxelDataIndex = (int *) malloc(sizeof(int) * NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP);
+
+        for (int i = 0; i < NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP; i++) {
+            this->mapOfBunker[i] = 0;
+            this->voxelDataIndex[i] = 0;
+        }
+
+
 
         this->voxelData1 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
         this->voxelData2 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
@@ -127,6 +135,12 @@ public:
 
         this->firstSonarInput = true;
         this->firstCompleteSonarScan = true;
+        Eigen::AngleAxisd rotation_vectorz(165 / 180.0 * M_PI, Eigen::Vector3d(0, 0, 1));
+
+
+        this->completeTransformationForCurrentScan = Eigen::Matrix4d::Identity();
+        this->completeTransformationForCurrentScan.block<3, 3>(0, 0) = rotation_vectorz.toRotationMatrix();
+
 
     }
 
@@ -152,6 +166,7 @@ private:
     Eigen::Matrix4d currentTransformation;
     Eigen::Matrix4d initialGuessTransformation;
     Eigen::Matrix4d transformationX180Degree;
+    Eigen::Matrix4d completeTransformationForCurrentScan;
 
     scanRegistrationClass scanRegistrationObject;
     groundTruthPositionStruct currentGTPosition;
@@ -164,7 +179,7 @@ private:
     double *voxelData1;
     double *voxelData2;
     double *mapOfBunker;
-
+    int *voxelDataIndex;
 
     int indexLastFullScan;
 
@@ -406,14 +421,14 @@ private:
             this->lastGTPosition = currentGTlocalPosition;
             this->numberOfScan++;
             if (numberOfScan > NUMBER_OF_CONSECUTIVE_SCANS) {
-                this->createImageOfAllScans(mapOfBunker, NUMBER_OF_SKIPPING_SCANS);
+                this->createImageOfAllScans();
 
                 std::ofstream outMatrix(
                         "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultsOfManyMatching/completeMapTest.csv");
 
                 for (int j = 0; j < NUMBER_OF_POINTS_MAP; j++) {
                     for (int k = 0; k < NUMBER_OF_POINTS_MAP; k++)
-                        outMatrix << mapOfBunker[j + NUMBER_OF_POINTS_MAP * k] << ',';
+                        outMatrix << this->mapOfBunker[j + NUMBER_OF_POINTS_MAP * k] << ',';
                     outMatrix << '\n';
                 }
                 outMatrix.close();
@@ -637,118 +652,6 @@ private:
 
     }
 
-//    double createVoxelOfGraph(double voxelData[], int indexStart, Eigen::Matrix4d transformationInTheEndOfCalculation,
-//                              int numberOfPoints) {
-//        int *voxelDataIndex;
-//        voxelDataIndex = (int *) malloc(sizeof(int) * numberOfPoints * numberOfPoints);
-//        //set zero voxel and index
-//        for (int i = 0; i < numberOfPoints * numberOfPoints; i++) {
-//            voxelDataIndex[i] = 0;
-//            voxelData[i] = 0;
-//        }
-//
-//
-//        int i = 0;
-//        do {
-//            //calculate the position of each intensity and create an index in two arrays. First in voxel data, and second save number of intensities.
-//
-//
-//            //get position of current intensityRay
-//            Eigen::Matrix4d transformationOfIntensityRay =
-//                    this->graphSaved.getVertexList()->at(indexStart).getTransformation().inverse() *
-//                    this->graphSaved.getVertexList()->at(indexStart - i).getTransformation();
-//            //positionOfIntensity has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
-//            Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
-//                                                                                                             this->graphSaved.getVertexList()->at(
-//                                                                                                                     indexStart -
-//                                                                                                                     i).getIntensities().angle);
-//
-//            int ignoreDistance = (int) (IGNORE_DISTANCE_TO_ROBOT /
-//                                        (this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().range /
-//                                         ((double) this->graphSaved.getVertexList()->at(
-//                                                 indexStart - i).getIntensities().intensities.size())));
-//
-//
-//            for (int j = ignoreDistance;
-//                 j < this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
-//                double distanceOfIntensity =
-//                        j / ((double) this->graphSaved.getVertexList()->at(
-//                                indexStart - i).getIntensities().intensities.size()) *
-//                        ((double) this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().range);
-//
-//                int incrementOfScan = this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().increment;
-//                for (int l = -incrementOfScan - 5; l <= incrementOfScan + 5; l++) {
-//                    Eigen::Vector4d positionOfIntensity(
-//                            distanceOfIntensity,
-//                            0,
-//                            0,
-//                            1);
-//                    double rotationOfPoint = l / 400.0;
-//                    Eigen::Matrix4d rotationForBetterView = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
-//                                                                                                                rotationOfPoint);
-//                    positionOfIntensity = rotationForBetterView * positionOfIntensity;
-////                    std::cout << positionOfIntensity << std::endl;
-//
-//                    positionOfIntensity = transformationOfIntensityRay *
-//                                          rotationOfSonarAngleMatrix * positionOfIntensity;
-//
-////                    std::cout << positionOfIntensity << std::endl;
-//
-//                    positionOfIntensity = transformationInTheEndOfCalculation * positionOfIntensity;
-////                    std::cout << positionOfIntensity << std::endl;
-//
-//
-//
-//
-//                    //calculate index dependent on  DIMENSION_OF_VOXEL_DATA and numberOfPoints the middle
-//                    int indexX =
-//                            (int) (positionOfIntensity.x() / (DIMENSION_OF_VOXEL_DATA / 2) * numberOfPoints /
-//                                   2) +
-//                            numberOfPoints / 2;
-//                    int indexY =
-//                            (int) (positionOfIntensity.y() / (DIMENSION_OF_VOXEL_DATA / 2) * numberOfPoints /
-//                                   2) +
-//                            numberOfPoints / 2;
-//
-//
-//                    if (indexX < numberOfPoints && indexY < numberOfPoints && indexY >= 0 &&
-//                        indexX >= 0) {
-//                        //                    std::cout << indexX << " " << indexY << std::endl;
-//                        //if index fits inside of our data, add that data. Else Ignore
-//                        voxelDataIndex[indexY + numberOfPoints * indexX] =
-//                                voxelDataIndex[indexY + numberOfPoints * indexX] + 1;
-//                        //                    std::cout << "Index: " << voxelDataIndex[indexY + numberOfPoints * indexX] << std::endl;
-//                        voxelData[indexY + numberOfPoints * indexX] =
-//                                voxelData[indexY + numberOfPoints * indexX] +
-//                                this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[j];
-//                        //                    std::cout << "Intensity: " << voxelData[indexY + numberOfPoints * indexX] << std::endl;
-//                        //                    std::cout << "random: " << std::endl;
-//                    }
-//                }
-//            }
-//            i++;
-//        } while (this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
-//                 this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
-//                 INTENSITY_SAVED_AND_KEYFRAME);
-//        double maximumOfVoxelData = 0;
-//        for (i = 0; i < numberOfPoints * numberOfPoints; i++) {
-//            if (voxelDataIndex[i] > 0) {
-//                voxelData[i] = voxelData[i] / voxelDataIndex[i];
-//                if (maximumOfVoxelData < voxelData[i]) {
-//                    maximumOfVoxelData = voxelData[i];
-//                }
-//                //std::cout << voxelData[i] << std::endl;
-//
-//            }
-//        }// @TODO calculate the maximum and normalize "somehow"
-//
-//
-//
-//
-//        free(voxelDataIndex);
-//        return maximumOfVoxelData;
-//    }
-
 
     void groundTruthCallbackGazebo(const commonbluerovmsg::staterobotforevaluation::ConstPtr &msg) {
         std::lock_guard<std::mutex> lock(this->GTMutex);
@@ -784,162 +687,6 @@ private:
     }
 
 
-//    pcl::PointCloud<pcl::PointXYZ> createPCLFromGraphOneValue(int indexStart,
-//                                                              Eigen::Matrix4d transformationInTheEndOfCalculation) {
-//        pcl::PointCloud<pcl::PointXYZ> scan;
-//        //create array with all intencities.
-//        // Calculate maximum of intensities.
-//        // only use maximum of 10% of max value as points
-//        int i = 0;
-//        double maximumIntensity = 0;
-//
-//        int ignoreDistance = (int) (IGNORE_DISTANCE_TO_ROBOT /
-//                                    (this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().range /
-//                                     ((double) this->graphSaved.getVertexList()->at(
-//                                             indexStart - i).getIntensities().intensities.size())));
-//
-//        do {
-//            for (int j = ignoreDistance;
-//                 j < this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
-//                if (this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[j] >
-//                    maximumIntensity) {
-//                    maximumIntensity = this->graphSaved.getVertexList()->at(
-//                            indexStart - i).getIntensities().intensities[j];
-//                }
-//            }
-//            i++;
-//        } while (this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
-//                 this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
-//                 INTENSITY_SAVED_AND_KEYFRAME);
-//
-//        double thresholdIntensityScan = maximumIntensity * FACTOR_OF_THRESHOLD;//maximum intensity of 0.9
-//
-//
-//
-//        i = 0;
-//        do {
-//            //find max Position
-//            int maxPosition = ignoreDistance;
-//            for (int j = ignoreDistance;
-//                 j < this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
-//                if (this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[j] >
-//                    this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[maxPosition]) {
-//                    maxPosition = j;
-//                }
-//            }
-//            if (maxPosition > ignoreDistance &&
-//                this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[maxPosition] >
-//                thresholdIntensityScan) {
-//                Eigen::Matrix4d transformationOfIntensityRay =
-//                        this->graphSaved.getVertexList()->at(indexStart).getTransformation().inverse() *
-//                        this->graphSaved.getVertexList()->at(indexStart - i).getTransformation();
-//
-//                //positionOfIntensity has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
-//                Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
-//                                                                                                                 this->graphSaved.getVertexList()->at(
-//                                                                                                                         indexStart -
-//                                                                                                                         i).getIntensities().angle);
-//
-//                double distanceOfIntensity =
-//                        maxPosition / ((double) this->graphSaved.getVertexList()->at(
-//                                indexStart - i).getIntensities().intensities.size()) *
-//                        ((double) this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().range);
-//                Eigen::Vector4d positionOfIntensity(
-//                        distanceOfIntensity,
-//                        0,
-//                        0,
-//                        1);
-//
-//                positionOfIntensity = transformationInTheEndOfCalculation * transformationOfIntensityRay *
-//                                      rotationOfSonarAngleMatrix * positionOfIntensity;
-//                //create point for PCL
-//                pcl::PointXYZ tmpPoint((float) positionOfIntensity[0],
-//                                       (float) positionOfIntensity[1],
-//                                       (float) positionOfIntensity[2]);
-//                scan.push_back(tmpPoint);
-//            }
-//
-//
-//            i++;
-//        } while (this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
-//                 this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
-//                 INTENSITY_SAVED_AND_KEYFRAME);
-//        return scan;
-//    }
-//
-//
-//    pcl::PointCloud<pcl::PointXYZ> createPCLFromGraphOnlyThreshold(int indexStart,
-//                                                                   Eigen::Matrix4d transformationInTheEndOfCalculation) {
-//        pcl::PointCloud<pcl::PointXYZ> scan;
-//        //create array with all intencities.
-//        // Calculate maximum of intensities.
-//
-//
-//        double maximumIntensity = 0;
-//        int i = 0;
-//
-//        int ignoreDistance = (int) (IGNORE_DISTANCE_TO_ROBOT /
-//                                    (this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().range /
-//                                     ((double) this->graphSaved.getVertexList()->at(
-//                                             indexStart - i).getIntensities().intensities.size())));
-//
-//
-//        do {
-//            for (int j = ignoreDistance;
-//                 j < this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
-//                if (this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[j] >
-//                    maximumIntensity) {
-//                    maximumIntensity = this->graphSaved.getVertexList()->at(
-//                            indexStart - i).getIntensities().intensities[j];
-//                }
-//            }
-//            i++;
-//        } while (this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
-//                 this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
-//                 INTENSITY_SAVED_AND_KEYFRAME);
-//
-//        double thresholdIntensityScan = maximumIntensity * FACTOR_OF_THRESHOLD;
-//
-//
-//        i = 0;
-//        do {
-//            Eigen::Matrix4d transformationOfIntensityRay =
-//                    this->graphSaved.getVertexList()->at(indexStart).getTransformation().inverse() *
-//                    this->graphSaved.getVertexList()->at(indexStart - i).getTransformation();
-//
-//            //positionOfIntensity has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
-//            Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
-//                                                                                                             this->graphSaved.getVertexList()->at(
-//                                                                                                                     indexStart -
-//                                                                                                                     i).getIntensities().angle);
-//            for (int j = ignoreDistance;
-//                 j < this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
-//                if (this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().intensities[j] >
-//                    thresholdIntensityScan) {
-//                    double distanceOfIntensity =
-//                            j / ((double) this->graphSaved.getVertexList()->at(
-//                                    indexStart - i).getIntensities().intensities.size()) *
-//                            ((double) this->graphSaved.getVertexList()->at(indexStart - i).getIntensities().range);
-//                    Eigen::Vector4d positionOfIntensity(
-//                            distanceOfIntensity,
-//                            0,
-//                            0,
-//                            1);
-//                    positionOfIntensity = transformationInTheEndOfCalculation * transformationOfIntensityRay *
-//                                          rotationOfSonarAngleMatrix * positionOfIntensity;
-//                    //create point for PCL
-//                    pcl::PointXYZ tmpPoint((float) positionOfIntensity[0],
-//                                           (float) positionOfIntensity[1],
-//                                           (float) positionOfIntensity[2]);
-//                    scan.push_back(tmpPoint);
-//                }
-//            }
-//            i++;
-//        } while (this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
-//                 this->graphSaved.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
-//                 INTENSITY_SAVED_AND_KEYFRAME);
-//        return scan;
-//    }
 
     std::vector<std::string> get_directories(const std::string &s) {
         std::vector<std::string> r;
@@ -950,7 +697,7 @@ private:
     }
 
 public:
-    void createImageOfAllScans(double mapData[], int howOftenSkipping) {
+    void createImageOfAllScans() {
         //homePosition is 0 0
         //size of mapData is defined in NUMBER_OF_POINTS_MAP
 
@@ -962,12 +709,12 @@ public:
         double correctionFactorCreationRoll = 0;// M_PI at real data
 
 
-        int *voxelDataIndex;
-        voxelDataIndex = (int *) malloc(sizeof(int) * NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP);
-        //set zero voxel and index
+
+        //re calculate mapData
         for (int i = 0; i < NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP; i++) {
-            voxelDataIndex[i] = 0;
-            mapData[i] = 0;
+            if (voxelDataIndex[i] > 0) {
+                this->mapOfBunker[i] = this->mapOfBunker[i] * voxelDataIndex[i];
+            }
         }
 
 
@@ -981,118 +728,47 @@ public:
         }
 
 //        int startPoint = 0;
-        int startPoint = listOfRegistratedEdges.size()/2;
-        int lastPositionOfInterest = startPoint;
         //missing: just add the point cloud to map at startPoint
-        Eigen::Matrix4d completeTransformationForCurrentScan = Eigen::Matrix4d::Identity();
-
-        for (int currentEdgePosition = startPoint;
-             currentEdgePosition < listOfRegistratedEdges.size(); currentEdgePosition =
-                                                                          currentEdgePosition + howOftenSkipping) {
-
-
-            int indexFirstPCL = listOfRegistratedEdges[lastPositionOfInterest].getToVertex();
-            int indexSecondPCL = listOfRegistratedEdges[currentEdgePosition].getToVertex();
-
-            this->initialGuessTransformation =
-                    this->graphSaved.getVertexList()->at(indexFirstPCL).getTransformation().inverse() *
-                    this->graphSaved.getVertexList()->at(indexSecondPCL).getTransformation();
-            if (currentEdgePosition == startPoint) {
-                this->currentTransformation = Eigen::Matrix4d::Identity();
-            } else {
-//                std::cout << "init guess angle: "
-//                          << std::atan2(this->initialGuessTransformation(1, 0), this->initialGuessTransformation(0, 0))
-//                          << std::endl;
-                this->currentTransformation = this->calculateRegistration(this->initialGuessTransformation, whichMethod,
-                                                                          indexFirstPCL, indexSecondPCL,
-                                                                          correctionFactorMatchingYaw,
-                                                                          correctionFactorMatchingRoll);
-                std::cout << "init guess:" << std::endl;
-                std::cout << this->initialGuessTransformation << std::endl;
-                std::cout << "current Transformation:" << std::endl;
-                std::cout << this->currentTransformation << std::endl;
-//                std::cout << "init guess inverse():" << std::endl;
-//                std::cout << this->initialGuessTransformation.inverse() << std::endl;
-//                std::cout << "current Transformation Inverse :" << std::endl;
-//                std::cout << this->currentTransformation.inverse() << std::endl;
-
-
-
-//                std::cout << "current Transformation Inverse + transform :" << std::endl;
-//                std::cout << generalHelpfulTools::getTransformationMatrixFromRPY(M_PI,0,0)*this->currentTransformation.inverse() << std::endl;
-//                std::cout << "for stop" << std::endl;
-            }
-
-
-            completeTransformationForCurrentScan = completeTransformationForCurrentScan * this->currentTransformation;
-//            std::cout << "complete:" << std::endl;
-//            std::cout << completeTransformationForCurrentScan << std::endl;
-
-            // method to create PCL in Map
 
 
 
 
 
+        int indexFirstPCL = listOfRegistratedEdges[listOfRegistratedEdges.size()-2].getToVertex();
+        int indexSecondPCL = listOfRegistratedEdges[listOfRegistratedEdges.size()-1].getToVertex();
+
+        this->initialGuessTransformation =
+                this->graphSaved.getVertexList()->at(indexFirstPCL).getTransformation().inverse() *
+                this->graphSaved.getVertexList()->at(indexSecondPCL).getTransformation();
+
+        this->currentTransformation = this->calculateRegistration(this->initialGuessTransformation, whichMethod,
+                                                                  indexFirstPCL, indexSecondPCL,
+                                                                  correctionFactorMatchingYaw,
+                                                                  correctionFactorMatchingRoll);
+        std::cout << "init guess:" << std::endl;
+        std::cout << this->initialGuessTransformation << std::endl;
+        std::cout << "current Transformation:" << std::endl;
+        std::cout << this->currentTransformation << std::endl;
 
 
-            int indexStart = indexSecondPCL;
-            this->mapCalculation(indexStart, completeTransformationForCurrentScan, correctionFactorCreationRoll,
-                                 correctionFactorCreationMapYaw,
-                                 voxelDataIndex, mapData);
 
 
-            //make sure next iteration the correct registrationis calculated
-            lastPositionOfInterest = currentEdgePosition;
-        }
+        this->completeTransformationForCurrentScan = this->completeTransformationForCurrentScan * this->currentTransformation;
+
+
+        // method to create PCL in Map
+        int indexStart = indexSecondPCL;
+        this->mapCalculation(indexStart, correctionFactorCreationRoll,
+                             correctionFactorCreationMapYaw);
+
         //TO THE END
-        //NOW: TO THE BEGINNING
-
-
-        lastPositionOfInterest = startPoint;
-
-        completeTransformationForCurrentScan = Eigen::Matrix4d::Identity();
-
-        for (int currentEdgePosition = startPoint - howOftenSkipping;
-             currentEdgePosition > ignoreFirstNSteps; currentEdgePosition = currentEdgePosition - howOftenSkipping) {
-            int indexFirstPCL = listOfRegistratedEdges[currentEdgePosition].getToVertex();
-            int indexSecondPCL = listOfRegistratedEdges[lastPositionOfInterest].getToVertex();
-
-            this->initialGuessTransformation =
-                    this->graphSaved.getVertexList()->at(indexFirstPCL).getTransformation().inverse() *
-                    this->graphSaved.getVertexList()->at(indexSecondPCL).getTransformation();
-
-
-            this->currentTransformation = this->calculateRegistration(
-                    this->initialGuessTransformation, whichMethod, indexFirstPCL, indexSecondPCL,
-                    correctionFactorMatchingYaw, correctionFactorMatchingRoll);
-
-
-            std::cout << "init guess:" << std::endl;
-            std::cout << this->initialGuessTransformation << std::endl;
-            std::cout << "current Transformation:" << std::endl;
-            std::cout << this->currentTransformation << std::endl;
-//            this->currentTransformation(0,3) = -this->currentTransformation(0,3);
-//            std::cout <<"current Transformation:" << std::endl;
-//            std::cout << this->currentTransformation << std::endl;
-            completeTransformationForCurrentScan =
-                    completeTransformationForCurrentScan * this->currentTransformation.inverse();
-            int indexStart = indexFirstPCL;
-            this->mapCalculation(indexStart, completeTransformationForCurrentScan, correctionFactorCreationRoll,
-                                 correctionFactorCreationMapYaw,
-                                 voxelDataIndex, mapData);
-
-            //make sure next iteration the correct registrationis calculated
-            lastPositionOfInterest = currentEdgePosition;
-        }
-
 
         double maximumOfVoxelData = 0;
         for (int i = 0; i < NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP; i++) {
             if (voxelDataIndex[i] > 0) {
-                mapData[i] = mapData[i] / voxelDataIndex[i];
-                if (maximumOfVoxelData < mapData[i]) {
-                    maximumOfVoxelData = mapData[i];
+                this->mapOfBunker[i] = this->mapOfBunker[i] / voxelDataIndex[i];
+                if (maximumOfVoxelData < this->mapOfBunker[i]) {
+                    maximumOfVoxelData = this->mapOfBunker[i];
                 }
                 //std::cout << voxelData[i] << std::endl;
             }
@@ -1107,17 +783,20 @@ public:
         occupanyMap.info.origin.position.x = -DIMENSION_OF_MAP / 2;
         occupanyMap.info.origin.position.y = -DIMENSION_OF_MAP / 2;
         occupanyMap.info.origin.position.z = +0.5;
+
+
+
+
         for (int i = 0; i < NUMBER_OF_POINTS_MAP; i++) {
             for (int j = 0; j < NUMBER_OF_POINTS_MAP; j++) {
                 //determine color:
-                occupanyMap.data.push_back((int) (mapData[j+NUMBER_OF_POINTS_MAP*i]*2));
+                occupanyMap.data.push_back((int) (this->mapOfBunker[i+NUMBER_OF_POINTS_MAP*j]*2));
             }
         }
         publisherOccupancyMap.publish(occupanyMap);
 
 
 
-        free(voxelDataIndex);
     }
 
     Eigen::Matrix4d
@@ -1368,9 +1047,7 @@ public:
     }
 
 
-    void mapCalculation(int indexStart, Eigen::Matrix4d &completeTransformationForCurrentScan,
-                        double correctionFactorCreationRoll, double correctionFactorCreationMap,
-                        int voxelDataIndex[], double mapData[]) {
+    void mapCalculation(int indexStart,double correctionFactorCreationRoll, double correctionFactorCreationMap) {
 
         int i = 0;
         do {
@@ -1418,7 +1095,7 @@ public:
                                                                                                                 rotationOfPoint);
                     positionOfIntensity = rotationForBetterView * positionOfIntensity;
 
-                    positionOfIntensity = completeTransformationForCurrentScan *
+                    positionOfIntensity = this->completeTransformationForCurrentScan *
                                           generalHelpfulTools::getTransformationMatrixFromRPY(
                                                   correctionFactorCreationRoll, 0, correctionFactorCreationMap) *
                                           transformationOfIntensityRay *
@@ -1441,8 +1118,8 @@ public:
                         voxelDataIndex[indexX + NUMBER_OF_POINTS_MAP * indexY] =
                                 voxelDataIndex[indexX + NUMBER_OF_POINTS_MAP * indexY] + 1;
                         //                    std::cout << "Index: " << voxelDataIndex[indexY + numberOfPoints * indexX] << std::endl;
-                        mapData[indexX + NUMBER_OF_POINTS_MAP * indexY] =
-                                mapData[indexX + NUMBER_OF_POINTS_MAP * indexY] +
+                        this->mapOfBunker[indexX + NUMBER_OF_POINTS_MAP * indexY] =
+                                this->mapOfBunker[indexX + NUMBER_OF_POINTS_MAP * indexY] +
                                 this->graphSaved.getVertexList()->at(
                                         indexStart - i).getIntensities().intensities[j];
                         //                    std::cout << "Intensity: " << voxelData[indexY + numberOfPoints * indexX] << std::endl;
