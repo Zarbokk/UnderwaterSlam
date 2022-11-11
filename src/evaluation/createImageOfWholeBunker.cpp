@@ -24,7 +24,7 @@
 
 
 // 50 simulation 30 valentin
-#define NUMBER_OF_CONSECUTIVE_SCANS 3
+#define NUMBER_OF_CONSECUTIVE_SCANS 2
 // 80 simulation 120 valentin
 #define DIMENSION_OF_MAP 120.0
 // 50 simulation 30 valentin
@@ -34,7 +34,7 @@
 
 
 //1: our 256 2:GICP 3:super 4: NDT d2d 5: NDT P2D 6: our global 256
-#define WHICH_METHOD_USED 2
+#define WHICH_METHOD_USED 1
 #define IGNORE_FIRST_STEPS 0
 //Simulation : all 0
 #define ROLL_TRANSFORMATION_ANGLE 0
@@ -408,8 +408,19 @@ private:
             if (numberOfScan > NUMBER_OF_CONSECUTIVE_SCANS) {
                 this->createImageOfAllScans(mapOfBunker, NUMBER_OF_SKIPPING_SCANS);
 
+//                std::ofstream outMatrix(
+//                        "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultsOfManyMatching/completeMapTest.csv");
+//
+//                for (int j = 0; j < NUMBER_OF_POINTS_MAP; j++) {
+//                    for (int k = 0; k < NUMBER_OF_POINTS_MAP; k++)
+//                        outMatrix << mapOfBunker[j + NUMBER_OF_POINTS_MAP * k] << ',';
+//                    outMatrix << '\n';
+//                }
+//                outMatrix.close();
+//                exit(-1);
+
                 std::ofstream outMatrix(
-                        "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultsOfManyMatching/completeMapTest.csv");
+                        "/home/tim-external/dataFolder/SimulationEnvironment/experimentForVideoICRA/consecutiveFromMiddle/consecutiveScanCreation_"+std::to_string(WHICH_METHOD_USED)+"_"+std::to_string(numberOfScan)+".csv");
 
                 for (int j = 0; j < NUMBER_OF_POINTS_MAP; j++) {
                     for (int k = 0; k < NUMBER_OF_POINTS_MAP; k++)
@@ -417,7 +428,9 @@ private:
                     outMatrix << '\n';
                 }
                 outMatrix.close();
-                exit(-1);
+
+
+
             }
 
             if (SHOULD_USE_ROSBAG) {

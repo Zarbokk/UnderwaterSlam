@@ -4,6 +4,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CATKIN_ENABLE_TESTING OFF)
 
+
+
+
 project(underwaterslam)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -18,6 +21,9 @@ find_package( OpenCV REQUIRED )
 find_package( PCL 1.10 REQUIRED COMPONENTS common io visualization )
 find_package( OpenGR REQUIRED )
 find_package( OpenMP REQUIRED )
+find_package( GTSAM REQUIRED )
+
+
 # add_service_files(
 #   FILES
 #   resetekf.srv
@@ -60,6 +66,7 @@ include_directories(
         ${OpenCV_INCLUDE_DIRS}
         ${OpenGR_INCLUDE_DIR}
         ${PCL_INCLUDE_DIRS}
+        ${GTSAM_INCLUDE_DIR}
 )
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
@@ -119,4 +126,5 @@ target_link_libraries(continousMapGeneration gr::algo fftw3 OpenMP::OpenMP_CXX $
 #add_executable(testExtraction src/evaluation/testExtraction.cpp ${SOURCE_FILES})
 #target_link_libraries(testExtraction gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-
+add_executable(gtsamExample src/gtsamTests/simpleExample.cpp )
+target_link_libraries(gtsamExample gtsam )

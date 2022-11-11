@@ -34,7 +34,7 @@
 
 
 //1: our 256 2:GICP 3:super 4: NDT d2d 5: NDT P2D 6: our global 256
-#define WHICH_METHOD_USED 6
+#define WHICH_METHOD_USED 2
 #define IGNORE_FIRST_STEPS 0
 //Simulation : all 0
 #define ROLL_TRANSFORMATION_ANGLE 0
@@ -100,7 +100,6 @@ public:
         }
 
 
-
         this->voxelData1 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
         this->voxelData2 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
 
@@ -113,7 +112,7 @@ public:
 
 //        subscriberGroundTruth = n_.subscribe("/magnetic_heading", 1000, &rosClassEKF::groundTruthCallbackStPere, this);
         subscriberGroundTruth = n_.subscribe("/positionGT", 1000, &rosClassEKF::groundTruthCallbackGazebo, this);
-        publisherOccupancyMap= n_.advertise<nav_msgs::OccupancyGrid>("occupancyHilbertMap", 10);
+        publisherOccupancyMap = n_.advertise<nav_msgs::OccupancyGrid>("occupancyHilbertMap", 10);
 
 
         if (SHOULD_USE_ROSBAG) {
@@ -424,7 +423,8 @@ private:
                 this->createImageOfAllScans();
 
                 std::ofstream outMatrix(
-                        "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultsOfManyMatching/completeMapTest.csv");
+                        "/home/tim-external/dataFolder/SimulationEnvironment/experimentForVideoICRA/consecutiveAll/consecutiveScanCreation_" +
+                        std::to_string(WHICH_METHOD_USED) + "_" + std::to_string(numberOfScan) + ".csv");
 
                 for (int j = 0; j < NUMBER_OF_POINTS_MAP; j++) {
                     for (int k = 0; k < NUMBER_OF_POINTS_MAP; k++)
@@ -687,7 +687,6 @@ private:
     }
 
 
-
     std::vector<std::string> get_directories(const std::string &s) {
         std::vector<std::string> r;
         for (auto &p: std::filesystem::directory_iterator(s))
@@ -734,8 +733,9 @@ public:
 
 
 
-        int indexFirstPCL = listOfRegistratedEdges[listOfRegistratedEdges.size()-2].getToVertex();
-        int indexSecondPCL = listOfRegistratedEdges[listOfRegistratedEdges.size()-1].getToVertex();
+        int indexFirstPCL = listOfRegistratedEdges[listOfRegistratedEdges.size() - 2].getToVertex();
+        int indexSecondPCL = listOfRegistratedEdges[listOfRegistratedEdges.size() - 1].getToVertex();
+
 
         this->initialGuessTransformation =
                 this->graphSaved.getVertexList()->at(indexFirstPCL).getTransformation().inverse() *
@@ -751,9 +751,8 @@ public:
         std::cout << this->currentTransformation << std::endl;
 
 
-
-
-        this->completeTransformationForCurrentScan = this->completeTransformationForCurrentScan * this->currentTransformation;
+        this->completeTransformationForCurrentScan =
+                this->completeTransformationForCurrentScan * this->currentTransformation;
 
 
         // method to create PCL in Map
@@ -785,16 +784,13 @@ public:
         occupanyMap.info.origin.position.z = +0.5;
 
 
-
-
         for (int i = 0; i < NUMBER_OF_POINTS_MAP; i++) {
             for (int j = 0; j < NUMBER_OF_POINTS_MAP; j++) {
                 //determine color:
-                occupanyMap.data.push_back((int) (this->mapOfBunker[i+NUMBER_OF_POINTS_MAP*j]*2));
+                occupanyMap.data.push_back((int) (this->mapOfBunker[i + NUMBER_OF_POINTS_MAP * j] * 2));
             }
         }
         publisherOccupancyMap.publish(occupanyMap);
-
 
 
     }
@@ -802,16 +798,12 @@ public:
     Eigen::Matrix4d
     calculateRegistration(Eigen::Matrix4d &ourInitialGuess, int whichMethod, int indexFirstPCL, int indexSecondPCL,
                           double correctionFactorMatchingYaw, double correctionFactorPCLMatchingRoll) {
-        if(USING_INITIAL_GUESS_CHANGE_VALENTIN){
+        if (USING_INITIAL_GUESS_CHANGE_VALENTIN) {
             Eigen::Matrix4d initialGuessTMP = ourInitialGuess;
 
-            ourInitialGuess(0,3) = initialGuessTMP(1,3);
-            ourInitialGuess(1,3) = -initialGuessTMP(0,3);
+            ourInitialGuess(0, 3) = initialGuessTMP(1, 3);
+            ourInitialGuess(1, 3) = -initialGuessTMP(0, 3);
         }
-
-
-
-
 
 
         pcl::PointCloud<pcl::PointXYZ> final;
@@ -823,6 +815,44 @@ public:
                                                                        NUMBER_OF_POINTS_DIMENSION, this->graphSaved,
                                                                        IGNORE_DISTANCE_TO_ROBOT,
                                                                        DIMENSION_OF_VOXEL_DATA);//get
+
+        std::ofstream myFile1;
+        myFile1.open("/home/tim-external/dataFolder/SimulationEnvironment/experimentForVideoICRA/scanNumber" +
+                     std::to_string(this->numberOfScan) + ".csv");
+
+        for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
+            for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION; i++) {
+                myFile1 << voxelData1[j + NUMBER_OF_POINTS_DIMENSION * i]; // real part
+                myFile1 << "\n";
+            }
+        }
+        myFile1.close();
+
+        maximumVoxel1 = generalHelpfulTools::createVoxelOfGraph(voxelData1,
+                                                                indexSecondPCL,
+                                                                generalHelpfulTools::getTransformationMatrixFromRPY(
+                                                                        0, 0,
+                                                                        correctionFactorMatchingYaw),
+                                                                NUMBER_OF_POINTS_DIMENSION, this->graphSaved,
+                                                                IGNORE_DISTANCE_TO_ROBOT,
+                                                                DIMENSION_OF_VOXEL_DATA);//get
+
+
+        myFile1.open("/home/tim-external/dataFolder/SimulationEnvironment/experimentForVideoICRA/scanNumber" +
+                     std::to_string(this->numberOfScan + 1) + ".csv");
+
+        for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
+            for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION; i++) {
+                myFile1 << voxelData1[j + NUMBER_OF_POINTS_DIMENSION * i]; // real part
+                myFile1 << "\n";
+            }
+        }
+        myFile1.close();
+
+
+
+
+
         // voxel
         double maximumVoxel2 = generalHelpfulTools::createVoxelOfGraph(voxelData2,
                                                                        indexSecondPCL,
@@ -833,7 +863,8 @@ public:
                                                                        IGNORE_DISTANCE_TO_ROBOT,
                                                                        DIMENSION_OF_VOXEL_DATA);//get voxel
 
-        Eigen::Matrix4d tmpMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(correctionFactorPCLMatchingRoll, 0,
+        Eigen::Matrix4d tmpMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(correctionFactorPCLMatchingRoll,
+                                                                                        0,
                                                                                         correctionFactorMatchingYaw);
         pcl::PointCloud<pcl::PointXYZ> cloudFirstScan;
         pcl::PointCloud<pcl::PointXYZ> cloudSecondScan;
@@ -854,7 +885,7 @@ public:
 
 
 
-        Eigen::Matrix4d Tout = generalHelpfulTools::getTransformationMatrixFromRPY( 0, 0, 0.1);
+        Eigen::Matrix4d Tout = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0, 0.1);
 
 //        Tout(1,3) = 0.7;
 //        Tout(0,3) = -0.2;
@@ -1047,7 +1078,7 @@ public:
     }
 
 
-    void mapCalculation(int indexStart,double correctionFactorCreationRoll, double correctionFactorCreationMap) {
+    void mapCalculation(int indexStart, double correctionFactorCreationRoll, double correctionFactorCreationMap) {
 
         int i = 0;
         do {
