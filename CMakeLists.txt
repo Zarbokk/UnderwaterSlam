@@ -15,116 +15,103 @@ project(underwaterslam)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package( catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg roscpp pcl_ros soft20 ping360_sonar waterlinked_dvl message_generation cv_bridge commonbluerovmsg dynamic_reconfigure perception_oru)
-find_package( Boost REQUIRED COMPONENTS system)
+find_package( catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg roscpp pcl_ros soft20 ping360_sonar waterlinked_dvl message_generation cv_bridge commonbluerovmsg dynamic_reconfigure perception_oru tf2 tf2_ros )
+find_package( Boost REQUIRED COMPONENTS system )
 find_package( OpenCV REQUIRED )
 find_package( PCL 1.10 REQUIRED COMPONENTS common io visualization )
 find_package( OpenGR REQUIRED )
 find_package( OpenMP REQUIRED )
 find_package( GTSAM REQUIRED )
-
-
-# add_service_files(
-#   FILES
-#   resetekf.srv
-#   saveGraph.srv
-#   Service1.srv
-#   Service2.srv
-# )
-
-
-generate_messages(
-        DEPENDENCIES
-        sensor_msgs
-        std_msgs
-)
-
-set(SOURCE_FILES src/registration/scanRegistrationClass.cpp)
-set(SOURCE_FILES ${SOURCE_FILES} src/poseGraph/graphSlamSaveStructure.cpp src/poseGraph/edge.cpp src/poseGraph/vertex.cpp)
-set(SOURCE_FILES ${SOURCE_FILES} src/json/jsoncpp.cpp src/slamTools/slamToolsRos.cpp src/slamTools/generalHelpfulTools.cpp)
-set(SOURCE_FILES ${SOURCE_FILES}   src/hilbertMapssrc/hilbertMap.cpp )
-set(SOURCE_FILES ${SOURCE_FILES}  src/slamTools/PeakFinder.cpp  src/registration/softDescriptorRegistration.cpp)
-set(SOURCE_FILES ${SOURCE_FILES}  src/registration/sofftCorrelationClass.cpp )
-set(SOURCE_FILES ${SOURCE_FILES} src/registration/FMSOld/image_registration.cpp src/registration/FMSOld/image_transforms.cpp src/registration/FMSOld/image_dft.cpp)
-
-set(SOURCE_FILES_GENERAL_TOOLS  src/slamTools/slamToolsRos.cpp  src/slamTools/generalHelpfulTools.cpp)
-# ${SOURCE_FILES_GENERAL_TOOLS}
-
-catkin_package(
-        INCLUDE_DIRS include
-        LIBRARIES
-        CATKIN_DEPENDS message_runtime
-        #image_sonar_ros_plugin
-        #DEPENDS system_lib
-)
-
-include_directories(
-        include
-        src/registration/FMSOld
-        ${catkin_INCLUDE_DIRS}
-        ${Boost_INCLUDE_DIR}
-        ${OpenCV_INCLUDE_DIRS}
-        ${OpenGR_INCLUDE_DIR}
-        ${PCL_INCLUDE_DIRS}
-        ${GTSAM_INCLUDE_DIR}
-)
-link_directories(${PCL_LIBRARY_DIRS})
-add_definitions(${PCL_DEFINITIONS})
-
-#add_executable(stPereDatasetRosPub src/stPereDataset/stPereDatasetPublication.cpp  src/slamTools/generalHelpfulTools.cpp)
-#target_link_libraries(stPereDatasetRosPub ${catkin_LIBRARIES})
-
-#add_executable(graphSlamIntensitiesOnlyTest src/completeSlamRuns/graphSlam_W_E_E_IntensitiesOnly.cpp ${SOURCE_FILES})
-#target_link_libraries(graphSlamIntensitiesOnlyTest fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
-
-add_executable(registrationOfTwoPCLs src/registration/registrationOfTwoPCLScans.cpp ${SOURCE_FILES})
-target_link_libraries(registrationOfTwoPCLs fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
-
-add_executable(registrationOfTwoPCLICP src/registration/registrationTwoPCLScansIPC.cpp ${SOURCE_FILES})
-target_link_libraries(registrationOfTwoPCLICP fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
-
-#add_executable(testGraphOptimization src/testFiles/graphOptimizationTest.cpp ${SOURCE_FILES})
-#target_link_libraries(testGraphOptimization fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
-
-#add_executable(2DOurMethod src/evaluation/2DOurMethodTesting.cpp ${SOURCE_FILES})
-#target_link_libraries(2DOurMethod gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
-
-add_executable(registrationOfTwoImages src/registration/registrationOfTwoImageScans.cpp ${SOURCE_FILES})
-target_link_libraries(registrationOfTwoImages fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
-
-
-#add_executable(testGR src/registration/testFileForOPENGR.cpp ${SOURCE_FILES})
-#target_link_libraries(testGR gr::algo fftw3 ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+find_package( Eigen3 3.3 REQUIRED )
 
 
 
-#add_executable(testFMSOld src/registration/FMSOld/image_main.cpp  ${SOURCE_FILES})
-#target_link_libraries(testFMSOld fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+################################################################################
+# general interface
+################################################################################
+add_library(generalinterface INTERFACE)
+target_include_directories(generalinterface INTERFACE src/generalInterface/include)
+
+################################################################################
+# json
+################################################################################
+add_library(json STATIC src/json/src/jsoncpp.cpp)
+target_include_directories(json PUBLIC src/json/include)
 
 
-add_executable(ndtTests src/registration/ndtMatching/simple.cc  )
-target_link_libraries(ndtTests  ${PCL_LIBRARIES} ${catkin_LIBRARIES} )
+################################################################################
+# generalhelpfullib
+################################################################################
+add_library(generalhelpfullib STATIC src/generalHelpfulTools/src/generalHelpfulTools.cpp src/generalHelpfulTools/src/PeakFinder.cpp)
+target_include_directories(generalhelpfullib PUBLIC ${catkin_INCLUDE_DIRS} src/generalHelpfulTools/include )
 
-add_executable(comparisonMatchingLiveRosBag src/evaluation/comparisonEveryMatchingMethod.cpp ${SOURCE_FILES})
-target_link_libraries(comparisonMatchingLiveRosBag gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-add_executable(extractingCorrectedDataForRegistration src/evaluation/extractingCorrectedDataForRegistration.cpp ${SOURCE_FILES})
-target_link_libraries(extractingCorrectedDataForRegistration gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+################################################################################
+# posegraph
+################################################################################
 
-add_executable(compareEveryMatchingMethodBasedOnFolder src/evaluation/compareEveryMatchingMethodBasedOnFolder.cpp ${SOURCE_FILES})
-target_link_libraries(compareEveryMatchingMethodBasedOnFolder gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+add_library(posegraph STATIC src/poseGraph/src/edge.cpp src/poseGraph/src/graphSlamSaveStructure.cpp src/poseGraph/src/vertex.cpp)
+target_link_libraries(posegraph PUBLIC generalinterface json generalhelpfullib ${Eigen_LIBRARIES})
+target_include_directories(posegraph PUBLIC ${catkin_INCLUDE_DIRS} src/poseGraph/include)
 
-add_executable(createImageOfWholeBunker src/evaluation/createImageOfWholeBunker.cpp ${SOURCE_FILES})
-target_link_libraries(createImageOfWholeBunker gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+################################################################################
+# slamtools
+################################################################################
 
-add_executable(continousMapGeneration src/evaluation/continousMapGeneration.cpp ${SOURCE_FILES})
-target_link_libraries(continousMapGeneration gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+add_library(slamtools STATIC  src/slamTools/src/slamToolsRos.cpp )
+target_link_libraries(slamtools PUBLIC ${PCL_LIBRARIES} ${Eigen_LIBRARIES} posegraph)
+target_include_directories(slamtools PUBLIC ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} src/slamTools/include)
 
-#add_executable(createImageSimulation src/evaluation/createImageSimulation.cpp ${SOURCE_FILES})
-#target_link_libraries(createImageSimulation gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-#add_executable(testExtraction src/evaluation/testExtraction.cpp ${SOURCE_FILES})
-#target_link_libraries(testExtraction gr::algo fftw3 OpenMP::OpenMP_CXX ${PCL_LIBRARIES} ${catkin_LIBRARIES})
+################################################################################
+# scan Registration
+################################################################################
+
+add_library(registrationlib STATIC src/registration/src/scanRegistrationClass.cpp src/registration/src/sofftCorrelationClass.cpp src/registration/src/softDescriptorRegistration.cpp)
+target_link_libraries(registrationlib PUBLIC ${PCL_LIBRARIES} ${Eigen_LIBRARIES} slamtools gr::algo)
+target_include_directories(registrationlib PUBLIC src/registration/include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
+
+
+
+
+
+
+
+
+
+
+################################################################################
+# Executables
+################################################################################
+
+add_executable(registrationOfTwoPCLICP src/registration/registrationTwoPCLScansIPC.cpp)
+target_link_libraries(registrationOfTwoPCLICP OpenMP::OpenMP_CXX slamtools registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
+target_include_directories(registrationOfTwoPCLICP PUBLIC ${OpenCV_INCLUDE_DIRS} )
+
+add_executable(registrationOfTwoPCLs src/registration/registrationOfTwoPCLScans.cpp)
+target_link_libraries(registrationOfTwoPCLs OpenMP::OpenMP_CXX registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
+target_include_directories(registrationOfTwoPCLs PUBLIC ${OpenCV_INCLUDE_DIRS} )
+
+add_executable(registrationOfTwoImages src/registration/registrationOfTwoImageScans.cpp )
+target_link_libraries(registrationOfTwoImages OpenMP::OpenMP_CXX slamtools registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
+
+add_executable(comparisonMatchingLiveRosBag src/evaluation/comparisonEveryMatchingMethod.cpp )
+target_link_libraries(comparisonMatchingLiveRosBag ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
+
+add_executable(extractingCorrectedDataForRegistration src/evaluation/extractingCorrectedDataForRegistration.cpp )
+target_link_libraries(extractingCorrectedDataForRegistration ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
+
+add_executable(compareEveryMatchingMethodBasedOnFolder src/evaluation/compareEveryMatchingMethodBasedOnFolder.cpp )
+target_link_libraries(compareEveryMatchingMethodBasedOnFolder ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
+
+add_executable(createImageOfWholeBunker src/evaluation/createImageOfWholeBunker.cpp)
+target_link_libraries(createImageOfWholeBunker ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
+
+add_executable(continousMapGeneration src/evaluation/continousMapGeneration.cpp )
+target_link_libraries(continousMapGeneration ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
 
 add_executable(gtsamExample src/gtsamTests/simpleExample.cpp )
 target_link_libraries(gtsamExample gtsam )
+#target_include_directories(gtsamExample PUBLIC ${EIGEN3_INCLUDE_DIR} ${GTSAM_INCLUDE_DIR})
+
+

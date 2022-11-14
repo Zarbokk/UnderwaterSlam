@@ -13,7 +13,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
 #include <filesystem>
-
+#include "scanRegistrationClass.h"
 
 void convertMatToDoubleArray(cv::Mat inputImg, double voxelData[]) {
 

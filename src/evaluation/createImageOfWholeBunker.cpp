@@ -12,10 +12,14 @@
 #include "generalHelpfulTools.h"
 #include "slamToolsRos.h"
 #include "commonbluerovmsg/saveGraph.h"
-#include <hilbertMap.h>
 #include <opencv2/imgcodecs.hpp>
 #include "std_srvs/SetBool.h"
 #include <filesystem>
+#include "scanRegistrationClass.h"
+#include "nav_msgs/OccupancyGrid.h"
+
+
+
 
 #define NUMBER_OF_POINTS_MAP 256
 

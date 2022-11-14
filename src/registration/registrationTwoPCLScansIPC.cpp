@@ -9,7 +9,7 @@
 
 #include "generalHelpfulTools.h"
 #include "slamToolsRos.h"
-
+#include "scanRegistrationClass.h"
 
 int main(int argc, char **argv) {
     // 1Cloud 2Cloud InitialGuessAngle

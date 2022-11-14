@@ -2,20 +2,19 @@
 // Created by tim-external on 27.07.22.
 //
 
-#include "geometry_msgs/PoseStamped.h"
-#include "sensor_msgs/Imu.h"
+
 #include "mavros_msgs/Altitude.h"
-#include "geometry_msgs/TwistStamped.h"
-//#include "ping360_sonar/SonarEcho.h"
 #include "commonbluerovmsg/SonarEcho2.h"
 #include "commonbluerovmsg/staterobotforevaluation.h"
 #include "generalHelpfulTools.h"
 #include "slamToolsRos.h"
-#include "commonbluerovmsg/saveGraph.h"
-#include <hilbertMap.h>
 #include <opencv2/imgcodecs.hpp>
 #include "std_srvs/SetBool.h"
 #include <filesystem>
+#include "scanRegistrationClass.h"
+#include "nav_msgs/OccupancyGrid.h"
+
+
 
 #define NUMBER_OF_POINTS_MAP 256
 

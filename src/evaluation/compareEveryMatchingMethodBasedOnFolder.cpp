@@ -12,11 +12,10 @@
 #include "generalHelpfulTools.h"
 #include "slamToolsRos.h"
 #include "commonbluerovmsg/saveGraph.h"
-#include <hilbertMap.h>
 #include <opencv2/imgcodecs.hpp>
 #include "std_srvs/SetBool.h"
 #include <filesystem>
-
+#include "scanRegistrationClass.h"
 //#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_30_5_RandomShifts1510/"
 
