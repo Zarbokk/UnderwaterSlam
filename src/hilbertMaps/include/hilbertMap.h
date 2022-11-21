@@ -6,7 +6,7 @@
 #define SIMULATION_BLUEROV_HILBERTMAP_H
 
 #include "vector"
-#include <Eigen/Dense>
+#include <eigen3/Eigen/Dense>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <random>

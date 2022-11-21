@@ -36,9 +36,11 @@ public:
         }
 
         //adds the Prior. Makes sure that the initial position is at 0 0 0 and stays there.
-        auto priorNoise = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.3, 0.3, 0.1));
-        this->graph.addPrior(1, gtsam::Pose2(0, 0, 0), priorNoise);
-        this->deadReckoningNoiseModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.2, 0.2, 0.1));
+        auto priorNoise = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.0, 0.0, 0.0));
+        this->graph.addPrior(0, gtsam::Pose2(0, 0, 0), priorNoise);
+        this->deadReckoningNoiseModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.02, 0.02, 0.005));
+        this->loopClosureNoiseModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(1, 1, 0.1));
+
 
     }
 
@@ -56,13 +58,11 @@ public:
 
     void printCurrentStateGeneralInformation();
 
-    vertex* getVertexByKey(int i);
-
     std::vector<vertex> *getVertexList();
 
     std::vector<edge> *getEdgeList();
 
-    void optimizeGraph(bool verbose, std::vector<int> &holdStill, double maxTimeOptimization);
+    void optimizeGraph(bool verbose);
 
     void saveGraphJson(std::string nameSavingFile);
 
@@ -80,7 +80,7 @@ private:
     std::vector<edge> edgeList;
     std::vector<vertex> vertexList;
     gtsam::NonlinearFactorGraph graph;
-    boost::shared_ptr<gtsam::noiseModel::Diagonal> deadReckoningNoiseModel;
+    boost::shared_ptr<gtsam::noiseModel::Diagonal> deadReckoningNoiseModel, loopClosureNoiseModel;
     gtsam::Values currentEstimate;
 };
 

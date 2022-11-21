@@ -72,8 +72,12 @@ target_link_libraries(registrationlib PUBLIC ${PCL_LIBRARIES} ${Eigen_LIBRARIES}
 target_include_directories(registrationlib PUBLIC src/registration/include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 
 
-
-
+################################################################################
+# hilbert Map
+################################################################################
+add_library(hilbertmaps STATIC  src/hilbertMaps/src/hilbertMap.cpp)
+target_link_libraries(hilbertmaps PUBLIC ${Eigen_LIBRARIES})
+target_include_directories(hilbertmaps PUBLIC src/hilbertMaps/include ${catkin_INCLUDE_DIRS})
 
 
 
@@ -84,34 +88,36 @@ target_include_directories(registrationlib PUBLIC src/registration/include ${cat
 # Executables
 ################################################################################
 
-add_executable(registrationOfTwoPCLICP src/registration/registrationTwoPCLScansIPC.cpp)
-target_link_libraries(registrationOfTwoPCLICP OpenMP::OpenMP_CXX slamtools registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
-target_include_directories(registrationOfTwoPCLICP PUBLIC ${OpenCV_INCLUDE_DIRS} )
+#add_executable(registrationOfTwoPCLICP src/registration/registrationTwoPCLScansIPC.cpp)
+#target_link_libraries(registrationOfTwoPCLICP OpenMP::OpenMP_CXX slamtools registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
+#target_include_directories(registrationOfTwoPCLICP PUBLIC ${OpenCV_INCLUDE_DIRS} )
+#
+#add_executable(registrationOfTwoPCLs src/registration/registrationOfTwoPCLScans.cpp)
+#target_link_libraries(registrationOfTwoPCLs OpenMP::OpenMP_CXX registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
+#target_include_directories(registrationOfTwoPCLs PUBLIC ${OpenCV_INCLUDE_DIRS} )
+#
+#add_executable(registrationOfTwoImages src/registration/registrationOfTwoImageScans.cpp )
+#target_link_libraries(registrationOfTwoImages OpenMP::OpenMP_CXX slamtools registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
 
-add_executable(registrationOfTwoPCLs src/registration/registrationOfTwoPCLScans.cpp)
-target_link_libraries(registrationOfTwoPCLs OpenMP::OpenMP_CXX registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
-target_include_directories(registrationOfTwoPCLs PUBLIC ${OpenCV_INCLUDE_DIRS} )
+#add_executable(comparisonMatchingLiveRosBag src/evaluation/comparisonEveryMatchingMethod.cpp )
+#target_link_libraries(comparisonMatchingLiveRosBag ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
 
-add_executable(registrationOfTwoImages src/registration/registrationOfTwoImageScans.cpp )
-target_link_libraries(registrationOfTwoImages OpenMP::OpenMP_CXX slamtools registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
+#add_executable(extractingCorrectedDataForRegistration src/evaluation/extractingCorrectedDataForRegistration.cpp )
+#target_link_libraries(extractingCorrectedDataForRegistration ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
 
-add_executable(comparisonMatchingLiveRosBag src/evaluation/comparisonEveryMatchingMethod.cpp )
-target_link_libraries(comparisonMatchingLiveRosBag ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
-
-add_executable(extractingCorrectedDataForRegistration src/evaluation/extractingCorrectedDataForRegistration.cpp )
-target_link_libraries(extractingCorrectedDataForRegistration ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
-
-add_executable(compareEveryMatchingMethodBasedOnFolder src/evaluation/compareEveryMatchingMethodBasedOnFolder.cpp )
-target_link_libraries(compareEveryMatchingMethodBasedOnFolder ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
-
-add_executable(createImageOfWholeBunker src/evaluation/createImageOfWholeBunker.cpp)
-target_link_libraries(createImageOfWholeBunker ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
-
-add_executable(continousMapGeneration src/evaluation/continousMapGeneration.cpp )
-target_link_libraries(continousMapGeneration ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
+#add_executable(compareEveryMatchingMethodBasedOnFolder src/evaluation/compareEveryMatchingMethodBasedOnFolder.cpp )
+#target_link_libraries(compareEveryMatchingMethodBasedOnFolder ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
+#
+#add_executable(createImageOfWholeBunker src/evaluation/createImageOfWholeBunker.cpp)
+#target_link_libraries(createImageOfWholeBunker ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
+#
+#add_executable(continousMapGeneration src/evaluation/continousMapGeneration.cpp )
+#target_link_libraries(continousMapGeneration ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
 
 add_executable(gtsamExample src/gtsamTests/simpleExample.cpp )
 target_link_libraries(gtsamExample gtsam )
 #target_include_directories(gtsamExample PUBLIC ${EIGEN3_INCLUDE_DIR} ${GTSAM_INCLUDE_DIR})
 
-
+add_executable(rosSlamTest src/completeSlamRuns/graphSlamGTSAM.cpp)
+target_link_libraries(rosSlamTest gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
+#target_include_directories(rosSlamTest PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${GTSAM_INCLUDE_DIR})

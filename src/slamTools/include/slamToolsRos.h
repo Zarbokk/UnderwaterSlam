@@ -51,7 +51,9 @@ class slamToolsRos {
 
 public:
 
-    static void visualizeCurrentPoseGraph(graphSlamSaveStructure &graphSaved,ros::Publisher &publisherPath,ros::Publisher &publisherMarker, double sigmaScaling,ros::Publisher &publisherPoseSlam);
+    static void visualizeCurrentPoseGraph(graphSlamSaveStructure &graphSaved, ros::Publisher &publisherPath,
+                                          ros::Publisher &publisherMarker, double sigmaScaling,
+                                          ros::Publisher &publisherPoseSlam, ros::Publisher &publisherLoopClosures);
 
     static std::vector<measurement>
     parseCSVFile(std::istream &stream);//this is first line description then keyframe,x,y,z,timestamp
@@ -61,27 +63,29 @@ public:
     static void
     calculatePositionOverTime(std::deque<ImuData> &angularVelocityList, std::deque<DvlData> &bodyVelocityList,
                               std::vector<edge> &posOverTimeEdge,
-                              double lastScanTimeStamp, double currentScanTimeStamp, double noiseAddedStdDiv, int numberOfEdges);
+                              double lastScanTimeStamp, double currentScanTimeStamp, double noiseAddedStdDiv,
+                              int numberOfEdges);
 
 
     static std::vector<double> linspace(double start_in, double end_in, int num_in);
 
     static double createVoxelOfGraph(double voxelData[], int indexStart,
-                                            Eigen::Matrix4d transformationInTheEndOfCalculation,
-                                            int numberOfPoints, graphSlamSaveStructure &usedGraph,
-                                            double ignoreDistanceToRobot, double dimensionOfVoxelData);
+                                     Eigen::Matrix4d transformationInTheEndOfCalculation,
+                                     int numberOfPoints, graphSlamSaveStructure &usedGraph,
+                                     double ignoreDistanceToRobot, double dimensionOfVoxelData);
 
-    pcl::PointCloud<pcl::PointXYZ> createPCLFromGraphOneValue(int indexStart,
-                                                                            Eigen::Matrix4d transformationInTheEndOfCalculation,
-                                                                            graphSlamSaveStructure &usedGraph,
-                                                                            double ignoreDistanceToRobo,
-                                                                            double thresholdFactorPoint);
+    static pcl::PointCloud<pcl::PointXYZ> createPCLFromGraphOneValue(int indexStart,
+                                                              Eigen::Matrix4d transformationInTheEndOfCalculation,
+                                                              graphSlamSaveStructure &usedGraph,
+                                                              double ignoreDistanceToRobo,
+                                                              double thresholdFactorPoint);
 
-    pcl::PointCloud<pcl::PointXYZ> createPCLFromGraphOnlyThreshold(int indexStart,
-                                                                                 Eigen::Matrix4d transformationInTheEndOfCalculation,
-                                                                                 graphSlamSaveStructure &usedGraph,
-                                                                                 double ignoreDistanceToRobo,
-                                                                                 double thresholdFactorPoint);
+    static pcl::PointCloud<pcl::PointXYZ> createPCLFromGraphOnlyThreshold(int indexStart,
+                                                                   Eigen::Matrix4d transformationInTheEndOfCalculation,
+                                                                   graphSlamSaveStructure &usedGraph,
+                                                                   double ignoreDistanceToRobo,
+                                                                   double thresholdFactorPoint);
+    static bool getNodes(ros::V_string &nodes);
 };
 
 

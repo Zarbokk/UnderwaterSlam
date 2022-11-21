@@ -32,8 +32,8 @@ public:
     }
 
     edge(const edge &edgeToCopy){
-        this->fromKey = edgeToCopy.getFromVertex();
-        this->toKey = edgeToCopy.getToVertex();
+        this->fromKey = edgeToCopy.getFromKey();
+        this->toKey = edgeToCopy.getToKey();
         this->covariancePosition = edgeToCopy.getCovariancePosition();
         this->covarianceQuaternion = edgeToCopy.getCovarianceQuaternion();
         this->positionDifference = edgeToCopy.getPositionDifference();
@@ -60,13 +60,13 @@ public:
 
     void setRotationDifference(const Eigen::Quaterniond &rotationDifferenceInput);
 
-    [[nodiscard]] int getFromVertex() const;
+    [[nodiscard]] int getFromKey() const;
 
-    void setFromVertex(int &fromVertexInput);
+    void setFromKey(int &fromVertexInput);
 
-    [[nodiscard]] int getToVertex() const;
+    [[nodiscard]] int getToKey() const;
 
-    void setToVertex(int &toVertexInput);
+    void setToKey(int &toVertexInput);
 
     [[nodiscard]] int getTypeOfEdge() const;
 

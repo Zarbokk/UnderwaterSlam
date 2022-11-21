@@ -4,11 +4,11 @@
 
 #include "vertex.h"
 
-int vertex::getVertexNumber() const {
+int vertex::getKey() const {
     return vertex::keyNumber;
 }
 
-void vertex::setVertexNumber(int &vertexNumberInput) {
+void vertex::setKey(int &vertexNumberInput) {
     vertex::keyNumber = vertexNumberInput;
 }
 

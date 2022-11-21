@@ -241,15 +241,15 @@ private:
         Eigen::Quaterniond rot(rotM);
 
 
-        this->graphSaved.addVertex(this->graphSaved.getVertexList()->back().getVertexNumber() + 1, pos, rot,
+        this->graphSaved.addVertex(this->graphSaved.getVertexList()->back().getKey() + 1, pos, rot,
                                    this->graphSaved.getVertexList()->back().getCovariancePosition(),
                                    this->graphSaved.getVertexList()->back().getCovarianceQuaternion(),
                                    intensityTMP,
                                    msg->header.stamp.toSec(),
                                    INTENSITY_SAVED);
 
-        this->graphSaved.addEdge(this->graphSaved.getVertexList()->back().getVertexNumber() - 1,
-                                 this->graphSaved.getVertexList()->back().getVertexNumber(),
+        this->graphSaved.addEdge(this->graphSaved.getVertexList()->back().getKey() - 1,
+                                 this->graphSaved.getVertexList()->back().getKey(),
                                  differenceOfEdge.getPositionDifference(), differenceOfEdge.getRotationDifference(),
                                  Eigen::Vector3d(0.06, 0.06, 0),
                                  0.25 * 0.06, INTEGRATED_POSE,

@@ -5,19 +5,19 @@
 
 #include "edge.h"
 
-int edge::getFromVertex() const {
+int edge::getFromKey() const {
     return this->fromKey;
 }
 
-void edge::setFromVertex(int &fromVertexInput) {
+void edge::setFromKey(int &fromVertexInput) {
     this->fromKey = fromVertexInput;
 }
 
-int edge::getToVertex() const {
+int edge::getToKey() const {
     return this->toKey;
 }
 
-void edge::setToVertex(int &toVertexInput) {
+void edge::setToKey(int &toVertexInput) {
     this->toKey = toVertexInput;
 }
 
@@ -26,8 +26,8 @@ Eigen::Vector3d edge::getCovariancePosition() const {
 }
 
 void edge::setEdge(edge &edgeToCopy){
-    this->fromKey = edgeToCopy.getFromVertex();
-    this->toKey = edgeToCopy.getToVertex();
+    this->fromKey = edgeToCopy.getFromKey();
+    this->toKey = edgeToCopy.getToKey();
     this->covariancePosition = edgeToCopy.getCovariancePosition();
     this->covarianceQuaternion = edgeToCopy.getCovarianceQuaternion();
     this->positionDifference = edgeToCopy.getPositionDifference();

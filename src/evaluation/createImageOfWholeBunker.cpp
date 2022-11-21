@@ -228,15 +228,15 @@ private:
         Eigen::Quaterniond rot(rotM);
 
 
-        this->graphSaved.addVertex(this->graphSaved.getVertexList()->back().getVertexNumber() + 1, pos, rot,
+        this->graphSaved.addVertex(this->graphSaved.getVertexList()->back().getKey() + 1, pos, rot,
                                    this->graphSaved.getVertexList()->back().getCovariancePosition(),
                                    this->graphSaved.getVertexList()->back().getCovarianceQuaternion(),
                                    intensityTMP,
                                    msg->header.stamp.toSec(),
                                    INTENSITY_SAVED);
 
-        this->graphSaved.addEdge(this->graphSaved.getVertexList()->back().getVertexNumber() - 1,
-                                 this->graphSaved.getVertexList()->back().getVertexNumber(),
+        this->graphSaved.addEdge(this->graphSaved.getVertexList()->back().getKey() - 1,
+                                 this->graphSaved.getVertexList()->back().getKey(),
                                  differenceOfEdge.getPositionDifference(), differenceOfEdge.getRotationDifference(),
                                  Eigen::Vector3d(0.06, 0.06, 0),
                                  0.25 * 0.06, INTEGRATED_POSE,
@@ -1008,8 +1008,8 @@ public:
                                                                           currentEdgePosition + howOftenSkipping) {
 
 
-            int indexFirstPCL = listOfRegistratedEdges[lastPositionOfInterest].getToVertex();
-            int indexSecondPCL = listOfRegistratedEdges[currentEdgePosition].getToVertex();
+            int indexFirstPCL = listOfRegistratedEdges[lastPositionOfInterest].getToKey();
+            int indexSecondPCL = listOfRegistratedEdges[currentEdgePosition].getToKey();
 
             this->initialGuessTransformation =
                     this->graphSaved.getVertexList()->at(indexFirstPCL).getTransformation().inverse() *
@@ -1072,8 +1072,8 @@ public:
 
         for (int currentEdgePosition = startPoint - howOftenSkipping;
              currentEdgePosition > ignoreFirstNSteps; currentEdgePosition = currentEdgePosition - howOftenSkipping) {
-            int indexFirstPCL = listOfRegistratedEdges[currentEdgePosition].getToVertex();
-            int indexSecondPCL = listOfRegistratedEdges[lastPositionOfInterest].getToVertex();
+            int indexFirstPCL = listOfRegistratedEdges[currentEdgePosition].getToKey();
+            int indexSecondPCL = listOfRegistratedEdges[lastPositionOfInterest].getToKey();
 
             this->initialGuessTransformation =
                     this->graphSaved.getVertexList()->at(indexFirstPCL).getTransformation().inverse() *

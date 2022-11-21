@@ -77,9 +77,9 @@ public:
 
 
 
-    [[nodiscard]] int getVertexNumber() const;
+    [[nodiscard]] int getKey() const;
 
-    void setVertexNumber(int &vertexNumberInput);
+    void setKey(int &vertexNumberInput);
 
     [[nodiscard]] Eigen::Vector3d getPositionVertex() const;
 
