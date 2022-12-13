@@ -429,13 +429,13 @@ private:
 
             // transform from 1 to 2
             this->currentTransformation = tmpregistrationClass.registrationOfTwoVoxelsSOFFTFast(voxelData1,
-                                                                                                voxelData2,
-                                                                                                this->initialGuessTransformation,
-                                                                                                true, true,
-                                                                                                (double) DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
-                                                                                                (double) NUMBER_OF_POINTS_DIMENSION,
-                                                                                                true,
-                                                                                                DEBUG_REGISTRATION);
+                                                                                                       voxelData2,
+                                                                                                       this->initialGuessTransformation,
+                                                                                                       true, true,
+                                                                                                       (double) DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
+                                                                                                       (double) NUMBER_OF_POINTS_DIMENSION,
+                                                                                                       true,
+                                                                                                       DEBUG_REGISTRATION);
 
 
             std::cout << "Found Loop Closure with fitnessScore: " << fitnessScore << std::endl;
@@ -453,7 +453,7 @@ private:
                       <<
                       std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)) *
                       180 / M_PI << std::endl;
-
+            
             saveResultingRegistration(potentialKey, this->graphSaved.getVertexList()->back().getKey());
 
             Eigen::Vector3d currentPosDiff;

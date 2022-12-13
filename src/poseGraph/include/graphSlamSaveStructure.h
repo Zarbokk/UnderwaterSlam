@@ -19,6 +19,9 @@
 #include <gtsam/nonlinear/GaussNewtonOptimizer.h>
 #include <gtsam/nonlinear/Marginals.h>
 #include <gtsam/nonlinear/Values.h>
+#include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
+#include <gtsam/nonlinear/ISAM2.h>
+
 
 #ifndef SIMULATION_BLUEROV_GRAPHSLAMSAVESTRUCTURE_H
 #define SIMULATION_BLUEROV_GRAPHSLAMSAVESTRUCTURE_H
@@ -36,10 +39,18 @@ public:
         }
 
         //adds the Prior. Makes sure that the initial position is at 0 0 0 and stays there.
-        auto priorNoise = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.0, 0.0, 0.0));
+        auto priorNoise = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.1, 0.1, 0.01));
         this->graph.addPrior(0, gtsam::Pose2(0, 0, 0), priorNoise);
-        this->deadReckoningNoiseModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.02, 0.02, 0.005));
-        this->loopClosureNoiseModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(1, 1, 0.1));
+
+//        this->deadReckoningNoiseModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.02, 0.02, 0.005));
+        this->deadReckoningNoiseModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.04, 0.04, 0.01));
+        this->loopClosureNoiseModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(1, 1, 0.05));
+
+        gtsam::ISAM2Params parameters;
+        parameters.relinearizeThreshold = 0.01;
+        parameters.relinearizeSkip = 1;
+        parameters.print();
+        isam = new gtsam::ISAM2(parameters);
 
 
     }
@@ -62,12 +73,17 @@ public:
 
     std::vector<edge> *getEdgeList();
 
-    void optimizeGraph(bool verbose);
+    void isam2OptimizeGraph(bool verbose);
+
+    void classicalOptimizeGraph(bool verbose);
 
     void saveGraphJson(std::string nameSavingFile);
 
     void addRandomNoiseToGraph(double stdDiviationGauss, double percentageOfRandomNoise);
 
+    void setPoseDifferenceEdge(int numberOfEdge, Eigen::Matrix4d poseDiff);
+
+    void print();
 
 private:
 
@@ -82,6 +98,11 @@ private:
     gtsam::NonlinearFactorGraph graph;
     boost::shared_ptr<gtsam::noiseModel::Diagonal> deadReckoningNoiseModel, loopClosureNoiseModel;
     gtsam::Values currentEstimate;
+    gtsam::ISAM2* isam;
+
+
+
+
 };
 
 

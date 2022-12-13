@@ -7,6 +7,7 @@ set(CATKIN_ENABLE_TESTING OFF)
 
 
 
+
 project(underwaterslam)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -116,8 +117,15 @@ target_include_directories(hilbertmaps PUBLIC src/hilbertMaps/include ${catkin_I
 
 add_executable(gtsamExample src/gtsamTests/simpleExample.cpp )
 target_link_libraries(gtsamExample gtsam )
+
 #target_include_directories(gtsamExample PUBLIC ${EIGEN3_INCLUDE_DIR} ${GTSAM_INCLUDE_DIR})
 
 add_executable(rosSlamTest src/completeSlamRuns/graphSlamGTSAM.cpp)
 target_link_libraries(rosSlamTest gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
-#target_include_directories(rosSlamTest PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${GTSAM_INCLUDE_DIR})
+
+
+
+add_executable(testSLAM src/completeSlamRuns/testSLAMRUNS.cpp)
+target_link_libraries(testSLAM gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
+
+

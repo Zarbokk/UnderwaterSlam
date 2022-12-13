@@ -78,7 +78,10 @@ int main(int argc, char** argv) {
     graph.emplace_shared<BetweenFactor<Pose2> >(2, 3, Pose2(2, 0, M_PI_2), model);
     graph.emplace_shared<BetweenFactor<Pose2> >(3, 4, Pose2(2, 0, M_PI_2), model);
     graph.emplace_shared<BetweenFactor<Pose2> >(4, 5, Pose2(2, 0, M_PI_2), model);
-
+//    graph.emplace_shared<BetweenFactor<Pose2> >(3, 4, Pose2(2, 0, M_PI_2), model);
+//    graph.print();
+//    graph.remove(3);
+//    graph.print();
     // 2c. Add the loop closure constraint
     // This factor encodes the fact that we have returned to the same pose. In real systems,
     // these constraints may be identified in many ways, such as appearance-based techniques

@@ -38,7 +38,6 @@ void slamToolsRos::visualizeCurrentPoseGraph(graphSlamSaveStructure &graphSaved,
         posOverTime.poses.push_back(pos);
 
 
-
     }
 
     visualization_msgs::MarkerArray markerArray;
@@ -92,7 +91,8 @@ void slamToolsRos::visualizeCurrentPoseGraph(graphSlamSaveStructure &graphSaved,
     int j = 0;
     for (int i = 0; i < graphSaved.getEdgeList()->size(); i++) {
 
-        if (graphSaved.getEdgeList()->at(i).getTypeOfEdge()==LOOP_CLOSURE) {//if its a loop closure then create arrow from vertex a to vertex b
+        if (graphSaved.getEdgeList()->at(i).getTypeOfEdge() ==
+            LOOP_CLOSURE) {//if its a loop closure then create arrow from vertex a to vertex b
             visualization_msgs::Marker currentMarker;
             //currentMarker.pose.position.x = pos.pose.position.x;
             //currentMarker.pose.position.y = pos.pose.position.y;
@@ -110,13 +110,19 @@ void slamToolsRos::visualizeCurrentPoseGraph(graphSlamSaveStructure &graphSaved,
             geometry_msgs::Point startPoint;
             geometry_msgs::Point endPoint;
 
-            startPoint.x = graphSaved.getVertexList()->at(graphSaved.getEdgeList()->at(i).getFromKey()).getPositionVertex()[0];
-            startPoint.y = graphSaved.getVertexList()->at(graphSaved.getEdgeList()->at(i).getFromKey()).getPositionVertex()[1];
-            startPoint.z = graphSaved.getVertexList()->at(graphSaved.getEdgeList()->at(i).getFromKey()).getPositionVertex()[2];
+            startPoint.x = graphSaved.getVertexList()->at(
+                    graphSaved.getEdgeList()->at(i).getFromKey()).getPositionVertex()[0];
+            startPoint.y = graphSaved.getVertexList()->at(
+                    graphSaved.getEdgeList()->at(i).getFromKey()).getPositionVertex()[1];
+            startPoint.z = graphSaved.getVertexList()->at(
+                    graphSaved.getEdgeList()->at(i).getFromKey()).getPositionVertex()[2];
 
-            endPoint.x = graphSaved.getVertexList()->at(graphSaved.getEdgeList()->at(i).getToKey()).getPositionVertex()[0];
-            endPoint.y = graphSaved.getVertexList()->at(graphSaved.getEdgeList()->at(i).getToKey()).getPositionVertex()[1];
-            endPoint.z = graphSaved.getVertexList()->at(graphSaved.getEdgeList()->at(i).getToKey()).getPositionVertex()[2];
+            endPoint.x = graphSaved.getVertexList()->at(
+                    graphSaved.getEdgeList()->at(i).getToKey()).getPositionVertex()[0];
+            endPoint.y = graphSaved.getVertexList()->at(
+                    graphSaved.getEdgeList()->at(i).getToKey()).getPositionVertex()[1];
+            endPoint.z = graphSaved.getVertexList()->at(
+                    graphSaved.getEdgeList()->at(i).getToKey()).getPositionVertex()[2];
             currentMarker.points.push_back(startPoint);
             currentMarker.points.push_back(endPoint);
             currentMarker.type = 0;
@@ -343,7 +349,7 @@ void slamToolsRos::calculatePositionOverTime(std::deque<ImuData> &angularVelocit
                                                          Eigen::Vector3d::UnitZ());
         Eigen::Vector3d covariancePos(0, 0, 0);
         edge currentEdge(0, 0, posDiff, rotDiff, covariancePos, 0, 3,
-                         INTEGRATED_POSE);
+                         INTEGRATED_POSE, 0);
         //currentEdge.setTimeStamp(timeSteps[i + 1]);
         posOverTimeEdge.push_back(currentEdge);
     }
@@ -378,6 +384,15 @@ double slamToolsRos::createVoxelOfGraph(double voxelData[], int indexStart,
                                                                                                          usedGraph.getVertexList()->at(
                                                                                                                  indexStart -
                                                                                                                  i).getIntensities().angle);
+//        std::cout << " " << std::endl;
+//        std::cout << generalHelpfulTools::getRollPitchYaw(Eigen::Quaterniond((transformationOfIntensityRay).block<3, 3>(0, 0)))[2] << std::endl;
+
+//        std::cout << generalHelpfulTools::getRollPitchYaw(Eigen::Quaterniond((rotationOfSonarAngleMatrix).block<3, 3>(0, 0)))[2] << std::endl;
+//        std::cout << usedGraph.getVertexList()->at(
+//                indexStart -
+//                i).getIntensities().angle << std::endl;
+//
+//        std::cout << generalHelpfulTools::getRollPitchYaw(Eigen::Quaterniond((transformationOfIntensityRay * rotationOfSonarAngleMatrix).block<3, 3>(0, 0)))[2] << std::endl;
 
         int ignoreDistance = (int) (ignoreDistanceToRobot /
                                     (usedGraph.getVertexList()->at(indexStart - i).getIntensities().range /
@@ -436,6 +451,9 @@ double slamToolsRos::createVoxelOfGraph(double voxelData[], int indexStart,
     } while (usedGraph.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
              usedGraph.getVertexList()->at(indexStart - i).getTypeOfVertex() !=
              INTENSITY_SAVED_AND_KEYFRAME);
+
+// std::cout << "number of intensity values used: " << i << std::endl;
+
     double maximumOfVoxelData = 0;
     for (i = 0; i < numberOfPoints * numberOfPoints; i++) {
         if (voxelDataIndex[i] > 0) {
@@ -644,117 +662,192 @@ bool slamToolsRos::getNodes(ros::V_string &nodes) {
     return true;
 }
 
+edge
+slamToolsRos::calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endTimeToAdd, std::deque<double> &timeVector,
+                                              std::deque<double> &xPositionVector, std::deque<double> &yPositionVector,
+                                              std::deque<double> &zPositionVector, std::deque<Eigen::Quaterniond> &rotationVector, std::mutex &stateEstimationMutex) {
+    //this is done to make sure 1 more message is coming from the EKF directly
+    //ros::Duration(0.001).sleep();
+
+//    while (timeVector.empty()) {
+//        ros::Duration(0.002).sleep();
+//    }
+//
+//
+//    while (endTimeToAdd > timeVector[timeVector.size() - 1]) {
+//        ros::topic::waitForMessage<geometry_msgs::PoseWithCovarianceStamped>("publisherPoseEkf");
+//        ros::Duration(0.001).sleep();
+//    }
+
+    //@TEST
+    std::lock_guard<std::mutex> lock(stateEstimationMutex);
+    //find index of start and end
+    int indexOfStart = 0;
+    while (timeVector[indexOfStart] < startTimetoAdd && timeVector.size() > indexOfStart) {
+        indexOfStart++;
+    }
+    if (indexOfStart > 0) {
+        indexOfStart--;
+    }
+
+    int indexOfEnd = 0;
+    while (timeVector[indexOfEnd] < endTimeToAdd && timeVector.size() > indexOfEnd) {
+        indexOfEnd++;
+    }
+    indexOfEnd--;
+
+    Eigen::Matrix4d transformationTMP = Eigen::Matrix4d::Identity();
+
+    if (indexOfStart > 0) {
+        double interpolationFactor = 1.0 - ((timeVector[indexOfStart + 1] - startTimetoAdd) /
+                                            (timeVector[indexOfStart + 1] - timeVector[indexOfStart]));
+
+        Eigen::Matrix4d transformationOfEKFStart = Eigen::Matrix4d::Identity();
+        transformationOfEKFStart.block<3, 3>(0, 0) = rotationVector[indexOfStart - 1].toRotationMatrix();
+        transformationOfEKFStart(0, 3) = xPositionVector[indexOfStart];
+        transformationOfEKFStart(1, 3) = yPositionVector[indexOfStart];
+        transformationOfEKFStart(2, 3) = zPositionVector[indexOfStart];
+
+        Eigen::Matrix4d transformationOfEKFEnd = Eigen::Matrix4d::Identity();
+        transformationOfEKFEnd.block<3, 3>(0, 0) = rotationVector[indexOfStart].toRotationMatrix();
+        transformationOfEKFEnd(0, 3) = xPositionVector[indexOfStart + 1];
+        transformationOfEKFEnd(1, 3) = yPositionVector[indexOfStart + 1];
+        transformationOfEKFEnd(2, 3) = zPositionVector[indexOfStart + 1];
+
+        transformationTMP = transformationTMP *
+                            generalHelpfulTools::interpolationTwo4DTransformations(transformationOfEKFStart,
+                                                                                   transformationOfEKFEnd,
+                                                                                   interpolationFactor).inverse() *
+                            transformationOfEKFEnd;
+    }
 
 
-//void slamToolsRos::appendEdgesToGraph(graphSlamSaveStructure &currentGraph,
-//                                      std::deque<edge> &listOfEdges, double noiseVelocityIntigration,
-//                                      double scalingAngle, double maxTimeOptimization,
-//                                      int maximumNumberOfAddedEdges) {// adds edges to the graph and create vertex, which are represented by edges
-//    std::deque<edge> listOfEdgesForForLoop;
-//    //add only a max number of edges
-//    if (listOfEdges.size() > maximumNumberOfAddedEdges) {
-//        double startTime = currentGraph.getVertexList()->back().getTimeStamp();
-//        double endTime = listOfEdges.back().getTimeStamp();
-//        //ignore the first element(since its already a timestep) can be changed for not to be the case
-//        std::vector<double> timestampsForEdge = slamToolsRos::linspace(startTime, endTime,
-//                                                                       maximumNumberOfAddedEdges + 1);
-//        int currentEdgeIndex = 0;
-//        for (int i = 1;
-//             i < timestampsForEdge.size(); i++) {//@TODO add interpolation(not done currently) but roughly correct
-//
-//            while(listOfEdges[currentEdgeIndex].getTimeStamp()<timestampsForEdge[i-1]){
-//                currentEdgeIndex++;
-//            }
-//            //initialize transformation of 0
-//            Eigen::Matrix4d currentTransformation = Eigen::Matrix4d::Identity();
-//            while (listOfEdges[currentEdgeIndex].getTimeStamp() < timestampsForEdge[i]) {
-//                //add up transformations from zero
-//                currentTransformation = currentTransformation * listOfEdges[currentEdgeIndex].getTransformation();
-//                currentEdgeIndex++;
-//            }
-//
-//            // create an edge and add it to a list that is then added to the graph.
-//
-//            Eigen::Quaterniond qTMP(currentTransformation.block<3, 3>(0, 0));
-//            Eigen::Vector3d covariancePos(0, 0, 0);
-//            edge currentEdge(0, 0, currentTransformation.block<3, 1>(0, 3), qTMP, covariancePos, 0, 3,
-//                             graphSlamSaveStructure::INTEGRATED_POSE);
-//            currentEdge.setTimeStamp(timestampsForEdge[i]);
-//            listOfEdgesForForLoop.push_back(currentEdge);
-//
-//        }
-//
-//    } else {
-//        listOfEdgesForForLoop = listOfEdges;
-//    }
-//
-//
-//    int i = 1;
-//    for (auto &currentEdge: listOfEdgesForForLoop) {
-//        vertex lastVertex = currentGraph.getVertexList()->back();
-//        Eigen::Matrix4d tmpTransformation = lastVertex.getTransformation();
-//        tmpTransformation = tmpTransformation * currentEdge.getTransformation();
-//        Eigen::Vector3d pos = tmpTransformation.block<3, 1>(0, 3);
-//        Eigen::Matrix3d rotM = tmpTransformation.block<3, 3>(0, 0);
-//        Eigen::Quaterniond rot(rotM);
-//
-//        currentGraph.addVertex(lastVertex.getVertexNumber() + 1, pos, rot, lastVertex.getCovariancePosition(),
-//                               lastVertex.getCovarianceQuaternion(), currentEdge.getTimeStamp(),
-//                               graphSlamSaveStructure::INTEGRATED_POSE);
-//        currentGraph.addEdge(lastVertex.getVertexNumber(), lastVertex.getVertexNumber() + 1,
-//                             currentEdge.getPositionDifference(), currentEdge.getRotationDifference(),
-//                             Eigen::Vector3d(noiseVelocityIntigration, noiseVelocityIntigration, 0),
-//                             scalingAngle * noiseVelocityIntigration, graphSlamSaveStructure::INTEGRATED_POSE,
-//                             maxTimeOptimization);
-////        graphSaved.getVertexList()->back().setTypeOfVertex(
-////                graphSlamSaveStructure::INTEGRATED_POSE);//1 for vertex defined by dead reckoning
-//        i++;
-//    }
-//}
-//
-//
-//
-//void
-//slamToolsRos::correctPointCloudAtPos(int positionToCorrect, graphSlamSaveStructure &currentGraph,
-//                                     double beginAngle,
-//                                     double endAngle, bool reverseScanDirection,
-//                                     Eigen::Matrix4d transformationPosData2PclCoord) {
-//    // get index of the last vertex
-//    int lastIndex;
-//    int j = 1;
-//    while (true) {
-//        if (currentGraph.getVertexList()->at(positionToCorrect - j).getTypeOfVertex() ==
-//                    POINT_CLOUD_SAVED ||
-//            currentGraph.getVertexList()->at(positionToCorrect - j).getTypeOfVertex() ==
-//            FIRST_ENTRY) {
-//            lastIndex = positionToCorrect - j;
-//            break;
-//        }
-//        j++;
-//    }
-//
-//
-//    std::vector<edge> posDiff;
-//    int i = 0;
-//    while (lastIndex + i != positionToCorrect) {
-//        Eigen::Matrix4d fromTransformation = currentGraph.getVertexList()->at(lastIndex + i).getTransformation();//from
-//        Eigen::Matrix4d toTransformation = currentGraph.getVertexList()->at(lastIndex + i + 1).getTransformation();//to
-//        Eigen::Matrix4d transofrmationCurrentEdge = fromTransformation.inverse() * toTransformation;
-//
-//        Eigen::Quaterniond qTMP(transofrmationCurrentEdge.block<3, 3>(0, 0));
-//        edge currentEdge(0, 0, transofrmationCurrentEdge.block<3, 1>(0, 3), qTMP, Eigen::Vector3d(0, 0, 0), 0, 3,
-//                         graphSlamSaveStructure::INTEGRATED_POSE);
-//        currentEdge.setTimeStamp(currentGraph.getVertexList()->at(lastIndex + i + 1).getTimeStamp());
-//        posDiff.push_back(currentEdge);
-//        i++;
-//    }
-//    pcl::PointCloud<pcl::PointXYZ>::Ptr cloudScan = currentGraph.getVertexList()->at(positionToCorrect).getPointCloudRaw();
-//    pcl::PointCloud<pcl::PointXYZ>::Ptr correctedPointCloud(new pcl::PointCloud<pcl::PointXYZ>);
-//    *correctedPointCloud = *cloudScan;//copy raw in corrected
-//    slamToolsRos::correctPointCloudByPosition(correctedPointCloud, posDiff,
-//                                              currentGraph.getVertexList()->at(lastIndex).getTimeStamp(), beginAngle,
-//                                              endAngle, reverseScanDirection,
-//                                              transformationPosData2PclCoord);
-//    currentGraph.getVertexList()->at(positionToCorrect).setPointCloudCorrected(correctedPointCloud);
-//    currentGraph.getVertexByIndex(positionToCorrect)->setTypeOfVertex(graphSlamSaveStructure::POINT_CLOUD_SAVED);
-//}
+    int i = indexOfStart + 1;
+    while (i < indexOfEnd) {
+        Eigen::Matrix4d transformationOfEKFEnd = Eigen::Matrix4d::Identity();
+        transformationOfEKFEnd.block<3, 3>(0, 0) = rotationVector[i].toRotationMatrix();
+        transformationOfEKFEnd(0, 3) = xPositionVector[i];
+        transformationOfEKFEnd(1, 3) = yPositionVector[i];
+        transformationOfEKFEnd(2, 3) = zPositionVector[i];
+
+        Eigen::Matrix4d transformationOfEKFStart = Eigen::Matrix4d::Identity();
+        transformationOfEKFStart.block<3, 3>(0, 0) = rotationVector[i - 1].toRotationMatrix();
+        transformationOfEKFStart(0, 3) = xPositionVector[i - 1];
+        transformationOfEKFStart(1, 3) = yPositionVector[i - 1];
+        transformationOfEKFStart(2, 3) = zPositionVector[i - 1];
+
+        transformationTMP = transformationTMP * (transformationOfEKFStart.inverse() * transformationOfEKFEnd);
+        i++;
+    }
+
+    if (indexOfEnd > 0) {
+//        std::cout << endTimeToAdd << std::endl;
+//        std::cout << timeVector[indexOfEnd] << std::endl;
+//        std::cout << timeVector[indexOfEnd + 1] << std::endl;
+
+
+        double interpolationFactor = ((endTimeToAdd - timeVector[indexOfEnd]) /
+                                      (timeVector[indexOfEnd + 1] - timeVector[indexOfEnd]));
+
+        Eigen::Matrix4d transformationOfEKFStart = Eigen::Matrix4d::Identity();
+        transformationOfEKFStart.block<3, 3>(0, 0) = rotationVector[indexOfEnd].toRotationMatrix();
+        transformationOfEKFStart(0, 3) = xPositionVector[indexOfEnd];
+        transformationOfEKFStart(1, 3) = yPositionVector[indexOfEnd];
+        transformationOfEKFStart(2, 3) = zPositionVector[indexOfEnd];
+
+        Eigen::Matrix4d transformationOfEKFEnd = Eigen::Matrix4d::Identity();
+        transformationOfEKFEnd.block<3, 3>(0, 0) = rotationVector[indexOfEnd + 1].toRotationMatrix();
+        transformationOfEKFEnd(0, 3) = xPositionVector[indexOfEnd + 1];
+        transformationOfEKFEnd(1, 3) = yPositionVector[indexOfEnd + 1];
+        transformationOfEKFEnd(2, 3) = zPositionVector[indexOfEnd + 1];
+
+        transformationTMP = transformationTMP * transformationOfEKFStart.inverse() *
+                            generalHelpfulTools::interpolationTwo4DTransformations(transformationOfEKFStart,
+                                                                                   transformationOfEKFEnd,
+                                                                                   interpolationFactor);
+    }
+    //std::cout << diffMatrix << std::endl;
+    Eigen::Vector3d tmpPosition = transformationTMP.block<3, 1>(0, 3);
+    //set z pos diff to zero
+    tmpPosition[2] = 0;
+    Eigen::Quaterniond tmpRot(transformationTMP.block<3, 3>(0, 0));
+    Eigen::Vector3d rpyTMP = generalHelpfulTools::getRollPitchYaw(tmpRot);
+    //set rp on zero only yaw interesting
+    tmpRot = generalHelpfulTools::getQuaternionFromRPY(0, 0, rpyTMP[2]);
+    edge tmpEdge(0, 0, tmpPosition, tmpRot, Eigen::Vector3d(0, 0, 0), 0, 3,
+                 INTEGRATED_POSE, 0);
+
+    return tmpEdge;
+}
+
+double slamToolsRos::getDatasetFromGraphForMap(std::vector<intensityValues> &dataSet , graphSlamSaveStructure &graphSaved, std::mutex &graphSlamMutex) {
+    std::lock_guard<std::mutex> lock(graphSlamMutex);
+//        std::vector<dataPointStruct> dataSet;
+
+//        std::random_device rd;  // Will be used to obtain a seed for the random number engine
+//        std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
+//        std::uniform_real_distribution<> dis(0.0, 1.0);
+    double maxOverall = 0;
+    for (int i = 0; i < graphSaved.getVertexList()->size(); i++) {
+        intensityValues tmpInt;
+        tmpInt.transformation = graphSaved.getVertexList()->at(i).getTransformation();
+        tmpInt.intensity = graphSaved.getVertexList()->at(i).getIntensities();
+
+
+        double it = *max_element(std::begin(tmpInt.intensity.intensities),
+                                 std::end(tmpInt.intensity.intensities)); // C++11
+        if (it > maxOverall) {
+            maxOverall = it;
+        }
+        dataSet.push_back(tmpInt);
+    }
+
+
+    return maxOverall;
+}
+
+int slamToolsRos::getLastIntensityKeyframe(graphSlamSaveStructure &graphSaved) {//the absolut last entry is ignored
+    int lastKeyframeIndex = graphSaved.getVertexList()->size() - 2;//ignore the last index
+    //find last keyframe
+    while (graphSaved.getVertexList()->at(lastKeyframeIndex).getTypeOfVertex() !=
+           INTENSITY_SAVED_AND_KEYFRAME &&
+           graphSaved.getVertexList()->at(lastKeyframeIndex).getTypeOfVertex() != FIRST_ENTRY) {
+        lastKeyframeIndex--;
+    }
+    return lastKeyframeIndex;
+}
+
+double slamToolsRos::angleBetweenLastKeyframeAndNow(graphSlamSaveStructure &graphSaved) {
+    double resultingAngleSonar = 0;
+    double resultingAngleMovement = 0;
+    int lastKeyframeIndex = getLastIntensityKeyframe(graphSaved);
+
+    for (int i = lastKeyframeIndex; i < graphSaved.getVertexList()->size() - 1; i++) {
+        Eigen::Quaterniond currentRot =
+                graphSaved.getVertexList()->at(i).getRotationVertex().inverse() *
+                graphSaved.getVertexList()->at(i + 1).getRotationVertex();
+
+
+        Eigen::Vector3d rpy = generalHelpfulTools::getRollPitchYaw(currentRot);
+        resultingAngleMovement += rpy(2);
+        resultingAngleSonar += generalHelpfulTools::angleDiff(
+                graphSaved.getVertexList()->at(i + 1).getIntensities().angle,
+                graphSaved.getVertexList()->at(i).getIntensities().angle);
+    }
+
+    return resultingAngleMovement + resultingAngleSonar;
+
+}
+
+void slamToolsRos::clearSavingsOfPoses(double upToTime,std::deque<double> &timeVector,
+                                              std::deque<double> &xPositionVector, std::deque<double> &yPositionVector,
+                                              std::deque<double> &zPositionVector, std::deque<Eigen::Quaterniond> &rotationVector,std::mutex &stateEstimationMutex) {
+    std::lock_guard<std::mutex> lock(stateEstimationMutex);
+    while (timeVector[0] < upToTime) {
+        rotationVector.pop_front();
+        timeVector.pop_front();
+        xPositionVector.pop_front();
+        yPositionVector.pop_front();
+        zPositionVector.pop_front();
+    }
+}

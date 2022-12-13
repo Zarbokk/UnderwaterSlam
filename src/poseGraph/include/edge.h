@@ -5,23 +5,26 @@
 #ifndef SIMULATION_BLUEROV_EDGE_H
 #define SIMULATION_BLUEROV_EDGE_H
 
-#include <pcl/point_cloud.h>
+//#include <pcl/point_cloud.h>
 //#include <pcl_conversions/pcl_conversions.h>
-
+#include <Eigen/Geometry>
+//#include <Eigen/StdVector>
+#include <iostream>
 class edge {
 public:
     edge(const int fromVertex, const int toVertex, const Eigen::Vector3d& positionDifference,
          const Eigen::Quaterniond& rotationDifference, const Eigen::Vector3d &covariancePosition,
          const double covarianceQuaternion,
-         int degreeOfFreedom, int typeOfEdge) {
+         int degreeOfFreedom, int typeOfEdge,int keyOfEdgeInGraph) {
         if (degreeOfFreedom == 3) {
-            edge::fromKey = fromVertex;
-            edge::toKey = toVertex;
-            edge::positionDifference = positionDifference;
-            edge::rotationDifference = rotationDifference;
+            this->fromKey = fromVertex;
+            this->toKey = toVertex;
+            this->positionDifference = positionDifference;
+            this->rotationDifference = rotationDifference;
             this->rotationDifference.normalize();
-            edge::covariancePosition = covariancePosition;
-            edge::covarianceQuaternion = covarianceQuaternion;
+            this->covariancePosition = covariancePosition;
+            this->covarianceQuaternion = covarianceQuaternion;
+            this->keyOfEdgeInGraph = keyOfEdgeInGraph;
 
         } else {
             std::cout << "not yet implemented DOF 6" << std::endl;
@@ -40,6 +43,7 @@ public:
         this->rotationDifference = edgeToCopy.getRotationDifference();
         this->rotationDifference.normalize();
         this->typeOfEdge = edgeToCopy.getTypeOfEdge();
+        this->keyOfEdgeInGraph = edgeToCopy.getKeyOfEdgeInGraph();
     }
 
     void setEdge(edge &edgeToCopy);
@@ -72,6 +76,10 @@ public:
 
     void setTypeOfEdge(int &typeOfEdge);
 
+    int getKeyOfEdgeInGraph() const;
+
+    void setKeyOfEdgeInGraph(int &inputKey);
+
     Eigen::Matrix4d getTransformation() const;
 
 private:
@@ -82,6 +90,7 @@ private:
     Eigen::Vector3d positionDifference;
     Eigen::Quaterniond rotationDifference;
     int typeOfEdge;
+    int keyOfEdgeInGraph;
 };
 
 

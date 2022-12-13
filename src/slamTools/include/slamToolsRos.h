@@ -47,6 +47,11 @@ struct DvlData {
     double timeStamp;
 };
 
+struct intensityValues {
+    Eigen::Matrix4d transformation;
+    intensityMeasurement intensity;
+};
+
 class slamToolsRos {
 
 public:
@@ -86,7 +91,21 @@ public:
                                                                    double ignoreDistanceToRobo,
                                                                    double thresholdFactorPoint);
     static bool getNodes(ros::V_string &nodes);
-};
+
+    static edge calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endTimeToAdd, std::deque<double> &timeVector,
+                                                              std::deque<double> &xPositionVector, std::deque<double> &yPositionVector,
+                                                              std::deque<double> &zPositionVector, std::deque<Eigen::Quaterniond> &rotationVector, std::mutex &stateEstimationMutex);
+
+    static double angleBetweenLastKeyframeAndNow(graphSlamSaveStructure &graphSaved);
+
+    static int getLastIntensityKeyframe(graphSlamSaveStructure &graphSaved);
+
+    static double getDatasetFromGraphForMap(std::vector<intensityValues> &dataSet , graphSlamSaveStructure &graphSaved, std::mutex &graphSlamMutex);
+
+    static void clearSavingsOfPoses(double upToTime,std::deque<double> &timeVector,
+                                    std::deque<double> &xPositionVector, std::deque<double> &yPositionVector,
+                                    std::deque<double> &zPositionVector, std::deque<Eigen::Quaterniond> &rotationVector,std::mutex &stateEstimationMutex);
+    };
 
 
 #endif //SIMULATION_BLUEROV_VISUALIZESLAMINROS_H

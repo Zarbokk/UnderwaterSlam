@@ -14,9 +14,10 @@ graphSlamSaveStructure::addEdge(int fromKey, int toKey, Eigen::Vector3d position
         std::isnan(covariancePosition[1])) {
         std::cout << "IS NAN: " << std::endl;
     }
+
     edge edgeToAdd(fromKey, toKey, positionDifference, rotationDifference, covariancePosition,
                    covarianceQuaternion,
-                   this->degreeOfFreedom, typeOfEdge);
+                   this->degreeOfFreedom, typeOfEdge,this->graph.size());
 
     // add a factor between the keys
     if (abs(toKey - fromKey) > 2) {
@@ -45,22 +46,99 @@ void graphSlamSaveStructure::addVertex(int key, const Eigen::Vector3d &positionV
     vertex vertexToAdd(key, positionVertex, rotationVertex, this->degreeOfFreedom,
                        intensityInput, covariancePosition, covarianceQuaternion, timeStamp, typeOfVertex);
     this->vertexList.push_back(vertexToAdd);
-
-    this->currentEstimate.insert(key,gtsam::Pose2(0,0,0));
+    //ADD BETTER INITIAL STATE
+    double tmpYaw = generalHelpfulTools::getRollPitchYaw(rotationVertex)[2];
+    this->currentEstimate.insert(key,gtsam::Pose2(positionVertex[0],positionVertex[1],tmpYaw));
 }
 
 
-void graphSlamSaveStructure::optimizeGraph(bool verbose) {
-    gtsam::GaussNewtonParams parameters;
-    parameters.relativeErrorTol = 1e-5;
-    parameters.maxIterations = 100;
+void graphSlamSaveStructure::isam2OptimizeGraph(bool verbose) {
 
-    gtsam::GaussNewtonOptimizer optimizer(this->graph, this->currentEstimate, parameters);
+
+//    this->graph.print();
+//    this->isam->printStats();
+
+    this->isam->update(this->graph,this->currentEstimate);
+
+
+    for(int i = 0 ; i<10 ; i++){
+        this->isam->update();
+    }
+
+//    this->isam->printStats();
+//    std::cout << "######" << std::endl;
+//    this->currentEstimate.print();
+//    std::cout << "#" << std::endl;
+    this->currentEstimate = this->isam->calculateEstimate();
+//    this->currentEstimate.print();
+//    std::cout << "######" << std::endl;
+
+
+//    this->isam->update();
+//    this->currentEstimate = this->isam->calculateEstimate();
+//    this->currentEstimate.print();
+//    std::cout << "######"<< std::endl;
+
+
+//    this->currentEstimate.print("Final Result:\n");
+//    gtsam::Marginals marginals(this->graph, this->currentEstimate);
+
+
+    for(int i  = 1 ; i<this->vertexList.size() ; i++){
+        gtsam::Pose2 iterativePose = this->currentEstimate.at(this->vertexList[i].getKey()).cast<gtsam::Pose2>();
+        this->vertexList.at(i).setPositionVertex(Eigen::Vector3d(iterativePose.x(),iterativePose.y(),0));
+        this->vertexList.at(i).setRotationVertex(generalHelpfulTools::getQuaternionFromRPY(0,0,iterativePose.theta()));
+//        std::cout << "covariance:\n" << marginals.marginalCovariance(this->vertexList.at(i).getKey()) << std::endl;
+//        std::cout << "Pose :\n" << iterativePose << std::endl;
+        this->vertexList.at(i).setCovariancePosition(Eigen::Vector3d(this->isam->marginalCovariance(this->vertexList.at(i).getKey())(0,0),this->isam->marginalCovariance(this->vertexList.at(i).getKey())(1,1),0));
+        this->vertexList.at(i).setCovarianceQuaternion(this->isam->marginalCovariance(this->vertexList.at(i).getKey())(2,2));
+
+    }
+
+    this->graph.resize(0);
+    this->currentEstimate.clear();
+}
+
+
+
+void graphSlamSaveStructure::classicalOptimizeGraph(bool verbose) {
+//    gtsam::GaussNewtonParams parameters;
+//    parameters.relativeErrorTol = 1e-5;
+//    parameters.maxIterations = 100;
+//    parameters.setVerbosity("ERROR");
+//    gtsam::GaussNewtonOptimizer optimizer(this->graph, this->currentEstimate, parameters);
+
+    gtsam::LevenbergMarquardtParams params;
+//    params.setVerbosity("ERROR");
+    params.setOrderingType("METIS");
+    params.setLinearSolverType("MULTIFRONTAL_CHOLESKY");
+
+
+
+
+    gtsam::LevenbergMarquardtOptimizer optimizer(this->graph, this->currentEstimate,params);
+
     // ... and optimize
     this->currentEstimate = optimizer.optimize();
-//    this->currentEstimate.print("Final Result:\n");
-    gtsam::Marginals marginals(graph, this->currentEstimate);
 
+
+//    this->isam->printStats();
+//    std::cout << "######" << std::endl;
+//    this->currentEstimate.print();
+//    std::cout << "#" << std::endl;
+//    this->currentEstimate = this->isam->calculateEstimate();
+//    this->currentEstimate.print();
+//    std::cout << "######" << std::endl;
+
+
+//    this->isam->update();
+//    this->currentEstimate = this->isam->calculateEstimate();
+//    this->currentEstimate.print();
+//    std::cout << "######"<< std::endl;
+
+
+//    this->currentEstimate.print("Final Result:\n");
+    gtsam::Marginals marginals(this->graph, this->currentEstimate);
 
 
     for(int i  = 1 ; i<this->vertexList.size() ; i++){
@@ -71,14 +149,11 @@ void graphSlamSaveStructure::optimizeGraph(bool verbose) {
 //        std::cout << "Pose :\n" << iterativePose << std::endl;
         this->vertexList.at(i).setCovariancePosition(Eigen::Vector3d(marginals.marginalCovariance(this->vertexList.at(i).getKey())(0,0),marginals.marginalCovariance(this->vertexList.at(i).getKey())(1,1),0));
         this->vertexList.at(i).setCovarianceQuaternion(marginals.marginalCovariance(this->vertexList.at(i).getKey())(2,2));
-
     }
 
-
+//    this->graph.resize(0);
+//    this->currentEstimate.clear();
 }
-
-
-
 
 void graphSlamSaveStructure::printCurrentState() {
     std::cout << "current State:" << std::endl;
@@ -192,4 +267,27 @@ void graphSlamSaveStructure::addRandomNoiseToGraph(double stdDiviationGauss, dou
 
 //    this->vertexList[i].setIntensities(tmpIntensity);
 
+}
+
+void graphSlamSaveStructure::setPoseDifferenceEdge(int numberOfEdge, Eigen::Matrix4d poseDiff){
+    this->edgeList.at(numberOfEdge).setPositionDifference(poseDiff.block<3, 1>(0, 3));
+    this->edgeList.at(numberOfEdge).setRotationDifference(Eigen::Quaterniond(poseDiff.block<3, 3>(0, 0)));
+    int fromKey = this->edgeList.at(numberOfEdge).getFromKey();
+    int toKey = this->edgeList.at(numberOfEdge).getToKey();
+    int keyFactorInGraph = this->edgeList.at(numberOfEdge).getKeyOfEdgeInGraph();
+
+
+    this->graph.remove(this->edgeList.at(numberOfEdge).getKeyOfEdgeInGraph());
+    int tmpInt = this->graph.size();
+    this->edgeList.at(numberOfEdge).setKeyOfEdgeInGraph(tmpInt);
+
+    this->graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(fromKey, toKey, gtsam::Pose2(
+                                                                            this->edgeList.at(numberOfEdge).getPositionDifference().x(), this->edgeList.at(numberOfEdge).getPositionDifference().y(),
+                                                                                          generalHelpfulTools::getRollPitchYaw(this->edgeList.at(numberOfEdge).getRotationDifference())[2]),
+                                                                                  this->loopClosureNoiseModel);//@TODO different Noise Model
+
+}
+
+void graphSlamSaveStructure::print(){
+    this->graph.print();
 }

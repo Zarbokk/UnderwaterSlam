@@ -85,3 +85,11 @@ Eigen::Matrix4d edge::getTransformation() const{
     transformation.block<3, 3>(0, 0) = m;
     return transformation;
 }
+
+int edge::getKeyOfEdgeInGraph() const{
+    return(this->keyOfEdgeInGraph);
+}
+
+void edge::setKeyOfEdgeInGraph(int &inputKey){
+    this->keyOfEdgeInGraph = inputKey;
+}
