@@ -97,8 +97,7 @@ target_include_directories(hilbertmaps PUBLIC src/hilbertMaps/include ${catkin_I
 #target_link_libraries(registrationOfTwoPCLs OpenMP::OpenMP_CXX registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
 #target_include_directories(registrationOfTwoPCLs PUBLIC ${OpenCV_INCLUDE_DIRS} )
 #
-#add_executable(registrationOfTwoImages src/registration/registrationOfTwoImageScans.cpp )
-#target_link_libraries(registrationOfTwoImages OpenMP::OpenMP_CXX slamtools registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
+
 
 #add_executable(comparisonMatchingLiveRosBag src/evaluation/comparisonEveryMatchingMethod.cpp )
 #target_link_libraries(comparisonMatchingLiveRosBag ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
@@ -129,3 +128,5 @@ add_executable(testSLAM src/completeSlamRuns/testSLAMRUNS.cpp)
 target_link_libraries(testSLAM gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 
+add_executable(registrationOfTwoImages src/registration/registrationOfTwoImageScans.cpp )
+target_link_libraries(registrationOfTwoImages OpenMP::OpenMP_CXX registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})

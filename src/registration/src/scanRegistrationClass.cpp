@@ -83,9 +83,10 @@ Eigen::Matrix4d scanRegistrationClass::sofftRegistration2D(pcl::PointCloud<pcl::
 
 //    const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1New(pointCloudInputData1.makeShared());
 //    const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2New(pointCloudInputData2.makeShared());
-
-    return mySofftRegistrationClass.registrationOfTwoPCL2D(pointCloudInputData1, pointCloudInputData2, fitnessX,
-                                                           fitnessY, goodGuessAlpha, debug);
+    std::cout << "not Implemented" << std::endl;
+    return Eigen::Matrix4d::Identity();
+//    return mySofftRegistrationClass.registrationOfTwoPCL2D(pointCloudInputData1, pointCloudInputData2, fitnessX,
+//                                                           fitnessY, goodGuessAlpha, debug);
 }
 
 Eigen::Matrix4d scanRegistrationClass::sofftRegistration2D(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData1,
@@ -96,9 +97,10 @@ Eigen::Matrix4d scanRegistrationClass::sofftRegistration2D(pcl::PointCloud<pcl::
 
 //    const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData1New(pointCloudInputData1.makeShared());
 //    const pcl::PointCloud<pcl::PointXYZ> pointCloudInputData2New(pointCloudInputData2.makeShared());
-
-    return mySofftRegistrationClass.registrationOfTwoPCL2D(pointCloudInputData1, pointCloudInputData2, fitnessX,
-                                                           fitnessY, initialGuess, useInitialGuess, debug);
+    std::cout << "not Implemented" << std::endl;
+    return Eigen::Matrix4d::Identity();
+//    return mySofftRegistrationClass.registrationOfTwoPCL2D(pointCloudInputData1, pointCloudInputData2, fitnessX,
+//                                                           fitnessY, initialGuess, useInitialGuess, debug);
 }
 
 
@@ -358,9 +360,9 @@ Eigen::Matrix4d scanRegistrationClass::registrationOfTwoVoxelsSOFFTFast(double v
 
 
 
-    //changing voxel 1 and 2 because we want to have the transformation from 1 to 2 and not from 2 to 1(which is the registration)
-    return mySofftRegistrationClass.registrationOfTwoVoxelsSOFFTFast(voxelData2Input,
-                                                                     voxelData1Input,
+    //changing voxel 1 and 2 because we want to have the transformation from 1 to 2 and not from 2 to 1(which is the registration)@TODO
+    return mySofftRegistrationClass.registrationOfTwoVoxelsSOFFTFast(voxelData1Input,
+                                                                     voxelData2Input,
                                                                      initialGuess,
                                                                      useInitialAngle, useInitialTranslation,
                                                                      cellSize,

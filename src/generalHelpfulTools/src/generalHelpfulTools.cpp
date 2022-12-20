@@ -118,4 +118,16 @@ void generalHelpfulTools::smooth_curve(const std::vector<double> &input, std::ve
 }
 
 
+Eigen::Matrix4d generalHelpfulTools::convertMatrixFromOurSystemToOpenCV(Eigen::Matrix4d inputMatrix) {
+
+//    return(generalHelpfulTools::getTransformationMatrixFromRPY(0, 0, 180.0 / 180.0 * M_PI)*inputMatrix);
+    double x1 = inputMatrix(0, 3);
+    double y1 = inputMatrix(1, 3);
+    inputMatrix(0, 3) = y1;
+    inputMatrix(1, 3) = x1;
+    Eigen::Matrix3d tmpMatrix = inputMatrix.block<3, 3>(0, 0).inverse();
+    inputMatrix.block<3, 3>(0, 0) = tmpMatrix;
+    return inputMatrix;
+}
+
 

@@ -384,15 +384,6 @@ double slamToolsRos::createVoxelOfGraph(double voxelData[], int indexStart,
                                                                                                          usedGraph.getVertexList()->at(
                                                                                                                  indexStart -
                                                                                                                  i).getIntensities().angle);
-//        std::cout << " " << std::endl;
-//        std::cout << generalHelpfulTools::getRollPitchYaw(Eigen::Quaterniond((transformationOfIntensityRay).block<3, 3>(0, 0)))[2] << std::endl;
-
-//        std::cout << generalHelpfulTools::getRollPitchYaw(Eigen::Quaterniond((rotationOfSonarAngleMatrix).block<3, 3>(0, 0)))[2] << std::endl;
-//        std::cout << usedGraph.getVertexList()->at(
-//                indexStart -
-//                i).getIntensities().angle << std::endl;
-//
-//        std::cout << generalHelpfulTools::getRollPitchYaw(Eigen::Quaterniond((transformationOfIntensityRay * rotationOfSonarAngleMatrix).block<3, 3>(0, 0)))[2] << std::endl;
 
         int ignoreDistance = (int) (ignoreDistanceToRobot /
                                     (usedGraph.getVertexList()->at(indexStart - i).getIntensities().range /

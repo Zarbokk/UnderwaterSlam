@@ -30,6 +30,8 @@ public:
     static void
     smooth_curve(const std::vector<double> &input, std::vector<double> &smoothedOutput, int window_half_width);
 
+    static Eigen::Matrix4d convertMatrixFromOurSystemToOpenCV(Eigen::Matrix4d inputMatrix);
+
 };
 
 

@@ -26,7 +26,7 @@
 #define DIMENSION_OF_MAP 45.0
 #define FACTOR_OF_THRESHOLD 0.9
 #define IGNORE_DISTANCE_TO_ROBOT 1.5
-#define DEBUG_REGISTRATION true
+#define DEBUG_REGISTRATION false
 
 
 #define ROTATION_SONAR M_PI
@@ -224,11 +224,19 @@ private:
 
 
 
-            //match these voxels together
+            //we inverse the initial guess, because the registration creates a T from scan 1 to scan 2.
+            // But the graph creates a transformation from 1 -> 2 by the robot, therefore inverse.
             this->initialGuessTransformation =
-                    this->graphSaved.getVertexList()->at(indexOfLastKeyframe).getTransformation().inverse() *
-                    this->graphSaved.getVertexList()->back().getTransformation();
+                    (this->graphSaved.getVertexList()->at(indexOfLastKeyframe).getTransformation().inverse() *
+                     this->graphSaved.getVertexList()->back().getTransformation()).inverse();
+//            Eigen::Matrix4d initialGuessTransformation2 =
+//                    this->graphSaved.getVertexList()->at(indexOfLastKeyframe).getTransformation().inverse() *
+//                    this->graphSaved.getVertexList()->back().getTransformation();
+//            std::cout << this->initialGuessTransformation<< std::endl;
+//            std::cout << initialGuessTransformation2<< std::endl;
+            std::cout << "this->initialGuessTransformation.inverse()" << std::endl;
 
+            std::cout << this->initialGuessTransformation.inverse() << std::endl;
             double initialGuessAngle = std::atan2(this->initialGuessTransformation(1, 0),
                                                   this->initialGuessTransformation(0, 0));
             double fitnessScoreX, fitnessScoreY;
@@ -279,18 +287,21 @@ private:
 
 
             std::cout << "Initial guess angle: "
-                      << initialGuessAngle
+                      << initialGuessAngle * 180 / M_PI
                       << std::endl;
             std::cout << "Registration angle: "
-                      << std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)) << std::endl;
+                      << std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)) * 180 / M_PI
+                      << std::endl;
             std::cout << "difference of angle after Registration: " << differenceAngleBeforeAfter * 180 / M_PI
                       << std::endl;
             //only if angle diff is smaller than 10 degreece its ok
             if (abs(differenceAngleBeforeAfter) < 45.0 / 180.0 * M_PI) {
-                Eigen::Quaterniond qTMP(this->currentTransformation.block<3, 3>(0, 0));
+                //inverse the transformation because we want the robot transformation, not the scan transformation
+                Eigen::Matrix4d transformationEstimationRobot1_2 = this->currentTransformation.inverse();
+                Eigen::Quaterniond qTMP(transformationEstimationRobot1_2.block<3, 3>(0, 0));
                 graphSaved.addEdge(slamToolsRos::getLastIntensityKeyframe(this->graphSaved),
-                                   graphSaved.getVertexList()->size() - 1,
-                                   this->currentTransformation.block<3, 1>(0, 3), qTMP,
+                                   this->graphSaved.getVertexList()->size() - 1,
+                                   transformationEstimationRobot1_2.block<3, 1>(0, 3), qTMP,
                                    Eigen::Vector3d(0.05 * fitnessScoreX, 0.05 * fitnessScoreY, 0),
                                    0.02,
                                    LOOP_CLOSURE);//@TODO still not sure about size
@@ -298,7 +309,13 @@ private:
                 std::cout << "we just skipped that registration" << std::endl;
             }
 
-            ////////////// look for loop closure  //////////////
+            std::cout << "NEW TEST:" << std::endl;
+            std::cout << "Input In Graph:" << std::endl;
+            std::cout << this->currentTransformation.inverse() << std::endl;
+            std::cout << "Initial Guess From Graph:" << std::endl;
+            std::cout << this->graphSaved.getVertexList()->at(indexOfLastKeyframe).getTransformation().inverse() *
+                         this->graphSaved.getVertexList()->back().getTransformation()
+                      << std::endl;
             //
 
 //            this->graphSaved.isam2OptimizeGraph(true);
@@ -307,9 +324,11 @@ private:
 //                this->graphSaved.classicalOptimizeGraph(true);
 //                updateRegistration(this->graphSaved.getEdgeList()->size() - 1);
 //            }
-            detectLoopClosure(this->graphSaved, this->scanRegistrationObject);
-            this->graphSaved.classicalOptimizeGraph(true);
 
+            ////////////// look for loop closure  //////////////
+            detectLoopClosure(this->graphSaved, this->scanRegistrationObject);
+//            this->graphSaved.classicalOptimizeGraph(true);
+            this->graphSaved.isam2OptimizeGraph(true);
             std::chrono::steady_clock::time_point begin;
             std::chrono::steady_clock::time_point end;
             begin = std::chrono::steady_clock::now();
@@ -410,35 +429,34 @@ private:
             voxelData1 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
             voxelData2 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
             double maximumVoxel1 = slamToolsRos::createVoxelOfGraph(voxelData1,
-                                                                    potentialKey,
-                                                                    Eigen::Matrix4d::Identity(),
-                                                                    NUMBER_OF_POINTS_DIMENSION, this->graphSaved,
-                                                                    IGNORE_DISTANCE_TO_ROBOT,
-                                                                    DIMENSION_OF_VOXEL_DATA_FOR_MATCHING);//get voxel
-
-            double maximumVoxel2 = slamToolsRos::createVoxelOfGraph(voxelData2,
                                                                     this->graphSaved.getVertexList()->back().getKey(),
                                                                     Eigen::Matrix4d::Identity(),
                                                                     NUMBER_OF_POINTS_DIMENSION, this->graphSaved,
                                                                     IGNORE_DISTANCE_TO_ROBOT,
                                                                     DIMENSION_OF_VOXEL_DATA_FOR_MATCHING);//get voxel
 
-            this->initialGuessTransformation =
-                    this->graphSaved.getVertexList()->at(potentialKey).getTransformation().inverse() *
-                    this->graphSaved.getVertexList()->back().getTransformation();
+            double maximumVoxel2 = slamToolsRos::createVoxelOfGraph(voxelData2,
+                                                                    potentialKey,
+                                                                    Eigen::Matrix4d::Identity(),
+                                                                    NUMBER_OF_POINTS_DIMENSION, this->graphSaved,
+                                                                    IGNORE_DISTANCE_TO_ROBOT,
+                                                                    DIMENSION_OF_VOXEL_DATA_FOR_MATCHING);//get voxel
 
+            this->initialGuessTransformation =
+                    (this->graphSaved.getVertexList()->back().getTransformation().inverse() *
+                     this->graphSaved.getVertexList()->at(potentialKey).getTransformation()).inverse();
             // transform from 1 to 2
             this->currentTransformation = tmpregistrationClass.registrationOfTwoVoxelsSOFFTFast(voxelData1,
                                                                                                 voxelData2,
                                                                                                 this->initialGuessTransformation,
-                                                                                                true, true,
+                                                                                                true, false,
                                                                                                 (double) DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
                                                                                                 (double) NUMBER_OF_POINTS_DIMENSION,
                                                                                                 true,
                                                                                                 DEBUG_REGISTRATION);
 
 
-            std::cout << "Found Loop Closure with fitnessScore: " << fitnessScore << std::endl;
+//            std::cout << "Found Loop Closure with fitnessScore: " << fitnessScore << std::endl;
             std::cout << "Estimated Transformation:" << std::endl;
             std::cout << this->currentTransformation << std::endl;
 
@@ -454,15 +472,16 @@ private:
                       std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)) *
                       180 / M_PI << std::endl;
 
-            saveResultingRegistration(potentialKey, this->graphSaved.getVertexList()->back().getKey());
-
+            saveResultingRegistration(this->graphSaved.getVertexList()->back().getKey(), potentialKey);
+            //inverse the transformation because we want the robot transformation, not the scan transformation
+            Eigen::Matrix4d transformationEstimationRobot1_2 = this->currentTransformation.inverse();
             Eigen::Vector3d currentPosDiff;
-            Eigen::Quaterniond currentRotDiff(this->currentTransformation.block<3, 3>(0, 0));
-            currentPosDiff.x() = this->currentTransformation(0, 3);
-            currentPosDiff.y() = this->currentTransformation(1, 3);
+            Eigen::Quaterniond currentRotDiff(transformationEstimationRobot1_2.block<3, 3>(0, 0));
+            currentPosDiff.x() = transformationEstimationRobot1_2(0, 3);
+            currentPosDiff.y() = transformationEstimationRobot1_2(1, 3);
             currentPosDiff.z() = 0;
             Eigen::Vector3d positionCovariance(fitnessScore, fitnessScore, 0);
-            tmpGraphSaved.addEdge(potentialKey, tmpGraphSaved.getVertexList()->back().getKey(), currentPosDiff,
+            tmpGraphSaved.addEdge(tmpGraphSaved.getVertexList()->back().getKey(), potentialKey, currentPosDiff,
                                   currentRotDiff, positionCovariance,
                                   1, LOOP_CLOSURE);
             foundLoopClosure = true;
@@ -476,7 +495,7 @@ private:
         return false;
     }
 
-    void saveResultingRegistration(int indexOfLastKeyframe, int indexSecondKeyFrame) {
+    void saveResultingRegistration(int indexFirstKeyFrame, int indexSecondKeyFrame) {
 
 
         if (DEBUG_REGISTRATION) {
@@ -487,15 +506,15 @@ private:
 
 
             double maximumVoxel1 = slamToolsRos::createVoxelOfGraph(voxelData1,
-                                                                    indexOfLastKeyframe,
-                                                                    Eigen::Matrix4d::Identity(),
+                                                                    indexFirstKeyFrame,
+                                                                    this->currentTransformation,
                                                                     NUMBER_OF_POINTS_DIMENSION, this->graphSaved,
                                                                     IGNORE_DISTANCE_TO_ROBOT,
                                                                     DIMENSION_OF_VOXEL_DATA_FOR_MATCHING);//get voxel
 
             double maximumVoxel2 = slamToolsRos::createVoxelOfGraph(voxelData2,
                                                                     indexSecondKeyFrame,
-                                                                    this->currentTransformation,
+                                                                    Eigen::Matrix4d::Identity(),
                                                                     NUMBER_OF_POINTS_DIMENSION, this->graphSaved,
                                                                     IGNORE_DISTANCE_TO_ROBOT,
                                                                     DIMENSION_OF_VOXEL_DATA_FOR_MATCHING);//get voxel
@@ -590,10 +609,11 @@ private:
 
 
         std::cout << "Initial guess angle: "
-                  << initialGuessAngle
+                  << initialGuessAngle * 180 / M_PI
                   << std::endl;
         std::cout << "Registration angle: "
-                  << std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)) << std::endl;
+                  << std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)) * 180 / M_PI
+                  << std::endl;
         std::cout << "difference of angle after Registration: " << differenceAngleBeforeAfter * 180 / M_PI
                   << std::endl;
         //only if angle diff is smaller than 10 degreece its ok
