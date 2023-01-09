@@ -25,8 +25,9 @@
 #include <iostream>
 #include <fstream>
 
-struct angleAndCorrelation {
-    double angle, correlation;
+struct rotationPeak {
+    double angle;
+    double peakCorrelation;
 };
 
 struct translationPeak {
@@ -35,6 +36,11 @@ struct translationPeak {
     double peakHeight;
     double covarianceX;
     double covarianceY;
+};
+
+struct transformationPeak {
+    std::vector<translationPeak> potentialTranslations;
+    rotationPeak potentialRotation;
 };
 
 class softDescriptorRegistration {
@@ -147,15 +153,15 @@ public:
     sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[], double voxelData2Input[], double goodGuessAlpha,
                                          bool debug = false);
 
-    std::vector<double>
+    std::vector<rotationPeak>
     sofftRegistrationVoxel2DListOfPossibleRotations(double voxelData1Input[], double voxelData2Input[],
                                                     bool debug = false);
 
-    Eigen::Vector2d sofftRegistrationVoxel2DTranslation(double voxelData1Input[],
-                                                        double voxelData2Input[],
-                                                        double &fitnessX, double &fitnessY, double cellSize,
-                                                        Eigen::Vector3d initialGuess, bool useInitialGuess,
-                                                        double &heightMaximumPeak, bool debug = false);
+//    Eigen::Vector2d sofftRegistrationVoxel2DTranslation(double voxelData1Input[],
+//                                                        double voxelData2Input[],
+//                                                        double &fitnessX, double &fitnessY, double cellSize,
+//                                                        Eigen::Vector3d initialGuess, bool useInitialGuess,
+//                                                        double &heightMaximumPeak, bool debug = false);
 
     Eigen::Matrix4d registrationOfTwoVoxelsSOFFTFast(double voxelData1Input[],
                                                      double voxelData2Input[],
@@ -165,6 +171,12 @@ public:
                                                      bool useGauss,
                                                      bool debug = false);
 
+    std::vector<transformationPeak> registrationOfTwoVoxelsSOFFTAllSoluations(double voxelData1Input[],
+                                                                              double voxelData2Input[],
+                                                                              double cellSize,
+                                                                              bool useGauss,
+                                                                              bool debug = false);
+
     double getSpectrumFromVoxelData2DCorrelation(double voxelData[], double magnitude[], double phase[],
                                                  bool gaussianBlur, double normalizationFactor);
 
@@ -172,7 +184,12 @@ public:
                                                                                          double voxelData2Input[],
                                                                                          double cellSize,
                                                                                          double normalizationFactor,
-                                                                                         bool debug);
+                                                                                         bool debug = false,
+                                                                                         int numberOfRotationForDebug = 0);
+
+    std::vector<translationPeak>
+    peakDetectionOf2DCorrelation(double maximumCorrelation, double cellSize, int impactOfNoiseFactor = 2,
+                                 double percentageOfMaxCorrelationIgnored = 0.10);
 
 private://here everything is created. malloc is done in the constructor
 

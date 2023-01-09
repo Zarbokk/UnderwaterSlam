@@ -135,12 +135,12 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(pcl::PointCloud<pcl
 
     using TrVisitor = gr::DummyTransformVisitor;
 
-    using MatcherType = gr::Match4pcsBase <gr::FunctorSuper4PCS, gr::Point3D<float>, TrVisitor, gr::AdaptivePointFilter, gr::AdaptivePointFilter::Options>;
+    using MatcherType = gr::Match4pcsBase<gr::FunctorSuper4PCS, gr::Point3D<float>, TrVisitor, gr::AdaptivePointFilter, gr::AdaptivePointFilter::Options>;
     using OptionType = typename MatcherType::OptionsType;
-    using SamplerType = gr::UniformDistSampler <gr::Point3D<float>>;
+    using SamplerType = gr::UniformDistSampler<gr::Point3D<float>>;
 
-    std::vector<gr::Point3D < float>>
-    set1, set2;
+    std::vector<gr::Point3D<float>>
+            set1, set2;
     std::vector<Eigen::Matrix2f> tex_coords1, tex_coords2;
     std::vector<typename gr::Point3D<float>::VectorType> normals1, normals2;
     std::vector<std::string> mtls1, mtls2;
@@ -202,7 +202,7 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(pcl::PointCloud<pcl
         options.configureOverlap(overlap);
         options.delta = 0.1;
 //        options.sample_size = 1000;
-        options.sample_size = (cloudFirstScan.points.size()+cloudSecondScan.points.size())/2;
+        options.sample_size = (cloudFirstScan.points.size() + cloudSecondScan.points.size()) / 2;
 
 
         typename gr::Point3D<float>::Scalar score = 0;
@@ -234,7 +234,7 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(pcl::PointCloud<pcl
 //        std::cout << initialGuess << std::endl;
 //        std::cout << "current test: " << std::endl;
 //        std::cout << saveMat << std::endl;
-        Eigen::Matrix4d tmpMat=saveMat.inverse();
+        Eigen::Matrix4d tmpMat = saveMat.inverse();
         saveMat = tmpMat;
 
         double initialGuessAngle = std::atan2(initialGuess(1, 0),
@@ -273,8 +273,6 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(pcl::PointCloud<pcl
 }
 
 
-
-
 Eigen::Matrix4d scanRegistrationClass::ndt_d2d_2d(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
                                                   pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                                   Eigen::Matrix4d initialGuess,
@@ -285,7 +283,7 @@ Eigen::Matrix4d scanRegistrationClass::ndt_d2d_2d(pcl::PointCloud<pcl::PointXYZ>
 //    initialGuess(1, 3) = -initialGuess(1, 3);
 
 
-    double __res[] = { 0.5, 1, 2,4};
+    double __res[] = {0.5, 1, 2, 4};
     std::vector<double> resolutions(__res, __res + sizeof(__res) / sizeof(double));
 
 
@@ -294,8 +292,8 @@ Eigen::Matrix4d scanRegistrationClass::ndt_d2d_2d(pcl::PointCloud<pcl::PointXYZ>
 
 
 //    std::cout<<"Transform Before: \n"<<Tout.matrix()<<std::endl;
-    lslgeneric::NDTMatcherD2D_2D <pcl::PointXYZ, pcl::PointXYZ> matcherD2D(false, false, resolutions);
-    bool ret = matcherD2D.match( cloudFirstScan,cloudSecondScan, Tout, useInitialGuess);
+    lslgeneric::NDTMatcherD2D_2D<pcl::PointXYZ, pcl::PointXYZ> matcherD2D(false, false, resolutions);
+    bool ret = matcherD2D.match(cloudFirstScan, cloudSecondScan, Tout, useInitialGuess);
 
 //    Tout(0, 1) = -Tout(0, 1);
 //    Tout(1, 0) = -Tout(1, 0);
@@ -321,7 +319,7 @@ Eigen::Matrix4d scanRegistrationClass::ndt_p2d(pcl::PointCloud<pcl::PointXYZ> &c
 
 //    std::cout<<"Transform Before: \n"<<Tout.matrix()<<std::endl;
 
-    lslgeneric::NDTMatcherP2D <pcl::PointXYZ, pcl::PointXYZ> matcherP2D;
+    lslgeneric::NDTMatcherP2D<pcl::PointXYZ, pcl::PointXYZ> matcherP2D;
 
     bool ret = matcherP2D.match(cloudFirstScan, cloudSecondScan, Tout);
 
@@ -336,27 +334,28 @@ Eigen::Matrix4d scanRegistrationClass::ndt_p2d(pcl::PointCloud<pcl::PointXYZ> &c
 }
 
 
-Eigen::Vector2d scanRegistrationClass::sofftRegistrationVoxel2DTranslation(double voxelData1Input[],
-                                                                           double voxelData2Input[],
-                                                                           double &fitnessX, double &fitnessY,
-                                                                           double cellSize,
-                                                                           Eigen::Vector3d initialGuess,
-                                                                           bool useInitialGuess,
-                                                                           double &heightMaximumPeak, bool debug) {
-
-    this->mySofftRegistrationClass.sofftRegistrationVoxel2DTranslation(voxelData1Input, voxelData2Input, fitnessX,
-                                                                       fitnessY, cellSize, initialGuess,
-                                                                       useInitialGuess, heightMaximumPeak, debug);
-
-}
+//Eigen::Vector2d scanRegistrationClass::sofftRegistrationVoxel2DTranslation(double voxelData1Input[],
+//                                                                           double voxelData2Input[],
+//                                                                           double &fitnessX, double &fitnessY,
+//                                                                           double cellSize,
+//                                                                           Eigen::Vector3d initialGuess,
+//                                                                           bool useInitialGuess,
+//                                                                           double &heightMaximumPeak, bool debug) {
+//
+//    this->mySofftRegistrationClass.sofftRegistrationVoxel2DTranslation(voxelData1Input, voxelData2Input, fitnessX,
+//                                                                       fitnessY, cellSize, initialGuess,
+//                                                                       useInitialGuess, heightMaximumPeak, debug);
+//
+//}
 
 Eigen::Matrix4d scanRegistrationClass::registrationOfTwoVoxelsSOFFTFast(double voxelData1Input[],
                                                                         double voxelData2Input[],
                                                                         Eigen::Matrix4d initialGuess,
-                                                                        bool useInitialAngle, bool useInitialTranslation,
+                                                                        bool useInitialAngle,
+                                                                        bool useInitialTranslation,
                                                                         double cellSize,
                                                                         bool useGauss,
-                                                                        bool debug){
+                                                                        bool debug) {
 
 
 
@@ -368,4 +367,21 @@ Eigen::Matrix4d scanRegistrationClass::registrationOfTwoVoxelsSOFFTFast(double v
                                                                      cellSize,
                                                                      useGauss,
                                                                      debug);
+}
+
+std::vector<transformationPeak>
+scanRegistrationClass::registrationOfTwoVoxelsSOFFTAllSoluations(double voxelData1Input[],
+                                                                 double voxelData2Input[],
+                                                                 double cellSize,
+                                                                 bool useGauss,
+                                                                 bool debug) {
+
+
+
+    //changing voxel 1 and 2 because we want to have the transformation from 1 to 2 and not from 2 to 1(which is the registration)@TODO
+    return mySofftRegistrationClass.registrationOfTwoVoxelsSOFFTAllSoluations(voxelData1Input,
+                                                                              voxelData2Input,
+                                                                              cellSize,
+                                                                              useGauss,
+                                                                              debug);
 }

@@ -43,7 +43,7 @@ public:
         this->graph.addPrior(0, gtsam::Pose2(0, 0, 0), priorNoise);
 
 //        this->deadReckoningNoiseModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.02, 0.02, 0.005));
-        this->deadReckoningNoiseModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.04, 0.04, 0.01));
+        this->deadReckoningNoiseModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.03, 0.03, 0.01));
         this->loopClosureNoiseModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(1, 1, 0.05));
 
         gtsam::ISAM2Params parameters;

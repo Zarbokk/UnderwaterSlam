@@ -51,7 +51,8 @@ public:
             : mySofftRegistrationClass(N, bwOut, bwIn, degLim) {
         sizeVoxelData = N;
     }
-    ~scanRegistrationClass(){
+
+    ~scanRegistrationClass() {
         mySofftRegistrationClass.~softDescriptorRegistration();
     }
 
@@ -75,7 +76,8 @@ public:
 
     Eigen::Matrix4d sofftRegistration2D(pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData1,
                                         pcl::PointCloud<pcl::PointXYZ> &pointCloudInputData2,
-                                        double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuess,bool useInitialGuess,
+                                        double &fitnessX, double &fitnessY, Eigen::Matrix4d initialGuess,
+                                        bool useInitialGuess,
                                         bool debug = false);
 
     static Eigen::Matrix4d icpRegistration(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
@@ -90,11 +92,11 @@ public:
     sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[], double voxelData2Input[], double goodGuessAlpha,
                                          bool debug = false);
 
-    Eigen::Vector2d sofftRegistrationVoxel2DTranslation(double voxelData1Input[],
-                                                        double voxelData2Input[],
-                                                        double &fitnessX, double &fitnessY, double cellSize,
-                                                        Eigen::Vector3d initialGuess, bool useInitialGuess,
-                                                        double &heightMaximumPeak, bool debug = false);
+//    Eigen::Vector2d sofftRegistrationVoxel2DTranslation(double voxelData1Input[],
+//                                                        double voxelData2Input[],
+//                                                        double &fitnessX, double &fitnessY, double cellSize,
+//                                                        Eigen::Vector3d initialGuess, bool useInitialGuess,
+//                                                        double &heightMaximumPeak, bool debug = false);
 
 
     Eigen::Matrix4d super4PCSRegistration(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
@@ -106,8 +108,8 @@ public:
                                bool useInitialGuess);
 
     Eigen::Matrix4d ndt_p2d(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
-                               pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan, Eigen::Matrix4d initialGuess,
-                               bool useInitialGuess);
+                            pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan, Eigen::Matrix4d initialGuess,
+                            bool useInitialGuess);
 
     Eigen::Matrix4d registrationOfTwoVoxelsSOFFTFast(double voxelData1Input[],
                                                      double voxelData2Input[],
@@ -117,6 +119,11 @@ public:
                                                      bool useGauss,
                                                      bool debug = false);
 
+    std::vector<transformationPeak> registrationOfTwoVoxelsSOFFTAllSoluations(double voxelData1Input[],
+                                                                              double voxelData2Input[],
+                                                                              double cellSize,
+                                                                              bool useGauss,
+                                                                              bool debug = false);
 
 private:
     softDescriptorRegistration mySofftRegistrationClass;

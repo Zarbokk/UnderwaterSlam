@@ -43,7 +43,7 @@ void convertMatToDoubleArray(cv::Mat inputImg, double voxelData[],int dimensionS
 int main(int argc, char **argv) {
     // input needs to be two scans as voxelData
 
-    double customRotation = +160;
+    double customRotation = +00;
 
     std::string current_exec_name = argv[0]; // Name of the current exec program
     std::vector<std::string> all_args;
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
 //        int k = cv::waitKey(0); // Wait for a keystroke in the window
 
     cv::warpAffine(img2, img2, r, img2.size()); // what size I should use?
-
+    std::cout << img2.data[6] << std::endl;
 
 //    cv::imshow("test1",img1);
 //    cv::imshow("test2",img2);
@@ -91,26 +91,76 @@ int main(int argc, char **argv) {
 
     scanRegistrationClass scanRegistrationObject(img1.rows, img1.rows / 2, img1.rows / 2, img1.rows / 2 - 1);
 
+    double maximumMagnitude1 = 0;
+    double maximumMagnitude2 = 0;
+    //get magnitude and find maximum
+    for (int j = 0; j < dimensionScan*dimensionScan ; j++) {
+        if(voxelData1[j]>maximumMagnitude1){
+            maximumMagnitude1 = voxelData1[j];
+        }
+    }
+    for (int j = 0; j < dimensionScan*dimensionScan ; j++) {
+        if(voxelData2[j]>maximumMagnitude2){
+            maximumMagnitude2 = voxelData2[j];
+        }
+    }
+    if(maximumMagnitude2>maximumMagnitude1){
+        maximumMagnitude1 = maximumMagnitude2;
+    }
+
+    for (int j = 0; j < dimensionScan*dimensionScan ; j++) {
+
+        voxelData2[j]=voxelData2[j]/maximumMagnitude1;
+        voxelData1[j]=voxelData1[j]/maximumMagnitude1;
+    }
+
     double fitnessX;
     double fitnessY;
-    Eigen::Matrix4d estimatedTransformation = scanRegistrationObject.registrationOfTwoVoxelsSOFFTFast(voxelData1,
+    std::vector<transformationPeak> estimatedTransformations = scanRegistrationObject.registrationOfTwoVoxelsSOFFTAllSoluations(voxelData1,
                                                                                                       voxelData2,
-                                                                                                      generalHelpfulTools::getTransformationMatrixFromRPY(0,0,customRotation/180.0*M_PI),
-                                                                                                      true, false,
                                                                                                       1,
-                                                                                                      true,
+                                                                                                      false,
                                                                                                       true);
+
+
+
+
+    double highestPeak = 0;
+    Eigen::Matrix4d currentMatrix = Eigen::Matrix4d::Identity();
+    for (auto &estimatedTransformation: estimatedTransformations) {
+        //rotation
+
+        for (auto &potentialTranslation: estimatedTransformation.potentialTranslations) {
+            if(potentialTranslation.peakHeight>highestPeak){
+                currentMatrix.block<3, 3>(0, 0) = generalHelpfulTools::getQuaternionFromRPY(0, 0,
+                                                                                            estimatedTransformation.potentialRotation.angle).toRotationMatrix();
+                currentMatrix.block<3, 1>(0, 3) = Eigen::Vector3d(potentialTranslation.translationSI.x(),
+                                                                  potentialTranslation.translationSI.y(), 0);
+                std::cout << estimatedTransformation.potentialRotation.angle << std::endl;
+                highestPeak =potentialTranslation.peakHeight;
+            }
+            //translation
+
+        }
+
+    }
+    std::cout << "our match" << std::endl;
+    std::cout << currentMatrix << std::endl;
+
+
+
+
 //    Eigen::Matrix4d tmpMatrix4d = estimatedTransformation.inverse();
 //    estimatedTransformation = tmpMatrix4d;
 
 //    estimatedTransformation(1, 3) = estimatedTransformation(1, 3)-5;
 //    estimatedTransformation(0, 3) = estimatedTransformation(0, 3)-2;
-//    Eigen::Matrix4d tmpMatrixRotationCV = generalHelpfulTools::convertMatrixFromOurSystemToOpenCV(estimatedTransformation);
+//    Eigen::Matrix4d tmpMatrixRotationCV = generalHelpfulTools::convertMatrixFromOurSystemToOpenCV(currentMatrix);
 
-    Eigen::Vector3d rpyTMP = generalHelpfulTools::getRollPitchYaw(Eigen::Quaterniond(estimatedTransformation.block<3, 3>(0, 0)));
+    Eigen::Vector3d rpyTMP = generalHelpfulTools::getRollPitchYaw(Eigen::Quaterniond(currentMatrix.block<3, 3>(0, 0)));
 
     r = cv::getRotationMatrix2D(pc, rpyTMP[2]*180.0/M_PI , 1.0);
-    double warp_values[] = { 1.0, 0.0, estimatedTransformation(1,3), 0.0, 1.0, estimatedTransformation(0,3) };
+    double warp_values[] = { 1.0, 0.0, currentMatrix(1,3), 0.0, 1.0, currentMatrix(0,3) };
     cv::Mat translation_matrix = cv::Mat(2, 3, CV_64F, warp_values);
 //    cv::Mat transformMat = (cv::Mat_<double>(2, 3) << tmpMatrixRotationCV(0, 0),
 //            tmpMatrixRotationCV(0,1),
@@ -134,7 +184,7 @@ int main(int argc, char **argv) {
 //    cv::waitKey(0);
 
     std::cout << "estimatedTransformation:" << std::endl;
-    std::cout << estimatedTransformation << std::endl;
+//    std::cout << estimatedTransformation << std::endl;
 //    std::cout << estimatedTransformation.inverse() << std::endl;
 //    std::cout << "transformMat:" << std::endl;
 //    std::cout << transformMat << std::endl;
@@ -149,9 +199,6 @@ int main(int argc, char **argv) {
 
 //            convertMatToDoubleArray(img1, voxelData1);
 //            convertMatToDoubleArray(img2, voxelData2);
-//    cv::imshow("testTest11",magTMP1);
-//    cv::imshow("testTest21",magTMP2);
-//    cv::waitKey(0);
     std::ofstream myFile1, myFile2;
     myFile1.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultVoxel1.csv");
     myFile2.open("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultVoxel2.csv");
