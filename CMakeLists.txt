@@ -55,13 +55,7 @@ add_library(posegraph STATIC src/poseGraph/src/edge.cpp src/poseGraph/src/graphS
 target_link_libraries(posegraph PUBLIC generalinterface json generalhelpfullib ${Eigen_LIBRARIES})
 target_include_directories(posegraph PUBLIC ${catkin_INCLUDE_DIRS} src/poseGraph/include)
 
-################################################################################
-# slamtools
-################################################################################
 
-add_library(slamtools STATIC  src/slamTools/src/slamToolsRos.cpp )
-target_link_libraries(slamtools PUBLIC ${PCL_LIBRARIES} ${Eigen_LIBRARIES} posegraph)
-target_include_directories(slamtools PUBLIC ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} src/slamTools/include)
 
 
 ################################################################################
@@ -72,6 +66,13 @@ add_library(registrationlib STATIC src/registration/src/scanRegistrationClass.cp
 target_link_libraries(registrationlib PUBLIC ${PCL_LIBRARIES} ${Eigen_LIBRARIES} slamtools gr::algo)
 target_include_directories(registrationlib PUBLIC src/registration/include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 
+################################################################################
+# slamtools
+################################################################################
+
+add_library(slamtools STATIC  src/slamTools/src/slamToolsRos.cpp )
+target_link_libraries(slamtools PUBLIC ${PCL_LIBRARIES} ${Eigen_LIBRARIES} posegraph registrationlib)
+target_include_directories(slamtools PUBLIC ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} src/slamTools/include)
 
 ################################################################################
 # hilbert Map
@@ -130,3 +131,12 @@ target_link_libraries(testSLAM gtsam posegraph slamtools registrationlib OpenMP:
 
 add_executable(registrationOfTwoImages src/registration/registrationOfTwoImageScans.cpp )
 target_link_libraries(registrationOfTwoImages OpenMP::OpenMP_CXX registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
+
+add_executable(rosslamexp1 src/completeSlamRuns/rosSlamExp1.cpp)
+target_link_libraries(rosslamexp1 gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
+
+add_executable(rosslamexp2 src/completeSlamRuns/rosSlamExp2.cpp)
+target_link_libraries(rosslamexp2 gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
+
+
+

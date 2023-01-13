@@ -374,7 +374,8 @@ scanRegistrationClass::registrationOfTwoVoxelsSOFFTAllSoluations(double voxelDat
                                                                  double voxelData2Input[],
                                                                  double cellSize,
                                                                  bool useGauss,
-                                                                 bool debug) {
+                                                                 bool debug, int registrationNoiseImpactFactor,
+                                                                 double ignorePercentageFactor) {
 
 
 
@@ -383,5 +384,5 @@ scanRegistrationClass::registrationOfTwoVoxelsSOFFTAllSoluations(double voxelDat
                                                                               voxelData2Input,
                                                                               cellSize,
                                                                               useGauss,
-                                                                              debug);
+                                                                              debug,registrationNoiseImpactFactor,ignorePercentageFactor);
 }

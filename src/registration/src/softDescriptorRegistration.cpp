@@ -745,7 +745,9 @@ softDescriptorRegistration::sofftRegistrationVoxel2DTranslationAllPossibleSoluti
                                                                                     double cellSize,
                                                                                     double normalizationFactor,
                                                                                     bool debug,
-                                                                                    int numberOfRotationForDebug) {
+                                                                                    int numberOfRotationForDebug,
+                                                                                    int registrationNoiseImpactFactor,
+                                                                                    double ignorePercentageFactor) {
     //copy and normalize voxelDataInput
 
 
@@ -785,6 +787,12 @@ softDescriptorRegistration::sofftRegistrationVoxel2DTranslationAllPossibleSoluti
     fftw_execute(planFourierToVoxel2DCorrelation);
 
 
+    // normalization Test:
+
+//    std::cout << this->normalizationFactorCalculation(254,254)<< std::endl;
+//    std::cout << this->normalizationFactorCalculation(255,255)<< std::endl;
+//    std::cout << this->normalizationFactorCalculation(256,256)<< std::endl;
+//    std::cout << this->normalizationFactorCalculation(255,255)/this->normalizationFactorCalculation(30,30)<< std::endl;
 
     // fftshift and calc magnitude
     //double meanCorrelation = 0;
@@ -795,9 +803,15 @@ softDescriptorRegistration::sofftRegistrationVoxel2DTranslationAllPossibleSoluti
         for (int i = 0; i < this->correlationN; i++) {
             int indexX = (this->correlationN / 2 + i + this->correlationN) % this->correlationN;// changed j and i here
             int indexY = (this->correlationN / 2 + j + this->correlationN) % this->correlationN;
-//            int indexX = i;// changed j and i here
+            double normalizationFactorForCorrelation = sqrt(
+                    this->correlationN * this->correlationN / this->normalizationFactorCalculation(indexX, indexY));
+//            double normalizationFactorForCorrelation = 1;
+
+
+
+            //            int indexX = i;// changed j and i here
 //            int indexY = j;
-            resultingCorrelationDouble[indexY + this->correlationN * indexX] = sqrt(
+            resultingCorrelationDouble[indexY + this->correlationN * indexX] = normalizationFactorForCorrelation * sqrt(
                     resultingShiftPeaks2DCorrelation[j + this->correlationN * i][0] *
                     resultingShiftPeaks2DCorrelation[j + this->correlationN * i][0] +
                     resultingShiftPeaks2DCorrelation[j + this->correlationN * i][1] *
@@ -809,15 +823,24 @@ softDescriptorRegistration::sofftRegistrationVoxel2DTranslationAllPossibleSoluti
             if (maximumCorrelation < resultingCorrelationDouble[indexY + this->correlationN * indexX]) {
                 maximumCorrelation = resultingCorrelationDouble[indexY + this->correlationN * indexX];
             }
-
         }
     }
     ////////////////////////////////// HERE COMES THE NEW STUFFFF //////////////////////////////////
 
+    //add gaussian blur
+//    if (true) {
+//        cv::Mat magTMP1(this->correlationN, this->correlationN, CV_64F, resultingCorrelationDouble);
+//        for (int i = 0; i < 5; i++) {
+//            cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+//        }
+//    }
+
     //function of 2D peak detection
 
-    std::vector<translationPeak> potentialTranslations = this->peakDetectionOf2DCorrelation(maximumCorrelation, cellSize);
-
+    std::vector<translationPeak> potentialTranslations = this->peakDetectionOf2DCorrelation(maximumCorrelation,
+                                                                                            cellSize,
+                                                                                            registrationNoiseImpactFactor,
+                                                                                            ignorePercentageFactor);
 
 
     if (debug) {
@@ -990,8 +1013,6 @@ Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoVoxelsSOFFTFast(dou
     }
 
 
-
-
     return listOfTransformations[indexHighestPeak];//should be the transformation matrix from 1 to 2
 }
 
@@ -1000,7 +1021,8 @@ softDescriptorRegistration::registrationOfTwoVoxelsSOFFTAllSoluations(double vox
                                                                       double voxelData2Input[],
                                                                       double cellSize,
                                                                       bool useGauss,
-                                                                      bool debug) {
+                                                                      bool debug, int registrationNoiseImpactFactor,
+                                                                      double ignorePercentageFactor) {
 
 
     std::vector<transformationPeak> listOfTransformations;
@@ -1011,7 +1033,10 @@ softDescriptorRegistration::registrationOfTwoVoxelsSOFFTAllSoluations(double vox
                                                                                debug);
 
 
-//    std::cout << "number of possible solutions: " << estimatedAngles.size() << std::endl;
+    std::cout << "number of possible solutions: " << estimatedAnglePeak.size() << std::endl;
+    for (auto &estimatedAngle: estimatedAnglePeak) {
+        std::cout << estimatedAngle.angle << std::endl;
+    }
 
     int angleIndex = 0;
     for (auto &estimatedAngle: estimatedAnglePeak) {
@@ -1042,7 +1067,8 @@ softDescriptorRegistration::registrationOfTwoVoxelsSOFFTAllSoluations(double vox
                 voxelData1, voxelData2,
                 cellSize,
                 1.0,
-                debug, angleIndex);
+                debug, angleIndex, registrationNoiseImpactFactor,
+                ignorePercentageFactor);
 
         transformationPeak transformationPeakTMP;
         transformationPeakTMP.potentialRotation = estimatedAngle;
@@ -1064,6 +1090,8 @@ softDescriptorRegistration::registrationOfTwoVoxelsSOFFTAllSoluations(double vox
             myFile12 << listOfTransformation.potentialTranslations.size();//numberOfPossibleTranslations
             myFile12 << "\n";
         }
+        myFile12 << cellSize;//numberOfPossibleTranslations
+        myFile12 << "\n";
         myFile12.close();
 
     }
@@ -1108,9 +1136,12 @@ softDescriptorRegistration::registrationOfTwoVoxelsSOFFTAllSoluations(double vox
     return listOfTransformations;
 }
 
-std::vector<translationPeak> softDescriptorRegistration::peakDetectionOf2DCorrelation(double maximumCorrelation, double cellSize,int impactOfNoiseFactor, double percentageOfMaxCorrelationIgnored){
+std::vector<translationPeak>
+softDescriptorRegistration::peakDetectionOf2DCorrelation(double maximumCorrelation, double cellSize,
+                                                         int impactOfNoiseFactor,
+                                                         double percentageOfMaxCorrelationIgnored) {
 
-    float impactOfNoise = std::pow(2,impactOfNoiseFactor);
+    float impactOfNoise = std::pow(2, impactOfNoiseFactor);
 
     std::vector<std::vector<int>> xPeaks, yPeaks;
 
@@ -1155,7 +1186,8 @@ std::vector<translationPeak> softDescriptorRegistration::peakDetectionOf2DCorrel
 
 //                    std::cout << i << std::endl;
 //                    std::cout << j  << std::endl;
-                    if(maximumCorrelation*percentageOfMaxCorrelationIgnored<resultingCorrelationDouble[j + this->correlationN * i]){
+                    if (maximumCorrelation * percentageOfMaxCorrelationIgnored <
+                        resultingCorrelationDouble[j + this->correlationN * i]) {
                         translationPeak tmpTranslationPeak;
                         tmpTranslationPeak.translationSI.x() = -((i - (int) (this->correlationN / 2.0)) * cellSize);
                         tmpTranslationPeak.translationSI.y() = -((j - (int) (this->correlationN / 2.0)) * cellSize);
@@ -1170,4 +1202,24 @@ std::vector<translationPeak> softDescriptorRegistration::peakDetectionOf2DCorrel
         }
     }
     return potentialTranslations;
+}
+
+
+double softDescriptorRegistration::normalizationFactorCalculation(int x, int y) {
+
+    double tmpCalculation = 0;
+    if (x < ceil(this->correlationN / 2)) {
+        tmpCalculation = this->correlationN * this->correlationN * (x + 1);
+    } else {
+        tmpCalculation = this->correlationN * this->correlationN * (this->correlationN - (x + 1) + 1);
+
+    }
+
+    if (y < ceil(this->correlationN / 2)) {
+        tmpCalculation = tmpCalculation * (y + 1);
+    } else {
+        tmpCalculation = tmpCalculation * (this->correlationN - (y + 1) + 1);
+    }
+
+    return (tmpCalculation);
 }

@@ -123,7 +123,9 @@ public:
                                                                               double voxelData2Input[],
                                                                               double cellSize,
                                                                               bool useGauss,
-                                                                              bool debug = false);
+                                                                              bool debug = false,
+                                                                              int registrationNoiseImpactFactor = 2,
+                                                                              double ignorePercentageFactor = 0.1);
 
 private:
     softDescriptorRegistration mySofftRegistrationClass;

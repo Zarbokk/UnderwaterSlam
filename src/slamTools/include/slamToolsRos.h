@@ -14,6 +14,7 @@
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/common/projection_matrix.h>
 #include <random>
+#include "scanRegistrationClass.h"
 //#include "generalHelpfulTools.h"
 
 #ifndef SIMULATION_BLUEROV_SLAMTOOLSROS_H
@@ -80,32 +81,87 @@ public:
                                      double ignoreDistanceToRobot, double dimensionOfVoxelData);
 
     static pcl::PointCloud<pcl::PointXYZ> createPCLFromGraphOneValue(int indexStart,
-                                                              Eigen::Matrix4d transformationInTheEndOfCalculation,
-                                                              graphSlamSaveStructure &usedGraph,
-                                                              double ignoreDistanceToRobo,
-                                                              double thresholdFactorPoint);
+                                                                     Eigen::Matrix4d transformationInTheEndOfCalculation,
+                                                                     graphSlamSaveStructure &usedGraph,
+                                                                     double ignoreDistanceToRobo,
+                                                                     double thresholdFactorPoint);
 
     static pcl::PointCloud<pcl::PointXYZ> createPCLFromGraphOnlyThreshold(int indexStart,
-                                                                   Eigen::Matrix4d transformationInTheEndOfCalculation,
-                                                                   graphSlamSaveStructure &usedGraph,
-                                                                   double ignoreDistanceToRobo,
-                                                                   double thresholdFactorPoint);
+                                                                          Eigen::Matrix4d transformationInTheEndOfCalculation,
+                                                                          graphSlamSaveStructure &usedGraph,
+                                                                          double ignoreDistanceToRobo,
+                                                                          double thresholdFactorPoint);
+
     static bool getNodes(ros::V_string &nodes);
 
-    static edge calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endTimeToAdd, std::deque<double> &timeVector,
-                                                              std::deque<double> &xPositionVector, std::deque<double> &yPositionVector,
-                                                              std::deque<double> &zPositionVector, std::deque<Eigen::Quaterniond> &rotationVector, std::mutex &stateEstimationMutex);
+    static edge
+    calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endTimeToAdd, std::deque<double> &timeVector,
+                                    std::deque<double> &xPositionVector, std::deque<double> &yPositionVector,
+                                    std::deque<double> &zPositionVector, std::deque<Eigen::Quaterniond> &rotationVector,
+                                    std::mutex &stateEstimationMutex);
 
     static double angleBetweenLastKeyframeAndNow(graphSlamSaveStructure &graphSaved);
 
     static int getLastIntensityKeyframe(graphSlamSaveStructure &graphSaved);
 
-    static double getDatasetFromGraphForMap(std::vector<intensityValues> &dataSet , graphSlamSaveStructure &graphSaved, std::mutex &graphSlamMutex);
+    static double getDatasetFromGraphForMap(std::vector<intensityValues> &dataSet, graphSlamSaveStructure &graphSaved,
+                                            std::mutex &graphSlamMutex);
 
-    static void clearSavingsOfPoses(double upToTime,std::deque<double> &timeVector,
+    static void clearSavingsOfPoses(double upToTime, std::deque<double> &timeVector,
                                     std::deque<double> &xPositionVector, std::deque<double> &yPositionVector,
-                                    std::deque<double> &zPositionVector, std::deque<Eigen::Quaterniond> &rotationVector,std::mutex &stateEstimationMutex);
-    };
+                                    std::deque<double> &zPositionVector, std::deque<Eigen::Quaterniond> &rotationVector,
+                                    std::mutex &stateEstimationMutex);
 
+
+    static double createVoxelOfGraphStartEndPoint(double voxelData[], int indexStart, int indexEnd,
+                                                  int numberOfPoints, graphSlamSaveStructure &usedGraph,
+                                                  double ignoreDistanceToRobot, double dimensionOfVoxelData,
+                                                  Eigen::Matrix4d transformationInTheEndOfCalculation);
+
+    static bool calculateStartAndEndIndexForVoxelCreation(int indexMiddle, int &indexStart, int &indexEnd,
+                                                          graphSlamSaveStructure &usedGraph);
+
+    static void updateRegistration(int numberOfEdge, graphSlamSaveStructure &usedGraph, int dimensionOfVoxelData,
+                                   double ignoreDistanceToRobot, double distanceOfVoxelDataLengthSI,
+                                   scanRegistrationClass &scanRegistrationObject,
+                                   bool debugRegistration);
+
+    static Eigen::Matrix4d registrationOfTwoVoxels(double voxelData1Input[],
+                                                   double voxelData2Input[],
+                                                   Eigen::Matrix4d initialGuess,
+                                                   bool useInitialAngle,
+                                                   bool useInitialTranslation,
+                                                   double cellSize,
+                                                   bool useGauss,
+                                                   scanRegistrationClass &scanRegistrationObject,
+                                                   bool debug, int registrationNoiseImpactFactor = 2,
+                                                   double ignorePercentageFactor = 0.1);
+
+    static void
+    saveResultingRegistration(int indexFirstKeyFrame, int indexSecondKeyFrame, graphSlamSaveStructure &usedGraph,
+                              int dimensionOfVoxelData,
+                              double ignoreDistanceToRobot, double distanceOfVoxelDataLengthSI, bool debugRegistration,
+                              Eigen::Matrix4d currentTransformation);
+
+    static bool
+    loopDetectionByClosestPath(graphSlamSaveStructure &graphSaved, scanRegistrationClass &scanRegistrationObject,
+                               int dimensionOfVoxelData,
+                               double ignoreDistanceToRobot, double distanceOfVoxelDataLengthSI,
+                               bool debugRegistration,bool useInitialTranslation);
+
+    static void saveResultingRegistrationTMPCOPY(int indexStart1, int indexEnd1, int indexStart2, int indexEnd2,
+                                                 graphSlamSaveStructure &usedGraph, int dimensionOfVoxelData,
+                                                 double ignoreDistanceToRobot, double distanceOfVoxelDataLengthSI,
+                                                 bool debugRegistration, Eigen::Matrix4d currentTransformation);
+
+    static bool
+    simpleLoopDetectionByKeyFrames(graphSlamSaveStructure &graphSaved, scanRegistrationClass &scanRegistrationObject,
+                                   int dimensionOfVoxelData,
+                                   double ignoreDistanceToRobot, double distanceOfVoxelDataLengthSI,
+                                   bool debugRegistration);
+
+    static bool
+    calculateEndIndexForVoxelCreationByStartIndex(int indexStart, int &indexEnd, graphSlamSaveStructure &usedGraph);
+};
 
 #endif //SIMULATION_BLUEROV_VISUALIZESLAMINROS_H

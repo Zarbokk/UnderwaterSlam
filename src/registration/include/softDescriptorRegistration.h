@@ -175,7 +175,9 @@ public:
                                                                               double voxelData2Input[],
                                                                               double cellSize,
                                                                               bool useGauss,
-                                                                              bool debug = false);
+                                                                              bool debug = false,
+                                                                              int registrationNoiseImpactFactor = 2,
+                                                                              double ignorePercentageFactor = 0.1);
 
     double getSpectrumFromVoxelData2DCorrelation(double voxelData[], double magnitude[], double phase[],
                                                  bool gaussianBlur, double normalizationFactor);
@@ -185,11 +187,15 @@ public:
                                                                                          double cellSize,
                                                                                          double normalizationFactor,
                                                                                          bool debug = false,
-                                                                                         int numberOfRotationForDebug = 0);
+                                                                                         int numberOfRotationForDebug = 0,
+                                                                                         int registrationNoiseImpactFactor = 2,
+                                                                                         double ignorePercentageFactor = 0.1);
 
     std::vector<translationPeak>
     peakDetectionOf2DCorrelation(double maximumCorrelation, double cellSize, int impactOfNoiseFactor = 2,
                                  double percentageOfMaxCorrelationIgnored = 0.10);
+
+    double normalizationFactorCalculation(int x, int y);
 
 private://here everything is created. malloc is done in the constructor
 
