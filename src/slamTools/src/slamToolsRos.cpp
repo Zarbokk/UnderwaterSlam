@@ -42,23 +42,55 @@ void slamToolsRos::visualizeCurrentPoseGraph(graphSlamSaveStructure &graphSaved,
 
     visualization_msgs::MarkerArray markerArray;
     int k = 0;
-    for (int i = 0; i < graphSaved.getVertexList()->size(); i = i + 10) {//skip the first pointCloud
+    for (int i = 0; i < graphSaved.getVertexList()->size(); i = i + 100) {//skip the first pointCloud
         vertex vertexElement = graphSaved.getVertexList()->at(i);
+        Eigen::Matrix3d currentCovariance = vertexElement.getCovarianceMatrix();
+//        std::cout << i << std::endl;
+//        std::cout << currentCovariance << std::endl;
+        Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eig(currentCovariance.block<2, 2>(0, 0));
+        Eigen::Vector2d e1 = eig.eigenvectors().col(0);
+        Eigen::Vector2d e2 = eig.eigenvectors().col(1);
+        double l1 = eig.eigenvalues().x();
+        double l2 = eig.eigenvalues().y();
+//        std::cout << eigenVector << std::endl;
+//        std::cout << eigenValues << std::endl;
+        double phi;
+        if (l2 >= l1) {
+            phi = atan2(e2.y(), e2.x());
+        } else {
+            phi = atan2(e1.y(), e1.x());
+        }
+//        double phi = atan2(e2.y(), e2.x());
+//        std::cout << currentCovariance << std::endl;
         visualization_msgs::Marker currentMarker;
         currentMarker.pose.position.x = vertexElement.getPositionVertex().x();
         currentMarker.pose.position.y = vertexElement.getPositionVertex().y();
         currentMarker.pose.position.z = vertexElement.getPositionVertex().z();
-        currentMarker.pose.orientation.w = 1;
+        Eigen::Vector3d rpyTMP = generalHelpfulTools::getRollPitchYaw(vertexElement.getRotationVertex());
+        double inputAngle = generalHelpfulTools::normalizeAngle(phi +rpyTMP[2]);
+        Eigen::Quaterniond tmpQuad = generalHelpfulTools::getQuaternionFromRPY(0, 0, inputAngle);
+//        Eigen::Quaterniond tmpQuad = generalHelpfulTools::getQuaternionFromRPY(0, 0, inputAngle);
+//        tmpQuad = vertexElement.getRotationVertex()*tmpQuad;
+
+
+
+        currentMarker.pose.orientation.x = tmpQuad.x();
+        currentMarker.pose.orientation.y = tmpQuad.y();
+        currentMarker.pose.orientation.z = tmpQuad.z();
+        currentMarker.pose.orientation.w = tmpQuad.w();
         currentMarker.header.frame_id = "map_ned";
-        currentMarker.scale.x = sigmaScaling *
-                                vertexElement.getCovariancePosition()[0];
-        currentMarker.scale.y = sigmaScaling *
-                                vertexElement.getCovariancePosition()[1];
+        if (l2 >= l1) {
+            currentMarker.scale.x = sigmaScaling * sqrt(l2);
+            currentMarker.scale.y = sigmaScaling * sqrt(l1);
+        }else{
+            currentMarker.scale.x = sigmaScaling * sqrt(l1);
+            currentMarker.scale.y = sigmaScaling * sqrt(l2);
+        }
         currentMarker.scale.z = 0;
         currentMarker.color.r = 0;
         currentMarker.color.g = 1;
         currentMarker.color.b = 0;
-        currentMarker.color.a = 0.05;
+        currentMarker.color.a = 0.1;
 //currentMarker.lifetime.sec = 10;
         currentMarker.type = 2;
         currentMarker.id = k;
@@ -347,8 +379,8 @@ void slamToolsRos::calculatePositionOverTime(std::deque<ImuData> &angularVelocit
                                      * Eigen::AngleAxisd(0, Eigen::Vector3d::UnitY())//should be added somewhen(6DOF)
                                      * Eigen::AngleAxisd(angularZ[i],
                                                          Eigen::Vector3d::UnitZ());
-        Eigen::Vector3d covariancePos(0, 0, 0);
-        edge currentEdge(0, 0, posDiff, rotDiff, covariancePos, 0, 3,
+        Eigen::Matrix3d covarianceMatrix = Eigen::Matrix3d::Zero();
+        edge currentEdge(0, 0, posDiff, rotDiff, covarianceMatrix, 3,
                          INTEGRATED_POSE, 0);
         //currentEdge.setTimeStamp(timeSteps[i + 1]);
         posOverTimeEdge.push_back(currentEdge);
@@ -875,8 +907,9 @@ slamToolsRos::calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endT
     Eigen::Quaterniond tmpRot(transformationTMP.block<3, 3>(0, 0));
     Eigen::Vector3d rpyTMP = generalHelpfulTools::getRollPitchYaw(tmpRot);
     //set rp on zero only yaw interesting
-    tmpRot = generalHelpfulTools::getQuaternionFromRPY(0, 0, rpyTMP[2]);
-    edge tmpEdge(0, 0, tmpPosition, tmpRot, Eigen::Vector3d(0, 0, 0), 0, 3,
+    tmpRot = generalHelpfulTools::getQuaternionFromRPY(0, 0, rpyTMP[2]);//was +0.00001
+    Eigen::Matrix3d positionCovariance = Eigen::Matrix3d::Zero();
+    edge tmpEdge(0, 0, tmpPosition, tmpRot, positionCovariance, 3,
                  INTEGRATED_POSE, 0);
 
     return tmpEdge;
@@ -995,7 +1028,7 @@ bool slamToolsRos::calculateStartAndEndIndexForVoxelCreation(int indexMiddle, in
                     usedGraph.getVertexList()->at(i).getIntensities().angle);
         }
         currentAngleOfScan = resultingAngleMovement + resultingAngleSonar;
-    } while (currentAngleOfScan < 2 * M_PI);
+    } while (abs(currentAngleOfScan) < 2 * M_PI);
 
 
     return true;
@@ -1027,7 +1060,7 @@ bool slamToolsRos::calculateEndIndexForVoxelCreationByStartIndex(int indexStart,
                     usedGraph.getVertexList()->at(i).getIntensities().angle);
         }
         currentAngleOfScan = resultingAngleMovement + resultingAngleSonar;
-    } while (currentAngleOfScan < 2 * M_PI);
+    } while (abs(currentAngleOfScan) < 2 * M_PI);
 
 
     return true;
@@ -1077,9 +1110,10 @@ void slamToolsRos::updateRegistration(int numberOfEdge, graphSlamSaveStructure &
 //                 initialGuessTransformation, true,
 //                true, (double) distanceOfVoxelDataLengthSI /
 //                      (double) dimensionOfVoxelData, true, debugRegistration);
-
+    Eigen::Matrix3d covarianceEstimation = Eigen::Matrix3d::Zero();
     Eigen::Matrix4d currentTransformation = slamToolsRos::registrationOfTwoVoxels(voxelData1, voxelData2,
-                                                                                  initialGuessTransformation, true,
+                                                                                  initialGuessTransformation,
+                                                                                  covarianceEstimation, true,
                                                                                   true,
                                                                                   (double) distanceOfVoxelDataLengthSI /
                                                                                   (double) dimensionOfVoxelData, true,
@@ -1126,17 +1160,16 @@ void slamToolsRos::updateRegistration(int numberOfEdge, graphSlamSaveStructure &
 Eigen::Matrix4d slamToolsRos::registrationOfTwoVoxels(double voxelData1Input[],
                                                       double voxelData2Input[],
                                                       Eigen::Matrix4d initialGuess,
+                                                      Eigen::Matrix3d &covarianceMatrix,
                                                       bool useInitialAngle,
                                                       bool useInitialTranslation,
                                                       double cellSize,
                                                       bool useGauss,
                                                       scanRegistrationClass &scanRegistrationObject,
-                                                      bool debug, int registrationNoiseImpactFactor,
-                                                      double ignorePercentageFactor) {
+                                                      bool debug, double potentialNecessaryForPeak) {
 
     std::vector<transformationPeak> listOfTransformations = scanRegistrationObject.registrationOfTwoVoxelsSOFFTAllSoluations(
-            voxelData1Input, voxelData2Input, cellSize, useGauss, debug, registrationNoiseImpactFactor,
-            ignorePercentageFactor);
+            voxelData1Input, voxelData2Input, cellSize, useGauss, debug, potentialNecessaryForPeak);
     double initialAngle = std::atan2(initialGuess(1, 0),
                                      initialGuess(0, 0));
     std::vector<transformationPeak> potentialTranslationsWithAngle;
@@ -1194,6 +1227,9 @@ Eigen::Matrix4d slamToolsRos::registrationOfTwoVoxels(double voxelData1Input[],
 
     returnTransformation.block<2, 1>(0,
                                      3) = potentialTranslationsWithAngle[indexMaximumAngle].potentialTranslations[indexMaximumTranslation].translationSI;
+    covarianceMatrix.block<2, 2>(0,
+                                 0) = potentialTranslationsWithAngle[indexMaximumAngle].potentialTranslations[indexMaximumTranslation].covariance;
+    covarianceMatrix(2, 2) = potentialTranslationsWithAngle[indexMaximumAngle].potentialRotation.covariance;
     return returnTransformation;
 }
 
@@ -1249,10 +1285,14 @@ slamToolsRos::loopDetectionByClosestPath(graphSlamSaveStructure &graphSaved,
                                          scanRegistrationClass &scanRegistrationObject,
                                          int dimensionOfVoxelData,
                                          double ignoreDistanceToRobot, double distanceOfVoxelDataLengthSI,
-                                         bool debugRegistration,bool useInitialTranslation) {
+                                         bool debugRegistration, bool useInitialTranslation,
+                                         double potentialNecessaryForPeak,double maxLoopClosure) {
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+
     Eigen::Vector3d estimatedPosLastPoint = graphSaved.getVertexList()->back().getPositionVertex();
-    int ignoreStartLoopClosure = 450;
-    int ignoreEndLoopClosure = 1500;
+    int ignoreStartLoopClosure = 250; // 450
+    int ignoreEndLoopClosure = 500;
     if (graphSaved.getVertexList()->size() < ignoreEndLoopClosure) {
         return false;
     }
@@ -1268,15 +1308,24 @@ slamToolsRos::loopDetectionByClosestPath(graphSlamSaveStructure &graphSaved,
                      graphSaved.getVertexList()->at(potentialLoopClosure).getPositionVertex().x()), 2) +
                 pow((estimatedPosLastPoint.y() -
                      graphSaved.getVertexList()->at(potentialLoopClosure).getPositionVertex().y()), 2));
-        if (d2 > d1) {
+        if (d2 > d1 && maxLoopClosure>d1) {
             potentialLoopClosure = s;
         }
     }
 
+
     potentialLoopClosureVector.push_back(potentialLoopClosure);
-//        if (potentialLoopClosureVector.empty()) {
-//            return false;
-//        }
+
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    std::cout << "calculation For Loop Closure Potential: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
+    double d2 = sqrt(
+            pow((estimatedPosLastPoint.x() -
+                 graphSaved.getVertexList()->at(potentialLoopClosureVector[0]).getPositionVertex().x()), 2) +
+            pow((estimatedPosLastPoint.y() -
+                 graphSaved.getVertexList()->at(potentialLoopClosureVector[0]).getPositionVertex().y()), 2));
+    if (maxLoopClosure<d2||potentialLoopClosure == ignoreStartLoopClosure) {
+        return false;
+    }
 
 
 //        std::shuffle(potentialLoopClosureVector.begin(), potentialLoopClosureVector.end(), std::mt19937(std::random_device()()));
@@ -1328,23 +1377,25 @@ slamToolsRos::loopDetectionByClosestPath(graphSlamSaveStructure &graphSaved,
         Eigen::Matrix4d initialGuessTransformation =
                 (graphSaved.getVertexList()->at(indexStart1).getTransformation().inverse() *
                  graphSaved.getVertexList()->at(indexStart2).getTransformation()).inverse();
-
+        Eigen::Matrix3d covarianceEstimation = Eigen::Matrix3d::Zero();
         Eigen::Matrix4d currentTransformation = slamToolsRos::registrationOfTwoVoxels(voxelData1,
                                                                                       voxelData2,
                                                                                       initialGuessTransformation,
+                                                                                      covarianceEstimation,
                                                                                       true, true,
                                                                                       (double) distanceOfVoxelDataLengthSI /
                                                                                       (double) dimensionOfVoxelData,
                                                                                       false, scanRegistrationObject,
-                                                                                      debugRegistration, 1, 0.1);
+                                                                                      debugRegistration,
+                                                                                      potentialNecessaryForPeak);
 
 //            std::cout << "Found Loop Closure with fitnessScore: " << fitnessScore << std::endl;
-        std::cout << "Estimated Transformation:" << std::endl;
-        std::cout << currentTransformation.inverse() << std::endl;
-
-        std::cout << "initial Guess Transformation:" << std::endl;
-        std::cout << initialGuessTransformation.inverse() << std::endl;
-
+//        std::cout << "Estimated Transformation:" << std::endl;
+//        std::cout << currentTransformation.inverse() << std::endl;
+//
+//        std::cout << "initial Guess Transformation:" << std::endl;
+//        std::cout << initialGuessTransformation.inverse() << std::endl;
+//
         std::cout << "Initial guess angle: "
                   << std::atan2(initialGuessTransformation(1, 0), initialGuessTransformation(0, 0)) *
                      180 / M_PI
@@ -1361,7 +1412,8 @@ slamToolsRos::loopDetectionByClosestPath(graphSlamSaveStructure &graphSaved,
                                                        indexEnd1, indexStart2, indexEnd2, graphSaved,
                                                        dimensionOfVoxelData,
                                                        ignoreDistanceToRobot, distanceOfVoxelDataLengthSI,
-                                                       debugRegistration, currentTransformation);
+                                                       debugRegistration, currentTransformation,
+                                                       initialGuessTransformation);
 
         //inverse the transformation because we want the robot transformation, not the scan transformation
         Eigen::Matrix4d transformationEstimationRobot1_2 = currentTransformation.inverse();
@@ -1370,10 +1422,8 @@ slamToolsRos::loopDetectionByClosestPath(graphSlamSaveStructure &graphSaved,
         currentPosDiff.x() = transformationEstimationRobot1_2(0, 3);
         currentPosDiff.y() = transformationEstimationRobot1_2(1, 3);
         currentPosDiff.z() = 0;
-        Eigen::Vector3d positionCovariance(fitnessScore, fitnessScore, 0);
         graphSaved.addEdge(graphSaved.getVertexList()->back().getKey(), indexStart2, currentPosDiff,
-                           currentRotDiff, positionCovariance,
-                           1, LOOP_CLOSURE);
+                           currentRotDiff, covarianceEstimation, LOOP_CLOSURE);
         foundLoopClosure = true;
         loopclosureNumber++;
         if (loopclosureNumber > 1) { break; }// break if multiple loop closures are found
@@ -1389,7 +1439,8 @@ slamToolsRos::loopDetectionByClosestPath(graphSlamSaveStructure &graphSaved,
 void slamToolsRos::saveResultingRegistrationTMPCOPY(int indexStart1, int indexEnd1, int indexStart2, int indexEnd2,
                                                     graphSlamSaveStructure &usedGraph, int dimensionOfVoxelData,
                                                     double ignoreDistanceToRobot, double distanceOfVoxelDataLengthSI,
-                                                    bool debugRegistration, Eigen::Matrix4d currentTransformation) {
+                                                    bool debugRegistration, Eigen::Matrix4d currentTransformation,
+                                                    Eigen::Matrix4d initialGuess) {
 
 
     if (debugRegistration) {
@@ -1433,6 +1484,18 @@ void slamToolsRos::saveResultingRegistrationTMPCOPY(int indexStart1, int indexEn
         myFile2.close();
         free(voxelData1);
         free(voxelData2);
+
+
+        std::ofstream myFile12;
+        myFile12.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/initialGuess.csv");
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                myFile12 << initialGuess(i, j) << " ";//number of possible rotations
+            }
+            myFile12 << "\n";
+        }
+        myFile12.close();
     }
 }
 
@@ -1456,10 +1519,10 @@ bool slamToolsRos::simpleLoopDetectionByKeyFrames(graphSlamSaveStructure &graphS
         double d = sqrt(
                 pow((estimatedPosLastPoint.x() - graphSaved.getVertexList()->at(s).getPositionVertex().x()), 2) +
                 pow((estimatedPosLastPoint.y() - graphSaved.getVertexList()->at(s).getPositionVertex().y()), 2));
-        double r1 = (graphSaved.getVertexList()->at(s).getCovariancePosition().x() +
-                     graphSaved.getVertexList()->at(s).getCovariancePosition().y()) / 2;
-        double r2 = (graphSaved.getVertexList()->back().getCovariancePosition().x() +
-                     graphSaved.getVertexList()->back().getCovariancePosition().y()) / 2;
+        double r1 = (graphSaved.getVertexList()->at(s).getCovarianceMatrix()(0, 0) +
+                     graphSaved.getVertexList()->at(s).getCovarianceMatrix()(1, 1)) / 2;
+        double r2 = (graphSaved.getVertexList()->back().getCovarianceMatrix()(0, 0) +
+                     graphSaved.getVertexList()->back().getCovarianceMatrix()(1, 1)) / 2;
         if ((d <= r1 - r2 || d <= r2 - r1 || d < r1 + r2 || d == r1 + r2) && d < distanceLoopClousureAllowed &&
             graphSaved.getVertexList()->at(s).getTypeOfVertex() == INTENSITY_SAVED_AND_KEYFRAME) {
             potentialLoopClosure.push_back(graphSaved.getVertexList()->at(s).getKey());
@@ -1527,9 +1590,11 @@ bool slamToolsRos::simpleLoopDetectionByKeyFrames(graphSlamSaveStructure &graphS
 //                                                                                                (double) dimensionOfVoxelData,
 //                                                                                                true,
 //                                                                                                debugRegistration);
+        Eigen::Matrix3d covarianceEstimation = Eigen::Matrix3d::Zero();
         Eigen::Matrix4d currentTransformation = slamToolsRos::registrationOfTwoVoxels(voxelData1,
                                                                                       voxelData2,
                                                                                       initialGuessTransformation,
+                                                                                      covarianceEstimation,
                                                                                       true, false,
                                                                                       (double) distanceOfVoxelDataLengthSI /
                                                                                       (double) dimensionOfVoxelData,
@@ -1561,7 +1626,8 @@ bool slamToolsRos::simpleLoopDetectionByKeyFrames(graphSlamSaveStructure &graphS
                                                        indexStart,
                                                        indexEnd, graphSaved, dimensionOfVoxelData,
                                                        ignoreDistanceToRobot, distanceOfVoxelDataLengthSI,
-                                                       debugRegistration, currentTransformation);
+                                                       debugRegistration, currentTransformation,
+                                                       initialGuessTransformation);
 
         //inverse the transformation because we want the robot transformation, not the scan transformation
         Eigen::Matrix4d transformationEstimationRobot1_2 = currentTransformation.inverse();
@@ -1570,10 +1636,9 @@ bool slamToolsRos::simpleLoopDetectionByKeyFrames(graphSlamSaveStructure &graphS
         currentPosDiff.x() = transformationEstimationRobot1_2(0, 3);
         currentPosDiff.y() = transformationEstimationRobot1_2(1, 3);
         currentPosDiff.z() = 0;
-        Eigen::Vector3d positionCovariance(fitnessScore, fitnessScore, 0);
+        Eigen::Matrix3d covarianceMatrix = Eigen::Matrix3d::Zero();
         graphSaved.addEdge(graphSaved.getVertexList()->back().getKey(), indexStart, currentPosDiff,
-                           currentRotDiff, positionCovariance,
-                           1, LOOP_CLOSURE);
+                           currentRotDiff, covarianceMatrix, LOOP_CLOSURE);
         foundLoopClosure = true;
         loopclosureNumber++;
         if (loopclosureNumber > numberOfLoopClosures) { break; }// break if multiple loop closures are found

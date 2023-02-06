@@ -363,6 +363,8 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
     std::sort(correlationOfAngle.begin(), correlationOfAngle.end(), compareTwoAngleCorrelation);
 
     std::vector<float> correlationAveraged, angleList;
+    float maximumCorrelation = 0;
+    float minimumCorrelation = INFINITY;
     double currentAverageAngle = correlationOfAngle[0].angle;
     //angleList.push_back(currentAverageAngle);
     int numberOfAngles = 1;
@@ -379,10 +381,26 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
             numberOfAngles = 1;
             averageCorrelation = correlationOfAngle[i].peakCorrelation;
             currentAverageAngle = correlationOfAngle[i].angle;
+            if(minimumCorrelation>correlationAveraged.back()){
+                minimumCorrelation = correlationAveraged.back();
+            }
+            if(maximumCorrelation<correlationAveraged.back()){
+                maximumCorrelation = correlationAveraged.back();
+            }
 
         }
     }
     correlationAveraged.push_back((float) (averageCorrelation / numberOfAngles));
+    if(minimumCorrelation>correlationAveraged.back()){
+        minimumCorrelation = correlationAveraged.back();
+    }
+    if(maximumCorrelation<correlationAveraged.back()){
+        maximumCorrelation = correlationAveraged.back();
+    }
+
+    for(int i = 0 ; i<correlationAveraged.size();i++){
+        correlationAveraged[i] = (correlationAveraged[i]-minimumCorrelation)/(maximumCorrelation-minimumCorrelation);
+    }
 
     angleList.push_back((float) currentAverageAngle);
     if (debug) {
@@ -405,7 +423,24 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
 
     std::vector<int> out;
 
-    PeakFinder::findPeaks(correlationAveraged, out, true, 4.0);
+    PeakFinder::findPeaks(correlationAveraged, out, true, 8.0);//was 4.0
+
+
+//
+//    size_t ourSize = correlationAveraged.size();
+//    double *tmpDoubleArray = (double *) malloc(sizeof(double) * ourSize);
+//    for(int i = 0 ; i<ourSize;i++){
+//        tmpDoubleArray[i] = correlationAveraged[i];
+//    }
+//    findpeaks::image_t<double> image = {
+//            ourSize, 1,
+//            tmpDoubleArray
+//    };
+//
+//    std::vector<findpeaks::peak_t<double>> peaks = findpeaks::persistance(image);
+//
+//    free(tmpDoubleArray);
+
 
     std::rotate(correlationAveraged.begin(),
                 correlationAveraged.begin() + correlationAveraged.size() - distanceToMinElement,
@@ -423,6 +458,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
         rotationPeak tmpPeak{};
         tmpPeak.angle = angleList[out[i]];
         tmpPeak.peakCorrelation = correlationAveraged[out[i]];
+        tmpPeak.covariance = 0.05;
         returnVectorWithPotentialAngles.push_back(tmpPeak);
     }
 
@@ -746,8 +782,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DTranslationAllPossibleSoluti
                                                                                     double normalizationFactor,
                                                                                     bool debug,
                                                                                     int numberOfRotationForDebug,
-                                                                                    int registrationNoiseImpactFactor,
-                                                                                    double ignorePercentageFactor) {
+                                                                                    double potentialNecessaryForPeak) {
     //copy and normalize voxelDataInput
 
 
@@ -803,8 +838,11 @@ softDescriptorRegistration::sofftRegistrationVoxel2DTranslationAllPossibleSoluti
         for (int i = 0; i < this->correlationN; i++) {
             int indexX = (this->correlationN / 2 + i + this->correlationN) % this->correlationN;// changed j and i here
             int indexY = (this->correlationN / 2 + j + this->correlationN) % this->correlationN;
-            double normalizationFactorForCorrelation = sqrt(
-                    this->correlationN * this->correlationN / this->normalizationFactorCalculation(indexX, indexY));
+//            double normalizationFactorForCorrelation = sqrt(
+//                    this->correlationN * this->correlationN / this->normalizationFactorCalculation(indexX, indexY));
+            //maybe without sqrt, but for now thats fine
+            double normalizationFactorForCorrelation =
+                    this->correlationN * this->correlationN / this->normalizationFactorCalculation(indexX, indexY);
 //            double normalizationFactorForCorrelation = 1;
 
 
@@ -834,13 +872,21 @@ softDescriptorRegistration::sofftRegistrationVoxel2DTranslationAllPossibleSoluti
 //            cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
 //        }
 //    }
+//    peakDetectionOf2DCorrelationOpenCVHoughTransform(            maximumCorrelation,
+//                                                                 cellSize,
+//                                                                 registrationNoiseImpactFactor,
+//                                                                 ignorePercentageFactor);
+
+    std::vector<translationPeak> potentialTranslations = this->peakDetectionOf2DCorrelationFindPeaksLibrary(cellSize,
+                                                                                                            potentialNecessaryForPeak);
 
     //function of 2D peak detection
 
-    std::vector<translationPeak> potentialTranslations = this->peakDetectionOf2DCorrelation(maximumCorrelation,
-                                                                                            cellSize,
-                                                                                            registrationNoiseImpactFactor,
-                                                                                            ignorePercentageFactor);
+//    std::vector<translationPeak> potentialTranslations = this->peakDetectionOf2DCorrelationSimpleDouble1D(
+//            maximumCorrelation,
+//            cellSize,
+//            registrationNoiseImpactFactor,
+//            ignorePercentageFactor);
 
 
     if (debug) {
@@ -861,47 +907,73 @@ softDescriptorRegistration::sofftRegistrationVoxel2DTranslationAllPossibleSoluti
 
 
     // calculate for each maxima a covariance(my algorithm)
-    int definedRadiusVoxel = ceil(this->correlationN / 30);
-    double definedRadiusSI = cellSize * this->correlationN / 30.0;
+//    int definedRadiusVoxel = ceil(this->correlationN / 30);
+//    double definedRadiusSI = cellSize * this->correlationN / 30.0;
+//    for (auto &potentialTranslation: potentialTranslations) {
+//        double resultingIntegral = 0;
+//        double maximumIntegral = M_PI * definedRadiusSI * definedRadiusSI * potentialTranslation.peakHeight;
+//        for (int i = -definedRadiusVoxel; i < definedRadiusVoxel + 1; i++) {
+//            for (int j = -definedRadiusVoxel; j < definedRadiusVoxel + 1; j++) {
+//                if (sqrt((double) (i * i + j * j)) *
+//                    cellSize < definedRadiusSI) {
+//                    resultingIntegral += resultingCorrelationDouble[(potentialTranslation.translationVoxel.y() + j) +
+//                                                                    this->correlationN *
+//                                                                    (potentialTranslation.translationVoxel.x() + i)];
+//                }
+//            }
+//        }
+//        potentialTranslation.covarianceX = resultingIntegral / maximumIntegral;
+//        potentialTranslation.covarianceY = resultingIntegral / maximumIntegral;
+//    }
+    int definedRadiusVoxel = ceil(this->correlationN / 20);
+//    double definedRadiusSI = cellSize * this->correlationN / 30.0;
     for (auto &potentialTranslation: potentialTranslations) {
-        double resultingIntegral = 0;
-        double maximumIntegral = M_PI * definedRadiusSI * definedRadiusSI * potentialTranslation.peakHeight;
+        // calculate a distribution dependent on peak height
+        std::vector<Eigen::Vector2i> listOfPoints;
         for (int i = -definedRadiusVoxel; i < definedRadiusVoxel + 1; i++) {
             for (int j = -definedRadiusVoxel; j < definedRadiusVoxel + 1; j++) {
-                if (sqrt((double) (i * i + j * j)) *
-                    cellSize < definedRadiusSI) {
-                    resultingIntegral += resultingCorrelationDouble[(potentialTranslation.translationVoxel.y() + j) +
-                                                                    this->correlationN *
-                                                                    (potentialTranslation.translationVoxel.x() + i)];
+                double currentPeakHeight = resultingCorrelationDouble[(potentialTranslation.translationVoxel.y() + j) +
+                                                                      this->correlationN *
+                                                                      (potentialTranslation.translationVoxel.x() + i)];
+                int numberOfdatasetPoints = ceil(currentPeakHeight * currentPeakHeight / 1 * 200);
+                for (int k = 0; k < numberOfdatasetPoints; k++) {
+                    Eigen::Vector2i tmpVector(i * cellSize, j * cellSize);
+                    listOfPoints.push_back(tmpVector);
                 }
             }
         }
-        potentialTranslation.covarianceX = resultingIntegral / maximumIntegral;
-        potentialTranslation.covarianceY = resultingIntegral / maximumIntegral;
+
+        //calculate covariance matrix based on this distribution
+        double meanVar1 = 0;
+        double meanVar2 = 0;
+//        for (int i = 0; i < listOfPoints.size(); i++) {
+//            meanVar1 += listOfPoints[i].x();
+//            meanVar2 += listOfPoints[i].y();
+//        }
+//        meanVar1 = meanVar1 / listOfPoints.size();
+//        meanVar2 = meanVar2 / listOfPoints.size();
+
+//        meanVar1 = 0;
+//        meanVar2 = 0;
+        double cov1 = 0, cov2 = 0, var12 = 0;
+        for (int i = 0; i < listOfPoints.size(); i++) {
+            cov1 += pow((listOfPoints[i].x() - meanVar1), 2);
+            cov2 += pow((listOfPoints[i].y() - meanVar2), 2);
+            var12 += (listOfPoints[i].x() - meanVar1) * (listOfPoints[i].y() - meanVar2);
+        }
+        cov1 = cov1 / (listOfPoints.size() - 1);
+        cov2 = cov2 / (listOfPoints.size() - 1);
+        var12 = var12 / (listOfPoints.size() - 1);
+        Eigen::Matrix2d tmpCovariance;
+        tmpCovariance(0, 0) = cov1;
+        tmpCovariance(1, 1) = cov2;
+        tmpCovariance(0, 1) = var12;
+        tmpCovariance(1, 0) = var12;
+        potentialTranslation.covariance = tmpCovariance;
+
 
     }
-//    double maximumPeak = 0;
-//    // find max peak
-//    for (auto &potentialTranslation: potentialTranslations) {
-//
-//        if(maximumPeak<potentialTranslation.peakHeight){
-//            maximumPeak = potentialTranslation.peakHeight;
-//        }
-//    }
-
-    // remove all possible peaks under 1% of maximum peak.
-//    std::vector<translationPeak> returnResultsPeaks;
-//    for (auto &potentialTranslation: potentialTranslations) {
-//        if(maximumPeak*0.01<potentialTranslation.peakHeight){
-//            returnResultsPeaks.push_back(potentialTranslation);
-//        }
-//    }
-
-
-
-
     return potentialTranslations;
-
 }
 
 Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoVoxelsSOFFTFast(double voxelData1Input[],
@@ -1021,25 +1093,30 @@ softDescriptorRegistration::registrationOfTwoVoxelsSOFFTAllSoluations(double vox
                                                                       double voxelData2Input[],
                                                                       double cellSize,
                                                                       bool useGauss,
-                                                                      bool debug, int registrationNoiseImpactFactor,
-                                                                      double ignorePercentageFactor) {
+                                                                      bool debug, double potentialNecessaryForPeak) {
+
+    double timeToCalculate ;
 
 
     std::vector<transformationPeak> listOfTransformations;
     std::vector<double> maximumHeightPeakList;
     std::vector<rotationPeak> estimatedAnglePeak;
-
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     estimatedAnglePeak = this->sofftRegistrationVoxel2DListOfPossibleRotations(voxelData1Input, voxelData2Input,
                                                                                debug);
-
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    std::cout << "1: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
 
     std::cout << "number of possible solutions: " << estimatedAnglePeak.size() << std::endl;
+
     for (auto &estimatedAngle: estimatedAnglePeak) {
         std::cout << estimatedAngle.angle << std::endl;
     }
 
     int angleIndex = 0;
     for (auto &estimatedAngle: estimatedAnglePeak) {
+
+        begin = std::chrono::steady_clock::now();
 
         //copy data
         for (int i = 0; i < N * N; i++) {
@@ -1062,17 +1139,21 @@ softDescriptorRegistration::registrationOfTwoVoxelsSOFFTAllSoluations(double vox
         cv::Mat r = cv::getRotationMatrix2D(pc, estimatedAngle.angle * 180.0 / M_PI, 1.0);
         cv::warpAffine(magTMP1, magTMP1, r, magTMP1.size()); // what size I should use?
 
+        end = std::chrono::steady_clock::now();
+        std::cout << "2: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
+        begin = std::chrono::steady_clock::now();
 
         std::vector<translationPeak> potentialTranslations = this->sofftRegistrationVoxel2DTranslationAllPossibleSolutions(
                 voxelData1, voxelData2,
                 cellSize,
                 1.0,
-                debug, angleIndex, registrationNoiseImpactFactor,
-                ignorePercentageFactor);
-
+                debug, angleIndex, potentialNecessaryForPeak);
+        end = std::chrono::steady_clock::now();
+        std::cout << "3: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
         transformationPeak transformationPeakTMP;
         transformationPeakTMP.potentialRotation = estimatedAngle;
         transformationPeakTMP.potentialTranslations = potentialTranslations;
+
         listOfTransformations.push_back(transformationPeakTMP);
         angleIndex++;
     }
@@ -1122,9 +1203,13 @@ softDescriptorRegistration::registrationOfTwoVoxelsSOFFTAllSoluations(double vox
                 myFile12 << "\n";
                 myFile12 << potentialTranslation.peakHeight;
                 myFile12 << "\n";
-                myFile12 << potentialTranslation.covarianceX;
-                myFile12 << "\n";
-                myFile12 << potentialTranslation.covarianceY;
+
+                for (int i = 0; i < 2; i++) {
+                    for (int j = 0; j < 2; j++) {
+                        myFile12 << potentialTranslation.covariance(i, j) << " ";//number of possible rotations
+                    }
+                    myFile12 << "\n";
+                }
                 myFile12.close();
                 numberOfTransformations++;
             }
@@ -1137,9 +1222,9 @@ softDescriptorRegistration::registrationOfTwoVoxelsSOFFTAllSoluations(double vox
 }
 
 std::vector<translationPeak>
-softDescriptorRegistration::peakDetectionOf2DCorrelation(double maximumCorrelation, double cellSize,
-                                                         int impactOfNoiseFactor,
-                                                         double percentageOfMaxCorrelationIgnored) {
+softDescriptorRegistration::peakDetectionOf2DCorrelationSimpleDouble1D(double maximumCorrelation, double cellSize,
+                                                                       int impactOfNoiseFactor,
+                                                                       double percentageOfMaxCorrelationIgnored) {
 
     float impactOfNoise = std::pow(2, impactOfNoiseFactor);
 
@@ -1204,6 +1289,230 @@ softDescriptorRegistration::peakDetectionOf2DCorrelation(double maximumCorrelati
     return potentialTranslations;
 }
 
+std::vector<translationPeak>
+softDescriptorRegistration::peakDetectionOf2DCorrelationOpenCVHoughTransform(double maximumCorrelation, double cellSize,
+                                                                             int impactOfNoiseFactor,
+                                                                             double percentageOfMaxCorrelationIgnored) {
+
+    float impactOfNoise = std::pow(2, impactOfNoiseFactor);
+
+    double *current2DCorrelation;
+
+    current2DCorrelation = (double *) malloc(sizeof(double) * this->correlationN * this->correlationN);
+    double maxValue = 0;
+    //copy data
+    for (int j = 0; j < this->correlationN; j++) {
+        for (int i = 0; i < this->correlationN; i++) {
+            current2DCorrelation[j + this->correlationN * i] = this->resultingCorrelationDouble[j +
+                                                                                                this->correlationN * i];
+            if (current2DCorrelation[j + this->correlationN * i] > maxValue) {
+                maxValue = current2DCorrelation[j + this->correlationN * i];
+            }
+        }
+    }
+
+    for (int j = 0; j < this->correlationN; j++) {
+        for (int i = 0; i < this->correlationN; i++) {
+            current2DCorrelation[j + this->correlationN * i] =
+                    current2DCorrelation[j + this->correlationN * i] / maxValue;
+        }
+    }
+
+
+    cv::Mat magTMP1(this->correlationN, this->correlationN, CV_64F, current2DCorrelation);
+    std::cout << magTMP1 << std::endl;
+//    for (int j = 0; j < this->correlationN; j++) {
+//        for (int i = 0; i < this->correlationN; i++) {
+//            std::cout << magTMP1.at<double>(i,j) << std::endl;
+//        }
+//    }
+
+
+
+//    cv::imshow("Display window", magTMP1);
+//    int k = cv::waitKey(0); // Wait for a keystroke in the window
+
+//    int morph_elem = 0;
+//    int morph_size = 0;
+//    cv::Mat element = getStructuringElement( morph_elem, cv::Size( 2*morph_size + 1, 2*morph_size+1 ), cv::Point( morph_size, morph_size ) );
+    cv::Mat element = getStructuringElement(cv::MORPH_ELLIPSE,
+                                            cv::Size(ceil(0.02 * this->correlationN), ceil(0.02 * this->correlationN)));
+    cv::morphologyEx(magTMP1, magTMP1, cv::MORPH_TOPHAT, element);
+    std::cout << magTMP1 << std::endl;
+    for (int j = 0; j < this->correlationN * this->correlationN; j++) {
+
+//        newMatrix.data[j] = ((int)((int)newMatrix.data[j]/255.0));
+        std::cout << (double) magTMP1.data[j] << std::endl;
+    }
+    std::cout << "here1" << std::endl;
+    cv::imshow("Display window", magTMP1);
+    int k = cv::waitKey(0); // Wait for a keystroke in the window
+
+//    cv::Mat newMatrix = softDescriptorRegistration::imregionalmax(magTMP1);
+    cv::Mat newMatrix = softDescriptorRegistration::opencv_imextendedmax(magTMP1, 0.03);
+    std::cout << newMatrix.rows << " " << newMatrix.cols << std::endl;
+    std::cout << newMatrix.type() << std::endl;
+    std::cout << newMatrix << std::endl;
+
+    cv::imshow("Display window", newMatrix);
+    k = cv::waitKey(0); // Wait for a keystroke in the window
+    cv::Mat dst = newMatrix;
+    dst = dst * 255;
+    dst.convertTo(dst, CV_8U);
+    std::cout << "contours: " << std::endl;
+    cv::imshow("Display window", dst);
+    k = cv::waitKey(0); // Wait for a keystroke in the window
+    std::vector<std::vector<cv::Point> > contours_1;
+    std::vector<cv::Vec4i> hierarchy_1;
+    cv::findContours(dst, contours_1, hierarchy_1, cv::RETR_CCOMP, cv::CHAIN_APPROX_SIMPLE);
+
+    double maxLabelSize = (dst.rows / 4.0) * (dst.cols / 6.0);
+    double minLabelSize = ((dst.rows / 40.0) * (dst.cols / 60.0));
+
+    std::vector<std::vector<cv::Point> > goodContours;
+    for (int i = 0; i < contours_1.size(); i++) {
+        double size = cv::contourArea(contours_1[i]);
+        if (size < maxLabelSize && size > minLabelSize) {
+            goodContours.push_back(contours_1[i]);
+        }
+    }
+
+    cv::Mat filterContours = cv::Mat::zeros(dst.size(), CV_8UC3);
+    for (int i = 0; i < goodContours.size(); i++) {
+        cv::RNG rng(12345);
+        cv::Scalar color = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+        drawContours(filterContours, goodContours, i, color, 2, 8, hierarchy_1, 0, cv::Point());
+    }
+
+    cv::imshow("Contours", filterContours);
+    cv::waitKey(0);
+
+
+    std::vector<translationPeak> potentialTranslations;
+    return potentialTranslations;
+}
+
+bool softDescriptorRegistration::isPeak(cv::Mat mx[], std::vector<cv::Point> &conn_points) {
+    cv::Point poi_point = conn_points.back();
+    int row = poi_point.y;
+    int col = poi_point.x;
+    float poi_val = mx[0].at<float>(poi_point);
+    bool isPeakEle = true;
+    for (int mask_row = row - 1; mask_row <= row + 1; mask_row++) {
+        for (int mask_col = col - 1; mask_col <= col + 1; mask_col++) {
+            if (mask_row == row && mask_col == col) {
+                continue;
+            }
+            float conn_pt_val = mx[0].at<float>(mask_row, mask_col);
+            if (poi_val < conn_pt_val) {
+                isPeakEle = false;
+                break;
+            }
+            if (poi_val == conn_pt_val) {
+                int Peak_status = mx[1].at<uchar>(mask_row, mask_col);
+                if (Peak_status == 0) {
+                    isPeakEle = false;
+                    break;
+                } else if (Peak_status == 1) {
+                    isPeakEle = true;
+                    break;
+                } else {
+                    cv::Point p(mask_col, mask_row);
+                    std::vector<cv::Point>::iterator it;
+                    it = std::find(conn_points.begin(), conn_points.end(), p);
+                    if (it == conn_points.end()) {
+                        conn_points.push_back(p);
+                        isPeakEle = isPeakEle && isPeak(mx, conn_points);
+                    }
+                }
+            }
+        }
+        if (isPeakEle == false) {
+            break;
+        }
+    }
+    return isPeakEle;
+}
+
+void softDescriptorRegistration::imextendedmax_imreconstruct(cv::Mat g, cv::Mat f, cv::Mat &dest) {
+
+    cv::Mat m0, m1, m;
+    m1 = f;
+    do {
+        m0 = m1.clone();
+        cv::dilate(m0, m, cv::Mat());
+        cv::min(g, m, m1);
+    } while (cv::countNonZero(m1 != m0) != 0);
+    dest = m1.clone();
+}
+
+cv::Mat softDescriptorRegistration::opencv_imextendedmax(cv::Mat &inputMatrix, double hParam) {
+
+    std::cout << inputMatrix << std::endl;
+//    cv::imshow("Display window", inputMatrix);
+//    int k = cv::waitKey(0); // Wait for a keystroke in the window
+    double h = hParam;
+    cv::Mat gray_image, dst, fin_image, m, m2;
+
+//    cvtColor(inputMatrix, gray_image, cv::COLOR_BGR2GRAY);
+    cv::max((inputMatrix - h), 0, m);
+    std::cout << m << std::endl;
+//    cv::imshow("Display window", m);
+//    k = cv::waitKey(0); // Wait for a keystroke in the window
+
+    softDescriptorRegistration::imextendedmax_imreconstruct(inputMatrix, m, dst);
+    std::cout << dst << std::endl;
+    std::cout << "here4" << std::endl;
+    cv::imshow("Display window", dst);
+    int k = cv::waitKey(0); // Wait for a keystroke in the window
+    cv::subtract(dst, 0.5, m2);
+    std::cout << m2 << std::endl;
+//    cv::imshow("Display window", m2);
+//    k = cv::waitKey(0); // Wait for a keystroke in the window
+    softDescriptorRegistration::imextendedmax_imreconstruct(dst, m2, m);
+    std::cout << m << std::endl;
+//    cv::imshow("Display window", m);
+//    k = cv::waitKey(0); // Wait for a keystroke in the window
+    cv::subtract(dst, m, m2);
+    std::cout << m2 << std::endl;
+    std::cout << "here5" << std::endl;
+    cv::imshow("Display window", m2);
+    k = cv::waitKey(0); // Wait for a keystroke in the window
+
+    fin_image = m2;
+
+    return fin_image;
+
+}
+
+
+cv::Mat softDescriptorRegistration::imregionalmax(cv::Mat &src) {
+    cv::Mat padded;
+    cv::copyMakeBorder(src, padded, 1, 1, 1, 1, cv::BORDER_CONSTANT, cv::Scalar::all(-1));
+    cv::Mat mx_ch1(padded.rows, padded.cols, CV_8UC1, cv::Scalar(
+            2)); //Peak elements will be represented by 1, others by 0, initializing Mat with 2 for differentiation
+    cv::Mat mx[2] = {padded, mx_ch1}; //mx[0] is padded image, mx[1] is regional maxima matrix
+    int mx_rows = mx[0].rows;
+    int mx_cols = mx[0].cols;
+    cv::Mat dest(mx[0].size(), CV_8UC1);
+
+    //Check each pixel for local max
+    for (int row = 1; row < mx_rows - 1; row++) {
+        for (int col = 1; col < mx_cols - 1; col++) {
+            std::vector<cv::Point> conn_points; //this vector holds all connected points for candidate pixel
+            cv::Point p(col, row);
+            conn_points.push_back(p);
+            bool isPartOfPeak = isPeak(mx, conn_points);
+            if (isPartOfPeak) {
+                mx[1].at<uchar>(row, col) = 1;
+            } else {
+                mx[1].at<uchar>(row, col) = 0;
+            }
+        }
+    }
+    dest = mx[1](cv::Rect(1, 1, src.cols, src.rows));
+    return dest;
+}
 
 double softDescriptorRegistration::normalizationFactorCalculation(int x, int y) {
 
@@ -1222,4 +1531,89 @@ double softDescriptorRegistration::normalizationFactorCalculation(int x, int y) 
     }
 
     return (tmpCalculation);
+}
+
+std::vector<translationPeak> softDescriptorRegistration::peakDetectionOf2DCorrelationFindPeaksLibrary(double cellSize,
+                                                                                                      double potentialNecessaryForPeak,
+                                                                                                      double ignoreSidesPercentage) {
+
+    double *current2DCorrelation;
+    current2DCorrelation = (double *) malloc(sizeof(double) * this->correlationN * this->correlationN);
+
+    double maxValue = 0;
+    //copy data
+    for (int j = 0; j < this->correlationN; j++) {
+        for (int i = 0; i < this->correlationN; i++) {
+            current2DCorrelation[j + this->correlationN * i] = this->resultingCorrelationDouble[j +
+                                                                                                this->correlationN * i];
+            if (current2DCorrelation[j + this->correlationN * i] > maxValue) {
+                maxValue = current2DCorrelation[j + this->correlationN * i];
+            }
+        }
+    }
+
+    for (int j = 0; j < this->correlationN; j++) {
+        for (int i = 0; i < this->correlationN; i++) {
+            current2DCorrelation[j + this->correlationN * i] =
+                    current2DCorrelation[j + this->correlationN * i] / maxValue;
+            this->resultingCorrelationDouble[j + this->correlationN * i] =
+                    this->resultingCorrelationDouble[j + this->correlationN * i] / maxValue;
+        }
+    }
+    cv::Mat magTMP1(this->correlationN, this->correlationN, CV_64F, this->resultingCorrelationDouble);
+//    cv::GaussianBlur(magTMP1, magTMP1, cv::Size(9, 9), 0);
+
+//    cv::Mat element = getStructuringElement(cv::MORPH_ELLIPSE,
+//                                            cv::Size(ceil(0.02 * this->correlationN), ceil(0.02 * this->correlationN)));
+//    cv::morphologyEx(magTMP1, magTMP1, cv::MORPH_TOPHAT, element);
+
+    size_t ourSize = this->correlationN;
+    findpeaks::image_t<double> image = {
+            ourSize, ourSize,
+            this->resultingCorrelationDouble
+    };
+
+    std::vector<findpeaks::peak_t<double>> peaks = findpeaks::persistance(image);
+    std::vector<translationPeak> tmpTranslations;
+    for (const auto &p: peaks) {
+        //calculation of level, that is a potential translation
+        double levelPotential = p.persistence * sqrt(p.birth_level) *
+                                Eigen::Vector2d((double) ((int) p.birth_position.x - (int) p.death_position.x),
+                                                (double) ((int) p.birth_position.y - (int) p.death_position.y)).norm() *
+                                511.0 / this->correlationN;
+//        if (p.persistence > 0.05  && p.birth_level>0.1) {
+//
+//        }
+        bool inInterestingArea = true;
+        if ((int) p.birth_position.x<ignoreSidesPercentage * this->correlationN || (int) p.birth_position.x>(
+                1 - ignoreSidesPercentage) * this->correlationN ||
+            (int) p.birth_position.y<ignoreSidesPercentage * this->correlationN || (int) p.birth_position.y>(
+                    1 - ignoreSidesPercentage) * this->correlationN) {
+            inInterestingArea = false;
+        }
+
+
+        if (p.birth_level > 0.1 && levelPotential > potentialNecessaryForPeak && inInterestingArea) {
+
+//            std::cout << "(" << p.birth_position.x << ", " << p.birth_position.y << ")\t"
+//                      << p.birth_level << "  " << p.persistence << "  " << levelPotential
+//                      << "\t(" << p.death_position.x << ", " << p.death_position.y << ")\n";
+            translationPeak tmpTranslationPeak;
+            tmpTranslationPeak.translationSI.x() = -(((int) p.birth_position.x - (int) (this->correlationN / 2.0)) *
+                                                     cellSize);
+            tmpTranslationPeak.translationSI.y() = -(((int) p.birth_position.y - (int) (this->correlationN / 2.0)) *
+                                                     cellSize);
+            tmpTranslationPeak.translationVoxel.x() = (int) p.birth_position.x;
+            tmpTranslationPeak.translationVoxel.y() = (int) p.birth_position.y;
+            tmpTranslationPeak.peakHeight = resultingCorrelationDouble[p.birth_position.y +
+                                                                       this->correlationN * p.birth_position.x];
+            tmpTranslations.push_back(tmpTranslationPeak);
+
+//            std::cout << tmpTranslationPeak.translationSI.x() << "  " << tmpTranslationPeak.translationSI.y()
+//                      << std::endl;
+        }
+    }
+
+    return (tmpTranslations);
+
 }

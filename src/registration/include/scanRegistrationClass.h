@@ -124,8 +124,7 @@ public:
                                                                               double cellSize,
                                                                               bool useGauss,
                                                                               bool debug = false,
-                                                                              int registrationNoiseImpactFactor = 2,
-                                                                              double ignorePercentageFactor = 0.1);
+                                                                              double potentialNecessaryForPeak = 0.1);
 
 private:
     softDescriptorRegistration mySofftRegistrationClass;

@@ -15,18 +15,18 @@
 #include <std_srvs/SetBool.h>
 
 
-#define NUMBER_OF_POINTS_DIMENSION 256
-#define DIMENSION_OF_VOXEL_DATA_FOR_MATCHING 80 // was 50
-#define NUMBER_OF_POINTS_MAP 512
+#define NUMBER_OF_POINTS_DIMENSION 128
+#define DIMENSION_OF_VOXEL_DATA_FOR_MATCHING 50 // was 50
 // 80 simulation 120 valentin 45.0 for Keller
-#define DIMENSION_OF_MAP 300.0
+#define DIMENSION_OF_MAP 80.0
 
+//#define this->numberOfPointsMap 512
 #define IGNORE_DISTANCE_TO_ROBOT 1.0
 #define DEBUG_REGISTRATION false
 
 #define ROTATION_SONAR 0 // sonar on robot M_PI // simulation 0
 #define SHOULD_USE_ROSBAG false
-#define FACTOR_OF_MATCHING 8.0 //1.5
+#define FACTOR_OF_MATCHING 4.0 //1.5
 #define THRESHOLD_FOR_TRANSLATION_MATCHING 0.1 // standard is 0.1, 0.05 und 0.01 sorgt fuer
 
 #define INTEGRATED_NOISE_XY 0.03 // was 0.03
@@ -45,7 +45,9 @@ public:
                                                                                        NUMBER_OF_POINTS_DIMENSION / 2,
                                                                                        NUMBER_OF_POINTS_DIMENSION / 2 -
                                                                                        1) {
-
+        this->cellSize = (double) DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
+                         (double) NUMBER_OF_POINTS_DIMENSION;
+        this->numberOfPointsMap = ceil(DIMENSION_OF_MAP / this->cellSize);
         subscriberEKF = n_.subscribe("publisherPoseEkf", 10000, &rosClassEKF::stateEstimationCallback, this);
         ros::Duration(2).sleep();
         this->subscriberIntensitySonar = n_.subscribe("sonar/intensity", 10000, &rosClassEKF::scanCallback, this);
@@ -71,23 +73,23 @@ public:
         this->maxTimeOptimization = 1.0;
 
 
-        map.info.height = NUMBER_OF_POINTS_MAP;
-        map.info.width = NUMBER_OF_POINTS_MAP;
-        map.info.resolution = DIMENSION_OF_MAP / NUMBER_OF_POINTS_MAP;
-        map.info.origin.position.x = -DIMENSION_OF_MAP / 2;
-        map.info.origin.position.y = -DIMENSION_OF_MAP / 2;
-        map.info.origin.position.z = +0.5;
-        for (int i = 0; i < NUMBER_OF_POINTS_MAP; i++) {
-            for (int j = 0; j < NUMBER_OF_POINTS_MAP; j++) {
-                //determine color:
-                map.data.push_back(50);
-            }
-        }
+//        map.info.height = this->numberOfPointsMap;
+//        map.info.width = this->numberOfPointsMap;
+//        map.info.resolution = this->cellSize;
+//        map.info.origin.position.x = -this->numberOfPointsMap / 2;
+//        map.info.origin.position.y = -this->numberOfPointsMap / 2;
+//        map.info.origin.position.z = +0.5;
+//        for (int i = 0; i < this->numberOfPointsMap; i++) {
+//            for (int j = 0; j < this->numberOfPointsMap; j++) {
+//                //determine color:
+//                map.data.push_back(50);
+//            }
+//        }
     }
 
 
 private:
-    nav_msgs::OccupancyGrid map;
+//    nav_msgs::OccupancyGrid map;
 
 
     ros::Subscriber subscriberEKF, subscriberIntensitySonar;
@@ -111,6 +113,9 @@ private:
     std::deque<Eigen::Quaterniond> rotationVector;
 
     double sigmaScaling;
+    double cellSize;
+    int numberOfPointsMap;
+
 
     graphSlamSaveStructure graphSaved;
     scanRegistrationClass scanRegistrationObject;
@@ -183,7 +188,7 @@ private:
             this->graphSaved.getVertexList()->back().setTypeOfVertex(INTENSITY_SAVED_AND_KEYFRAME);
             if (firstCompleteSonarScan) {
                 numberOfTimesFirstScan++;
-                if (numberOfTimesFirstScan > 2*FACTOR_OF_MATCHING-1) {
+                if (numberOfTimesFirstScan > 2 * FACTOR_OF_MATCHING - 1) {
                     firstCompleteSonarScan = false;
                 }
                 return;
@@ -304,11 +309,17 @@ private:
             std::cout << "loopClosure: " << std::endl;
 
             ////////////// look for loop closure  //////////////
-            slamToolsRos::loopDetectionByClosestPath(this->graphSaved, this->scanRegistrationObject,
-                                                     NUMBER_OF_POINTS_DIMENSION, IGNORE_DISTANCE_TO_ROBOT,
-                                                     DIMENSION_OF_VOXEL_DATA_FOR_MATCHING, DEBUG_REGISTRATION,
-                                                     USE_INITIAL_TRANSLATION_LOOP_CLOSURE,
-                                                     THRESHOLD_FOR_TRANSLATION_MATCHING, MAXIMUM_LOOP_CLOSURE_DISTANCE);
+
+            nav_msgs::OccupancyGrid map = this->createImageOfAllScans((indexStart1 - indexEnd1)/4);
+            loopClosureSubMapByMap(map, indexStart1, indexEnd1);
+
+
+
+//            slamToolsRos::loopDetectionByClosestPath(this->graphSaved, this->scanRegistrationObject,
+//                                                     NUMBER_OF_POINTS_DIMENSION, IGNORE_DISTANCE_TO_ROBOT,
+//                                                     DIMENSION_OF_VOXEL_DATA_FOR_MATCHING, DEBUG_REGISTRATION,
+//                                                     USE_INITIAL_TRANSLATION_LOOP_CLOSURE,
+//                                                     THRESHOLD_FOR_TRANSLATION_MATCHING, MAXIMUM_LOOP_CLOSURE_DISTANCE);
 //            this->graphSaved.classicalOptimizeGraph(true);
             this->graphSaved.isam2OptimizeGraph(true, 5);
             slamToolsRos::visualizeCurrentPoseGraph(this->graphSaved, this->publisherPathOverTime,
@@ -377,26 +388,26 @@ private:
 
 public:
 
-    void createImageOfAllScans() {
+    nav_msgs::OccupancyGrid createImageOfAllScans(int ignoreLastNSteps) {
 
         std::vector<intensityValues> dataSet;
         double maximumIntensity = slamToolsRos::getDatasetFromGraphForMap(dataSet, this->graphSaved,
-                                                                          this->graphSlamMutex);
+                                                                          this->intensityMutex);
         //homePosition is 0 0
-        //size of mapData is defined in NUMBER_OF_POINTS_MAP
+        //size of mapData is defined in this->numberOfPointsMap
 
         int *voxelDataIndex;
-        voxelDataIndex = (int *) malloc(sizeof(int) * NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP);
+        voxelDataIndex = (int *) malloc(sizeof(int) * this->numberOfPointsMap * this->numberOfPointsMap);
         double *mapData;
-        mapData = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP);
+        mapData = (double *) malloc(sizeof(double) * this->numberOfPointsMap * this->numberOfPointsMap);
         //set zero voxel and index
-        for (int i = 0; i < NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP; i++) {
+        for (int i = 0; i < this->numberOfPointsMap * this->numberOfPointsMap; i++) {
             voxelDataIndex[i] = 0;
             mapData[i] = 0;
         }
 
         for (int currentPosition = 0;
-             currentPosition < dataSet.size(); currentPosition++) {
+             currentPosition < dataSet.size() - ignoreLastNSteps; currentPosition++) {
             //calculate the position of each intensity and create an index in two arrays. First in voxel data, and second save number of intensities.
             //was 90 yaw and 180 roll
 
@@ -436,24 +447,24 @@ public:
                             transformationOfIntensityRay * rotationOfSonarAngleMatrix * positionOfIntensity;
                     //calculate index dependent on  DIMENSION_OF_VOXEL_DATA and numberOfPoints the middle
                     int indexX =
-                            (int) (positionOfIntensity.x() / (DIMENSION_OF_MAP / 2) * NUMBER_OF_POINTS_MAP /
+                            (int) (positionOfIntensity.x() / (DIMENSION_OF_MAP / 2) * this->numberOfPointsMap /
                                    2) +
-                            NUMBER_OF_POINTS_MAP / 2;
+                            this->numberOfPointsMap / 2;
                     int indexY =
-                            (int) (positionOfIntensity.y() / (DIMENSION_OF_MAP / 2) * NUMBER_OF_POINTS_MAP /
+                            (int) (positionOfIntensity.y() / (DIMENSION_OF_MAP / 2) * this->numberOfPointsMap /
                                    2) +
-                            NUMBER_OF_POINTS_MAP / 2;
+                            this->numberOfPointsMap / 2;
 
 
-                    if (indexX < NUMBER_OF_POINTS_MAP && indexY < NUMBER_OF_POINTS_MAP && indexY >= 0 &&
+                    if (indexX < this->numberOfPointsMap && indexY < this->numberOfPointsMap && indexY >= 0 &&
                         indexX >= 0) {
                         //                    std::cout << indexX << " " << indexY << std::endl;
                         //if index fits inside of our data, add that data. Else Ignore
-                        voxelDataIndex[indexX + NUMBER_OF_POINTS_MAP * indexY] =
-                                voxelDataIndex[indexX + NUMBER_OF_POINTS_MAP * indexY] + 1;
+                        voxelDataIndex[indexX + this->numberOfPointsMap * indexY] =
+                                voxelDataIndex[indexX + this->numberOfPointsMap * indexY] + 1;
                         //                    std::cout << "Index: " << voxelDataIndex[indexY + numberOfPoints * indexX] << std::endl;
-                        mapData[indexX + NUMBER_OF_POINTS_MAP * indexY] =
-                                mapData[indexX + NUMBER_OF_POINTS_MAP * indexY] +
+                        mapData[indexX + this->numberOfPointsMap * indexY] =
+                                mapData[indexX + this->numberOfPointsMap * indexY] +
                                 dataSet[currentPosition].intensity.intensities[j];
                         //                    std::cout << "Intensity: " << voxelData[indexY + numberOfPoints * indexX] << std::endl;
                         //                    std::cout << "random: " << std::endl;
@@ -472,7 +483,7 @@ public:
         double maximumOfVoxelData = 0;
         double minimumOfVoxelData = INFINITY;
 
-        for (int i = 0; i < NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP; i++) {
+        for (int i = 0; i < this->numberOfPointsMap * this->numberOfPointsMap; i++) {
             if (voxelDataIndex[i] > 0) {
                 mapData[i] = mapData[i] / voxelDataIndex[i];
                 if (maximumOfVoxelData < mapData[i]) {
@@ -486,33 +497,100 @@ public:
         }
 
 
-        for (int i = 0; i < NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP; i++) {
+        for (int i = 0; i < this->numberOfPointsMap * this->numberOfPointsMap; i++) {
 
             mapData[i] = (mapData[i]-minimumOfVoxelData)/(maximumOfVoxelData-minimumOfVoxelData)*100;
         }
-
-
-
-
-
-
         nav_msgs::OccupancyGrid occupanyMap;
         occupanyMap.header.frame_id = "map_ned";
-        occupanyMap.info.height = NUMBER_OF_POINTS_MAP;
-        occupanyMap.info.width = NUMBER_OF_POINTS_MAP;
-        occupanyMap.info.resolution = DIMENSION_OF_MAP / NUMBER_OF_POINTS_MAP;
+        occupanyMap.info.height = this->numberOfPointsMap;
+        occupanyMap.info.width = this->numberOfPointsMap;
+        occupanyMap.info.resolution = DIMENSION_OF_MAP / this->numberOfPointsMap;
         occupanyMap.info.origin.position.x = -DIMENSION_OF_MAP / 2;
         occupanyMap.info.origin.position.y = -DIMENSION_OF_MAP / 2;
         occupanyMap.info.origin.position.z = +0.5;
-        for (int i = 0; i < NUMBER_OF_POINTS_MAP; i++) {
-            for (int j = 0; j < NUMBER_OF_POINTS_MAP; j++) {
+        for (int i = 0; i < this->numberOfPointsMap; i++) {
+            for (int j = 0; j < this->numberOfPointsMap; j++) {
                 //determine color:
-                occupanyMap.data.push_back((int) (mapData[j + NUMBER_OF_POINTS_MAP * i]));
+                occupanyMap.data.push_back((int) (mapData[j + this->numberOfPointsMap * i] ));
             }
         }
         this->publisherOccupancyMap.publish(occupanyMap);
         free(voxelDataIndex);
         free(mapData);
+        return occupanyMap;
+    }
+
+    void loopClosureSubMapByMap(nav_msgs::OccupancyGrid occupanyMap, int indexStart1, int indexEnd1) {
+        // get submap, dependent on current location +N/2 -N/2
+
+        double *voxelData1;
+        double *voxelData2;
+        voxelData1 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
+        voxelData2 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
+
+        double maximumVoxel1 = slamToolsRos::createVoxelOfGraphStartEndPoint(voxelData1, indexStart1, indexEnd1,
+                                                                             NUMBER_OF_POINTS_DIMENSION,
+                                                                             this->graphSaved,
+                                                                             IGNORE_DISTANCE_TO_ROBOT,
+                                                                             DIMENSION_OF_VOXEL_DATA_FOR_MATCHING,
+                                                                             Eigen::Matrix4d::Identity());
+        Eigen::Matrix4d currentPositionRobot = this->graphSaved.getVertexList()->back().getTransformation();
+        std::cout << currentPositionRobot << std::endl;
+        std::cout << currentPositionRobot(0, 3) << std::endl;
+        std::cout << currentPositionRobot(1, 3) << std::endl;
+//        currentPositionRobot(1,4);//x
+//        currentPositionRobot(2,4);//y (j +NUMBER_OF_POINTS_DIMENSION/2 % NUMBER_OF_POINTS_DIMENSION)
+        for (int i = 0; i < NUMBER_OF_POINTS_DIMENSION; i++) {
+            for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
+                int xPosInMap =
+                        i -NUMBER_OF_POINTS_DIMENSION/2  + ceil(this->numberOfPointsMap/2) + ceil(currentPositionRobot(0, 3) / this->cellSize);
+                int yPosInMap =
+                        j -NUMBER_OF_POINTS_DIMENSION/2 + ceil(this->numberOfPointsMap/2) + ceil(currentPositionRobot(1, 3) / this->cellSize);
+
+                voxelData2[j + NUMBER_OF_POINTS_DIMENSION * i] = occupanyMap.data[xPosInMap + this->numberOfPointsMap *
+                                                                                              yPosInMap]; //changed x and y pos
+            }
+        }
+        Eigen::Matrix3d covarianceEstimation;
+        this->initialGuessTransformation = Eigen::Matrix4d::Identity();
+        this->initialGuessTransformation.block<3, 3>(0, 0) = currentPositionRobot.block<3, 3>(0, 0);
+
+        // calculate registration with initial Estimate of 0
+        this->currentEstimatedTransformation = slamToolsRos::registrationOfTwoVoxels(voxelData1, voxelData2,
+                                                                                     this->initialGuessTransformation,
+                                                                                     covarianceEstimation, true,
+                                                                                     true,
+                                                                            (double) DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
+                                                                            (double) NUMBER_OF_POINTS_DIMENSION,
+                                                                                     false, scanRegistrationObject,
+                                                                                     DEBUG_REGISTRATION,
+                                                                                     THRESHOLD_FOR_TRANSLATION_MATCHING);
+
+        std::cout << "currentTransformation:" << std::endl;
+        std::cout << this->currentEstimatedTransformation << std::endl;
+        std::cout << "initial Guess Transformation:" << std::endl;
+        std::cout << this->initialGuessTransformation << std::endl;
+        std::cout << "currentPositionRobot Transformation:" << std::endl;
+        std::cout << currentPositionRobot << std::endl;
+
+        std::cout << currentPositionRobot*this->currentEstimatedTransformation << std::endl;
+        std::cout << this->currentEstimatedTransformation * currentPositionRobot << std::endl; // richtig glaybe uich
+        std::cout << currentPositionRobot*this->currentEstimatedTransformation.inverse() << std::endl;
+        std::cout << this->currentEstimatedTransformation.inverse() * currentPositionRobot << std::endl;
+        std::cout << "end" << std::endl;
+
+
+        Eigen::Matrix4d tmpTransformation = this->currentEstimatedTransformation * currentPositionRobot;
+        Eigen::Quaterniond qTMP(tmpTransformation.block<3, 3>(0, 0));
+        graphSaved.addEdge(0,
+                           indexStart1,
+                           tmpTransformation.block<3, 1>(0, 3), qTMP,
+                           covarianceEstimation,
+                           LOOP_CLOSURE);
+
+
+
     }
 
 
@@ -571,7 +649,7 @@ int main(int argc, char **argv) {
 
         //rosClassForTests.updateHilbertMap();
 //        rosClassForTests.updateMap();
-        rosClassForTests.createImageOfAllScans();
+//        rosClassForTests.createImageOfAllScans();
 
         loop_rate.sleep();
 

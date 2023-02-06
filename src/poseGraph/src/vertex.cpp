@@ -29,20 +29,12 @@ void vertex::setRotationVertex(const Eigen::Quaterniond &rotationVertexInput) {
     this->rotationVertex.normalize();
 }
 
-const Eigen::Vector3d vertex::getCovariancePosition() const {
-    return covariancePosition;
+const Eigen::Matrix3d vertex::getCovarianceMatrix() const {
+    return this->covariance;
 }
 
-void vertex::setCovariancePosition(Eigen::Vector3d covariancePositionInput) {
-    vertex::covariancePosition = covariancePositionInput;
-}
-
-double vertex::getCovarianceQuaternion() const {
-    return covarianceQuaternion;
-}
-
-void vertex::setCovarianceQuaternion(double covarianceQuaternionInput) {
-    vertex::covarianceQuaternion = covarianceQuaternionInput;
+void vertex::setCovarianceMatrix(Eigen::Matrix3d covariancePositionInput) {
+    this->covariance = covariancePositionInput;
 }
 
 Eigen::Matrix4d vertex::getTransformation(){
@@ -79,4 +71,14 @@ intensityMeasurement vertex::getIntensities() const {
 
 void vertex::setIntensities(const intensityMeasurement &intensitiesInput) {
     vertex::intensities = intensitiesInput;
+}
+
+
+Eigen::Matrix4d vertex::getGroundTruthTransformation() const {
+    return this->groundTruthTransformation;
+}
+
+void vertex::setGroundTruthTransformation(Eigen::Matrix4d inputMatrix){
+
+    this->groundTruthTransformation = inputMatrix;
 }

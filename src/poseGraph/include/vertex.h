@@ -17,15 +17,14 @@ class vertex {
 public:
     //no point cloud or intensities
     vertex(int vertexNumber, const Eigen::Vector3d &positionVertex, const Eigen::Quaterniond &rotationVertex,
-           int degreeOfFreedom, const Eigen::Vector3d &covariancePosition, const double covarianceQuaternion,
+           int degreeOfFreedom, const Eigen::Matrix3d &covariance,
            double timeStamp, int typeOfVertex) {
         if (degreeOfFreedom == 3) {
-            vertex::keyNumber = vertexNumber;
-            vertex::positionVertex = positionVertex;
-            vertex::rotationVertex = rotationVertex;
-            vertex::rotationVertex.normalize();
-            vertex::covariancePosition = covariancePosition;
-            vertex::covarianceQuaternion = covarianceQuaternion;
+            this->keyNumber = vertexNumber;
+            this->positionVertex = positionVertex;
+            this->rotationVertex = rotationVertex;
+            this->rotationVertex.normalize();
+            this->covariance = covariance;
             this->typeOfVertex = typeOfVertex;
             this->timeStamp = timeStamp;
         } else {
@@ -36,18 +35,17 @@ public:
     // point cloud and no intensities
     vertex(int vertexNumber, const Eigen::Vector3d &positionVertex, const Eigen::Quaterniond &rotationVertex,
            int degreeOfFreedom, const pcl::PointCloud<pcl::PointXYZ>::Ptr& pointCloudRaw1,
-           const Eigen::Vector3d &covariancePosition,
-           const double covarianceQuaternion, double timeStamp, int typeOfVertex) {
+           const Eigen::Matrix3d &covariance, double timeStamp, int typeOfVertex) {
         if (degreeOfFreedom == 3) {
-            vertex::keyNumber = vertexNumber;
-            vertex::positionVertex = positionVertex;
-            vertex::rotationVertex = rotationVertex;
-            vertex::rotationVertex.normalize();
-            vertex::covariancePosition = covariancePosition;
-            vertex::covarianceQuaternion = covarianceQuaternion;
+            this->keyNumber = vertexNumber;
+            this->positionVertex = positionVertex;
+            this->rotationVertex = rotationVertex;
+            this->rotationVertex.normalize();
+            this->covariance = covariance;
             setPointCloudRawPTRCP(pointCloudRaw1);
             this->typeOfVertex = typeOfVertex;
             this->timeStamp = timeStamp;
+            this->groundTruthTransformation = Eigen::Matrix4d::Zero();
         } else {
             std::cout << "not yet implemented DOF 6" << std::endl;
             std::exit(-1);
@@ -57,15 +55,13 @@ public:
     // only intensities
     vertex(int vertexNumber, const Eigen::Vector3d &positionVertex, const Eigen::Quaterniond &rotationVertex,
            int degreeOfFreedom, intensityMeasurement &intensities,
-           const Eigen::Vector3d &covariancePosition,
-           const double covarianceQuaternion, double timeStamp, int typeOfVertex) {
+           const Eigen::Matrix3d &covariance, double timeStamp, int typeOfVertex) {
         if (degreeOfFreedom == 3) {
-            vertex::keyNumber = vertexNumber;
-            vertex::positionVertex = positionVertex;
-            vertex::rotationVertex = rotationVertex;
-            vertex::rotationVertex.normalize();
-            vertex::covariancePosition = covariancePosition;
-            vertex::covarianceQuaternion = covarianceQuaternion;
+            this->keyNumber = vertexNumber;
+            this->positionVertex = positionVertex;
+            this->rotationVertex = rotationVertex;
+            this->rotationVertex.normalize();
+            this->covariance = covariance;
             this->intensities = intensities;
             this->typeOfVertex = typeOfVertex;
             this->timeStamp = timeStamp;
@@ -97,13 +93,10 @@ public:
 
     void setPointCloudRawPTRCP(const pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloud);
 
-    [[nodiscard]] const Eigen::Vector3d getCovariancePosition() const;
+    const Eigen::Matrix3d getCovarianceMatrix() const;
 
-    void setCovariancePosition(Eigen::Vector3d covariancePositionInput);
+    void setCovarianceMatrix(Eigen::Matrix3d covariancePositionInput);
 
-    [[nodiscard]] double getCovarianceQuaternion() const;
-
-    void setCovarianceQuaternion(double covarianceQuaternionInput);
 
     Eigen::Matrix4d getTransformation();
 
@@ -119,14 +112,16 @@ public:
 
     void setIntensities(const intensityMeasurement &intensitiesInput);
 
+    [[nodiscard]] Eigen::Matrix4d getGroundTruthTransformation() const;
 
+    void setGroundTruthTransformation(Eigen::Matrix4d inputMatrix);
 private:
     int keyNumber;
     Eigen::Vector3d positionVertex;// position w.r.t. Initiial Starting Position
     Eigen::Quaterniond rotationVertex;// rotation w.r.t. Initial Starting Rotation
-    Eigen::Vector3d covariancePosition;
-    double covarianceQuaternion;
+    Eigen::Matrix3d covariance;
     intensityMeasurement intensities;
+    Eigen::Matrix4d groundTruthTransformation;
     int typeOfVertex;
     double timeStamp;
 };

@@ -24,18 +24,21 @@
 
 #include <iostream>
 #include <fstream>
+#include "findpeaks/mask.hpp"
+#include <findpeaks/persistence.hpp>
+
 
 struct rotationPeak {
     double angle;
     double peakCorrelation;
+    double covariance;
 };
 
 struct translationPeak {
     Eigen::Vector2d translationSI;
     Eigen::Vector2i translationVoxel;
     double peakHeight;
-    double covarianceX;
-    double covarianceY;
+    Eigen::Matrix2d covariance;
 };
 
 struct transformationPeak {
@@ -176,8 +179,7 @@ public:
                                                                               double cellSize,
                                                                               bool useGauss,
                                                                               bool debug = false,
-                                                                              int registrationNoiseImpactFactor = 2,
-                                                                              double ignorePercentageFactor = 0.1);
+                                                                              double potentialNecessaryForPeak = 0.1);
 
     double getSpectrumFromVoxelData2DCorrelation(double voxelData[], double magnitude[], double phase[],
                                                  bool gaussianBlur, double normalizationFactor);
@@ -188,14 +190,31 @@ public:
                                                                                          double normalizationFactor,
                                                                                          bool debug = false,
                                                                                          int numberOfRotationForDebug = 0,
-                                                                                         int registrationNoiseImpactFactor = 2,
-                                                                                         double ignorePercentageFactor = 0.1);
+                                                                                         double potentialNecessaryForPeak = 0.1);
 
     std::vector<translationPeak>
-    peakDetectionOf2DCorrelation(double maximumCorrelation, double cellSize, int impactOfNoiseFactor = 2,
-                                 double percentageOfMaxCorrelationIgnored = 0.10);
+    peakDetectionOf2DCorrelationSimpleDouble1D(double maximumCorrelation, double cellSize, int impactOfNoiseFactor = 2,
+                                               double percentageOfMaxCorrelationIgnored = 0.10);
+
+    std::vector<translationPeak>
+    peakDetectionOf2DCorrelationOpenCVHoughTransform(double maximumCorrelation, double cellSize,
+                                                     int impactOfNoiseFactor = 2,
+                                                     double percentageOfMaxCorrelationIgnored = 0.10);
+
+    bool isPeak(cv::Mat mx[], std::vector<cv::Point> &conn_points);
+
+    cv::Mat imregionalmax(cv::Mat &src);
 
     double normalizationFactorCalculation(int x, int y);
+
+    cv::Mat opencv_imextendedmax(cv::Mat &inputMatrix, double hParam);
+
+    void imextendedmax_imreconstruct(cv::Mat g, cv::Mat f, cv::Mat &dest);
+
+    std::vector<translationPeak>
+    peakDetectionOf2DCorrelationFindPeaksLibrary(double cellSize, double potentialNecessaryForPeak = 0.1,
+                                                 double ignoreSidesPercentage = 0.05);
+
 
 private://here everything is created. malloc is done in the constructor
 

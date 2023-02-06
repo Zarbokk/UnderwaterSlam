@@ -129,13 +129,13 @@ public:
     static Eigen::Matrix4d registrationOfTwoVoxels(double voxelData1Input[],
                                                    double voxelData2Input[],
                                                    Eigen::Matrix4d initialGuess,
+                                                   Eigen::Matrix3d &covarianceMatrix,
                                                    bool useInitialAngle,
                                                    bool useInitialTranslation,
                                                    double cellSize,
                                                    bool useGauss,
                                                    scanRegistrationClass &scanRegistrationObject,
-                                                   bool debug, int registrationNoiseImpactFactor = 2,
-                                                   double ignorePercentageFactor = 0.1);
+                                                   bool debug, double potentialNecessaryForPeak = 0.1);
 
     static void
     saveResultingRegistration(int indexFirstKeyFrame, int indexSecondKeyFrame, graphSlamSaveStructure &usedGraph,
@@ -147,12 +147,12 @@ public:
     loopDetectionByClosestPath(graphSlamSaveStructure &graphSaved, scanRegistrationClass &scanRegistrationObject,
                                int dimensionOfVoxelData,
                                double ignoreDistanceToRobot, double distanceOfVoxelDataLengthSI,
-                               bool debugRegistration,bool useInitialTranslation);
+                               bool debugRegistration,bool useInitialTranslation,double potentialNecessaryForPeak = 0.1, double maxLoopClosure = 100);
 
     static void saveResultingRegistrationTMPCOPY(int indexStart1, int indexEnd1, int indexStart2, int indexEnd2,
                                                  graphSlamSaveStructure &usedGraph, int dimensionOfVoxelData,
                                                  double ignoreDistanceToRobot, double distanceOfVoxelDataLengthSI,
-                                                 bool debugRegistration, Eigen::Matrix4d currentTransformation);
+                                                 bool debugRegistration, Eigen::Matrix4d currentTransformation,Eigen::Matrix4d initialGuess);
 
     static bool
     simpleLoopDetectionByKeyFrames(graphSlamSaveStructure &graphSaved, scanRegistrationClass &scanRegistrationObject,

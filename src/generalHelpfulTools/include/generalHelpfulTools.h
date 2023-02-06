@@ -20,6 +20,7 @@ public:
     static Eigen::Matrix4d getTransformationMatrixFromRPY(double roll, double pitch, double yaw);
 
     static double angleDiff(double first, double second);//first-second
+
     static Eigen::Matrix4d
     interpolationTwo4DTransformations(Eigen::Matrix4d &transformation1, Eigen::Matrix4d &transformation2,
                                       double &t);// from 1 to two by t[0-1]
@@ -32,6 +33,7 @@ public:
 
     static Eigen::Matrix4d convertMatrixFromOurSystemToOpenCV(Eigen::Matrix4d inputMatrix);
 
+    static double normalizeAngle(double inputAngle);
 };
 
 

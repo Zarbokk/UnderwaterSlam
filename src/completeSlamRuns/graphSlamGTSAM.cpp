@@ -118,7 +118,7 @@ private:
     //PCL
     //std::vector<ping360_sonar::SonarEcho> sonarIntensityList;
     //Matrices:
-    Eigen::Matrix4d currentTransformation;
+    Eigen::Matrix4d currentEstimatedTransformation;
     Eigen::Matrix4d initialGuessTransformation;
 
 
@@ -268,24 +268,24 @@ private:
 //                    this->initialGuessTransformation, true,
 //                    true, (double) DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
 //                          (double) NUMBER_OF_POINTS_DIMENSION, true, DEBUG_REGISTRATION);
-            this->currentTransformation = this->registrationOfTwoVoxels(voxelData1, voxelData2,
-                                                                        this->initialGuessTransformation, true,
-                                                                        true,
+            this->currentEstimatedTransformation = this->registrationOfTwoVoxels(voxelData1, voxelData2,
+                                                                                 this->initialGuessTransformation, true,
+                                                                                 true,
                                                                         (double) DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
                                                                         (double) NUMBER_OF_POINTS_DIMENSION, false,
-                                                                        DEBUG_REGISTRATION);
+                                                                                 DEBUG_REGISTRATION);
             saveResultingRegistration(indexOfLastKeyframe, this->graphSaved.getVertexList()->size() - 1);
 
 
             double differenceAngleBeforeAfter = generalHelpfulTools::angleDiff(
-                    std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)),
+                    std::atan2(this->currentEstimatedTransformation(1, 0), this->currentEstimatedTransformation(0, 0)),
                     initialGuessAngle);
 
 
             std::cout << "FitnessScore X: " << fitnessScoreX << " FitnessScore Y: " << fitnessScoreY << std::endl;
 
             std::cout << "currentTransformation:" << std::endl;
-            std::cout << this->currentTransformation << std::endl;
+            std::cout << this->currentEstimatedTransformation << std::endl;
 
             std::cout << "initial Guess Transformation:" << std::endl;
             std::cout << this->initialGuessTransformation << std::endl;
@@ -295,14 +295,14 @@ private:
                       << initialGuessAngle * 180 / M_PI
                       << std::endl;
             std::cout << "Registration angle: "
-                      << std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)) * 180 / M_PI
+                      << std::atan2(this->currentEstimatedTransformation(1, 0), this->currentEstimatedTransformation(0, 0)) * 180 / M_PI
                       << std::endl;
             std::cout << "difference of angle after Registration: " << differenceAngleBeforeAfter * 180 / M_PI
                       << std::endl;
             //only if angle diff is smaller than 10 degreece its ok
             if (abs(differenceAngleBeforeAfter) < 45.0 / 180.0 * M_PI) {
                 //inverse the transformation because we want the robot transformation, not the scan transformation
-                Eigen::Matrix4d transformationEstimationRobot1_2 = this->currentTransformation.inverse();
+                Eigen::Matrix4d transformationEstimationRobot1_2 = this->currentEstimatedTransformation.inverse();
                 Eigen::Quaterniond qTMP(transformationEstimationRobot1_2.block<3, 3>(0, 0));
                 graphSaved.addEdge(slamToolsRos::getLastIntensityKeyframe(this->graphSaved),
                                    this->graphSaved.getVertexList()->size() - 1,
@@ -316,7 +316,7 @@ private:
 
             std::cout << "NEW TEST:" << std::endl;
             std::cout << "Input In Graph:" << std::endl;
-            std::cout << this->currentTransformation.inverse() << std::endl;
+            std::cout << this->currentEstimatedTransformation.inverse() << std::endl;
             std::cout << "Initial Guess From Graph:" << std::endl;
             std::cout << this->graphSaved.getVertexList()->at(indexOfLastKeyframe).getTransformation().inverse() *
                          this->graphSaved.getVertexList()->back().getTransformation()
@@ -478,18 +478,18 @@ private:
 //                                                                                                (double) NUMBER_OF_POINTS_DIMENSION,
 //                                                                                                true,
 //                                                                                                DEBUG_REGISTRATION);
-            this->currentTransformation = this->registrationOfTwoVoxels(voxelData1,
-                                                                        voxelData2,
-                                                                        this->initialGuessTransformation,
-                                                                        true, false,
+            this->currentEstimatedTransformation = this->registrationOfTwoVoxels(voxelData1,
+                                                                                 voxelData2,
+                                                                                 this->initialGuessTransformation,
+                                                                                 true, false,
                                                                         (double) DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
                                                                         (double) NUMBER_OF_POINTS_DIMENSION,
-                                                                        true,
-                                                                        DEBUG_REGISTRATION);
+                                                                                 true,
+                                                                                 DEBUG_REGISTRATION);
 
 //            std::cout << "Found Loop Closure with fitnessScore: " << fitnessScore << std::endl;
             std::cout << "Estimated Transformation:" << std::endl;
-            std::cout << this->currentTransformation << std::endl;
+            std::cout << this->currentEstimatedTransformation << std::endl;
 
             std::cout << "initial Guess Transformation:" << std::endl;
             std::cout << this->initialGuessTransformation << std::endl;
@@ -500,14 +500,14 @@ private:
                       << std::endl;
             std::cout << "Registration angle: "
                       <<
-                      std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)) *
+                      std::atan2(this->currentEstimatedTransformation(1, 0), this->currentEstimatedTransformation(0, 0)) *
                       180 / M_PI << std::endl;
 
 //            saveResultingRegistration(this->graphSaved.getVertexList()->back().getKey(), potentialKey);
             saveResultingRegistrationTMPCOPY(this->graphSaved.getVertexList()->back().getKey(), indexStart, indexEnd);
 
             //inverse the transformation because we want the robot transformation, not the scan transformation
-            Eigen::Matrix4d transformationEstimationRobot1_2 = this->currentTransformation.inverse();
+            Eigen::Matrix4d transformationEstimationRobot1_2 = this->currentEstimatedTransformation.inverse();
             Eigen::Vector3d currentPosDiff;
             Eigen::Quaterniond currentRotDiff(transformationEstimationRobot1_2.block<3, 3>(0, 0));
             currentPosDiff.x() = transformationEstimationRobot1_2(0, 3);
@@ -615,18 +615,18 @@ private:
 //                                                                                                (double) NUMBER_OF_POINTS_DIMENSION,
 //                                                                                                false,
 //                                                                                                DEBUG_REGISTRATION);
-            this->currentTransformation = this->registrationOfTwoVoxels(voxelData1,
-                                                                        voxelData2,
-                                                                        this->initialGuessTransformation,
-                                                                        true, false,
+            this->currentEstimatedTransformation = this->registrationOfTwoVoxels(voxelData1,
+                                                                                 voxelData2,
+                                                                                 this->initialGuessTransformation,
+                                                                                 true, false,
                                                                         (double) DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
                                                                         (double) NUMBER_OF_POINTS_DIMENSION,
-                                                                        false,
-                                                                        DEBUG_REGISTRATION);
+                                                                                 false,
+                                                                                 DEBUG_REGISTRATION);
 
 //            std::cout << "Found Loop Closure with fitnessScore: " << fitnessScore << std::endl;
             std::cout << "Estimated Transformation:" << std::endl;
-            std::cout << this->currentTransformation << std::endl;
+            std::cout << this->currentEstimatedTransformation << std::endl;
 
             std::cout << "initial Guess Transformation:" << std::endl;
             std::cout << this->initialGuessTransformation << std::endl;
@@ -637,14 +637,14 @@ private:
                       << std::endl;
             std::cout << "Registration angle: "
                       <<
-                      std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)) *
+                      std::atan2(this->currentEstimatedTransformation(1, 0), this->currentEstimatedTransformation(0, 0)) *
                       180 / M_PI << std::endl;
 
 //            saveResultingRegistration(this->graphSaved.getVertexList()->back().getKey(), potentialKey);
             saveResultingRegistrationTMPCOPY(this->graphSaved.getVertexList()->back().getKey(), indexStart, indexEnd);
 
             //inverse the transformation because we want the robot transformation, not the scan transformation
-            Eigen::Matrix4d transformationEstimationRobot1_2 = this->currentTransformation.inverse();
+            Eigen::Matrix4d transformationEstimationRobot1_2 = this->currentEstimatedTransformation.inverse();
             Eigen::Vector3d currentPosDiff;
             Eigen::Quaterniond currentRotDiff(transformationEstimationRobot1_2.block<3, 3>(0, 0));
             currentPosDiff.x() = transformationEstimationRobot1_2(0, 3);
@@ -677,7 +677,7 @@ private:
 
             double maximumVoxel1 = slamToolsRos::createVoxelOfGraph(voxelData1,
                                                                     indexFirstKeyFrame,
-                                                                    this->currentTransformation,
+                                                                    this->currentEstimatedTransformation,
                                                                     NUMBER_OF_POINTS_DIMENSION, this->graphSaved,
                                                                     IGNORE_DISTANCE_TO_ROBOT,
                                                                     DIMENSION_OF_VOXEL_DATA_FOR_MATCHING);//get voxel
@@ -719,7 +719,7 @@ private:
 
             double maximumVoxel1 = slamToolsRos::createVoxelOfGraph(voxelData1,
                                                                     indexFirstKeyFrame,
-                                                                    this->currentTransformation,
+                                                                    this->currentEstimatedTransformation,
                                                                     NUMBER_OF_POINTS_DIMENSION, this->graphSaved,
                                                                     IGNORE_DISTANCE_TO_ROBOT,
                                                                     DIMENSION_OF_VOXEL_DATA_FOR_MATCHING);//get voxel
@@ -804,23 +804,23 @@ private:
 //                this->initialGuessTransformation, true,
 //                true, (double) DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
 //                      (double) NUMBER_OF_POINTS_DIMENSION, true, DEBUG_REGISTRATION);
-        this->currentTransformation = this->registrationOfTwoVoxels(voxelData1, voxelData2,
-                                                                    this->initialGuessTransformation, true,
-                                                                    true,
+        this->currentEstimatedTransformation = this->registrationOfTwoVoxels(voxelData1, voxelData2,
+                                                                             this->initialGuessTransformation, true,
+                                                                             true,
                                                                     (double) DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
                                                                     (double) NUMBER_OF_POINTS_DIMENSION, true,
-                                                                    DEBUG_REGISTRATION);
+                                                                             DEBUG_REGISTRATION);
         saveResultingRegistration(tmpFromKey, tmpToKey);
 
         double differenceAngleBeforeAfter = generalHelpfulTools::angleDiff(
-                std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)),
+                std::atan2(this->currentEstimatedTransformation(1, 0), this->currentEstimatedTransformation(0, 0)),
                 initialGuessAngle);
 
 
         std::cout << "FitnessScore X: " << fitnessScoreX << " FitnessScore Y: " << fitnessScoreY << std::endl;
 
         std::cout << "currentTransformation:" << std::endl;
-        std::cout << this->currentTransformation << std::endl;
+        std::cout << this->currentEstimatedTransformation << std::endl;
 
         std::cout << "initial Guess Transformation:" << std::endl;
         std::cout << this->initialGuessTransformation << std::endl;
@@ -830,7 +830,7 @@ private:
                   << initialGuessAngle * 180 / M_PI
                   << std::endl;
         std::cout << "Registration angle: "
-                  << std::atan2(this->currentTransformation(1, 0), this->currentTransformation(0, 0)) * 180 / M_PI
+                  << std::atan2(this->currentEstimatedTransformation(1, 0), this->currentEstimatedTransformation(0, 0)) * 180 / M_PI
                   << std::endl;
         std::cout << "difference of angle after Registration: " << differenceAngleBeforeAfter * 180 / M_PI
                   << std::endl;
@@ -838,7 +838,7 @@ private:
 
 //        this->graphSaved.getEdgeList()->at(numberOfEdge).setPositionDifference(this->currentTransformation.block<3, 1>(0, 3));
 //        this->graphSaved.getEdgeList()->at(numberOfEdge).setRotationDifference(Eigen::Quaterniond(this->currentTransformation.block<3, 3>(0, 0)));
-        this->graphSaved.setPoseDifferenceEdge(numberOfEdge, this->currentTransformation);
+        this->graphSaved.setPoseDifferenceEdge(numberOfEdge, this->currentEstimatedTransformation);
 
         free(voxelData1);
         free(voxelData2);

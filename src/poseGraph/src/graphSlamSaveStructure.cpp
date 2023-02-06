@@ -7,29 +7,24 @@
 
 void
 graphSlamSaveStructure::addEdge(int fromKey, int toKey, Eigen::Vector3d positionDifference,
-                                Eigen::Quaterniond rotationDifference, Eigen::Vector3d covariancePosition,
-                                double covarianceQuaternion, int typeOfEdge) {
-    if (std::isnan(covarianceQuaternion) ||
-        std::isnan(covariancePosition[0]) ||
-        std::isnan(covariancePosition[1])) {
-        std::cout << "IS NAN: " << std::endl;
-    }
+                                Eigen::Quaterniond rotationDifference, Eigen::Matrix3d covarianceMatrix, int typeOfEdge) {
 
-    edge edgeToAdd(fromKey, toKey, positionDifference, rotationDifference, covariancePosition,
-                   covarianceQuaternion,
+
+    edge edgeToAdd(fromKey, toKey, positionDifference, rotationDifference, covarianceMatrix,
                    this->degreeOfFreedom, typeOfEdge,this->graph.size());
 
+    auto model = gtsam::noiseModel::Gaussian::Covariance(covarianceMatrix);
     // add a factor between the keys
     if (abs(toKey - fromKey) > 2) {
         this->graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(fromKey, toKey, gtsam::Pose2(
                                                                                 edgeToAdd.getPositionDifference().x(), edgeToAdd.getPositionDifference().y(),
                                                                                 generalHelpfulTools::getRollPitchYaw(edgeToAdd.getRotationDifference())[2]),
-                                                                        this->loopClosureNoiseModel);//@TODO different Noise Model
+                                                                        model);//@TODO different Noise Model
 
     } else {
         this->graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose2> >(fromKey, toKey, gtsam::Pose2(edgeToAdd.getPositionDifference().x(), edgeToAdd.getPositionDifference().y(),
                                                                                                      generalHelpfulTools::getRollPitchYaw(edgeToAdd.getRotationDifference())[2]),
-                                                                        this->deadReckoningNoiseModel);
+                                                                        model);
 
     }
     // add edge to edge list
@@ -39,12 +34,12 @@ graphSlamSaveStructure::addEdge(int fromKey, int toKey, Eigen::Vector3d position
 
 void graphSlamSaveStructure::addVertex(int key, const Eigen::Vector3d &positionVertex,
                                        const Eigen::Quaterniond &rotationVertex,
-                                       const Eigen::Vector3d &covariancePosition, const double covarianceQuaternion,
+                                       const Eigen::Matrix3d &covarianceMatrix,
                                        intensityMeasurement intensityInput, double timeStamp,
                                        int typeOfVertex) {
 
     vertex vertexToAdd(key, positionVertex, rotationVertex, this->degreeOfFreedom,
-                       intensityInput, covariancePosition, covarianceQuaternion, timeStamp, typeOfVertex);
+                       intensityInput, covarianceMatrix, timeStamp, typeOfVertex);
     this->vertexList.push_back(vertexToAdd);
     //ADD BETTER INITIAL STATE
     double tmpYaw = generalHelpfulTools::getRollPitchYaw(rotationVertex)[2];
@@ -52,7 +47,7 @@ void graphSlamSaveStructure::addVertex(int key, const Eigen::Vector3d &positionV
 }
 
 
-void graphSlamSaveStructure::isam2OptimizeGraph(bool verbose) {
+void graphSlamSaveStructure::isam2OptimizeGraph(bool verbose, int numberOfUpdates) {
 
 
 //    this->graph.print();
@@ -61,7 +56,7 @@ void graphSlamSaveStructure::isam2OptimizeGraph(bool verbose) {
     this->isam->update(this->graph,this->currentEstimate);
 
 
-    for(int i = 0 ; i<10 ; i++){
+    for(int i = 0 ; i<numberOfUpdates ; i++){
         this->isam->update();
     }
 
@@ -90,8 +85,7 @@ void graphSlamSaveStructure::isam2OptimizeGraph(bool verbose) {
         this->vertexList.at(i).setRotationVertex(generalHelpfulTools::getQuaternionFromRPY(0,0,iterativePose.theta()));
 //        std::cout << "covariance:\n" << marginals.marginalCovariance(this->vertexList.at(i).getKey()) << std::endl;
 //        std::cout << "Pose :\n" << iterativePose << std::endl;
-        this->vertexList.at(i).setCovariancePosition(Eigen::Vector3d(this->isam->marginalCovariance(this->vertexList.at(i).getKey())(0,0),this->isam->marginalCovariance(this->vertexList.at(i).getKey())(1,1),0));
-        this->vertexList.at(i).setCovarianceQuaternion(this->isam->marginalCovariance(this->vertexList.at(i).getKey())(2,2));
+        this->vertexList.at(i).setCovarianceMatrix(this->isam->marginalCovariance(this->vertexList.at(i).getKey()));
 
     }
 
@@ -147,8 +141,8 @@ void graphSlamSaveStructure::classicalOptimizeGraph(bool verbose) {
         this->vertexList.at(i).setRotationVertex(generalHelpfulTools::getQuaternionFromRPY(0,0,iterativePose.theta()));
 //        std::cout << "covariance:\n" << marginals.marginalCovariance(this->vertexList.at(i).getKey()) << std::endl;
 //        std::cout << "Pose :\n" << iterativePose << std::endl;
-        this->vertexList.at(i).setCovariancePosition(Eigen::Vector3d(marginals.marginalCovariance(this->vertexList.at(i).getKey())(0,0),marginals.marginalCovariance(this->vertexList.at(i).getKey())(1,1),0));
-        this->vertexList.at(i).setCovarianceQuaternion(marginals.marginalCovariance(this->vertexList.at(i).getKey())(2,2));
+        this->vertexList.at(i).setCovarianceMatrix(this->isam->marginalCovariance(this->vertexList.at(i).getKey()));
+
     }
 
 //    this->graph.resize(0);

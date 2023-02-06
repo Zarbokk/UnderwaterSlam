@@ -27,6 +27,26 @@ find_package( Eigen3 3.3 REQUIRED )
 
 
 
+
+################################################################################
+# 2D Peak Algorithm
+################################################################################
+
+add_library(findpeaks INTERFACE)
+target_include_directories(findpeaks INTERFACE
+        src/find-peaks/include
+        )
+
+add_library(UNION_FIND
+        STATIC
+        src/find-peaks/src/union_find.cpp
+        )
+target_include_directories(UNION_FIND PRIVATE
+        src/find-peaks/include
+        )
+
+target_link_libraries(findpeaks INTERFACE UNION_FIND)
+
 ################################################################################
 # general interface
 ################################################################################
@@ -63,8 +83,8 @@ target_include_directories(posegraph PUBLIC ${catkin_INCLUDE_DIRS} src/poseGraph
 ################################################################################
 
 add_library(registrationlib STATIC src/registration/src/scanRegistrationClass.cpp src/registration/src/sofftCorrelationClass.cpp src/registration/src/softDescriptorRegistration.cpp)
-target_link_libraries(registrationlib PUBLIC ${PCL_LIBRARIES} ${Eigen_LIBRARIES} slamtools gr::algo)
-target_include_directories(registrationlib PUBLIC src/registration/include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
+target_link_libraries(registrationlib PUBLIC ${PCL_LIBRARIES} ${Eigen_LIBRARIES} slamtools gr::algo findpeaks)
+target_include_directories(registrationlib PUBLIC src/registration/include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} )
 
 ################################################################################
 # slamtools
@@ -120,13 +140,13 @@ target_link_libraries(gtsamExample gtsam )
 
 #target_include_directories(gtsamExample PUBLIC ${EIGEN3_INCLUDE_DIR} ${GTSAM_INCLUDE_DIR})
 
-add_executable(rosSlamTest src/completeSlamRuns/graphSlamGTSAM.cpp)
-target_link_libraries(rosSlamTest gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
+#add_executable(rosSlamTest src/completeSlamRuns/graphSlamGTSAM.cpp)
+#target_link_libraries(rosSlamTest gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 
 
-add_executable(testSLAM src/completeSlamRuns/testSLAMRUNS.cpp)
-target_link_libraries(testSLAM gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
+#add_executable(testSLAM src/completeSlamRuns/testSLAMRUNS.cpp)
+#target_link_libraries(testSLAM gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 
 add_executable(registrationOfTwoImages src/registration/registrationOfTwoImageScans.cpp )
@@ -138,5 +158,6 @@ target_link_libraries(rosslamexp1 gtsam posegraph slamtools registrationlib Open
 add_executable(rosslamexp2 src/completeSlamRuns/rosSlamExp2.cpp)
 target_link_libraries(rosslamexp2 gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
-
+#add_executable(randomShit src/completeSlamRuns/completlyFailedMapMatching.cpp)
+#target_link_libraries(randomShit gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 

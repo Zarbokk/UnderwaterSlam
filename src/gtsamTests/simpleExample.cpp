@@ -70,14 +70,22 @@ int main(int argc, char** argv) {
     graph.addPrior(1, Pose2(0, 0, 0), priorNoise);
 
     // For simplicity, we will use the same noise model for odometry and loop closures
-    auto model = noiseModel::Diagonal::Sigmas(Vector3(0.2, 0.2, 0.1));
+//    auto model = noiseModel::Diagonal::Sigmas(Vector3(0.2, 0.2, 0.01));
+    Matrix3 I3 = Matrix3::Identity();
+    I3(0,0) = 10;
+    I3(1,1) = 0.01;
+    I3(2,2) = 0.01;
+    auto model1 = noiseModel::Gaussian::Covariance(I3);
 
+//    auto model2 = noiseModel::Gaussian::Covariance(I3);
     // 2b. Add odometry factors
     // Create odometry (Between) factors between consecutive poses
-    graph.emplace_shared<BetweenFactor<Pose2> >(1, 2, Pose2(2, 0, 0), model);
-    graph.emplace_shared<BetweenFactor<Pose2> >(2, 3, Pose2(2, 0, M_PI_2), model);
-    graph.emplace_shared<BetweenFactor<Pose2> >(3, 4, Pose2(2, 0, M_PI_2), model);
-    graph.emplace_shared<BetweenFactor<Pose2> >(4, 5, Pose2(2, 0, M_PI_2), model);
+    graph.emplace_shared<BetweenFactor<Pose2> >(1, 2, Pose2(2, 0, 0), model1);
+    graph.emplace_shared<BetweenFactor<Pose2> >(2, 3, Pose2(2, 0, 0), model1);
+    graph.emplace_shared<BetweenFactor<Pose2> >(3, 4, Pose2(0, 0, M_PI/2), model1);
+//    graph.emplace_shared<BetweenFactor<Pose2> >(2, 3, Pose2(2, 0, M_PI_2), model);
+//    graph.emplace_shared<BetweenFactor<Pose2> >(3, 4, Pose2(2, 0, M_PI_2), model);
+//    graph.emplace_shared<BetweenFactor<Pose2> >(4, 5, Pose2(2, 0, M_PI_2), model);
 //    graph.emplace_shared<BetweenFactor<Pose2> >(3, 4, Pose2(2, 0, M_PI_2), model);
 //    graph.print();
 //    graph.remove(3);
@@ -86,17 +94,17 @@ int main(int argc, char** argv) {
     // This factor encodes the fact that we have returned to the same pose. In real systems,
     // these constraints may be identified in many ways, such as appearance-based techniques
     // with camera images. We will use another Between Factor to enforce this constraint:
-    graph.emplace_shared<BetweenFactor<Pose2> >(5, 2, Pose2(2, 0, M_PI_2), model);
+//    graph.emplace_shared<BetweenFactor<Pose2> >(5, 2, Pose2(2, 0, M_PI_2), model);
     graph.print("\nFactor Graph:\n");  // print
 
     // 3. Create the data structure to hold the initialEstimate estimate to the solution
     // For illustrative purposes, these have been deliberately set to incorrect values
     Values initialEstimate;
-    initialEstimate.insert(1, Pose2(0.5, 0.0, 0.2));
+    initialEstimate.insert(1, Pose2(0.0, 0.0, 0.0));
     initialEstimate.insert(2, Pose2(2.3, 0.1, -0.2));
-    initialEstimate.insert(3, Pose2(4.1, 0.1, M_PI_2));
-    initialEstimate.insert(4, Pose2(4.0, 2.0, M_PI));
-    initialEstimate.insert(5, Pose2(2.1, 2.1, -M_PI_2));
+    initialEstimate.insert(3, Pose2(4.1, 0.1, 0.5));
+    initialEstimate.insert(4, Pose2(4.0, 2.0, 1.1));
+//    initialEstimate.insert(5, Pose2(2.1, 2.1, -M_PI_2));
     initialEstimate.print("\nInitial Estimate:\n");  // print
 
     // 4. Optimize the initial values using a Gauss-Newton nonlinear optimizer
@@ -121,8 +129,9 @@ int main(int argc, char** argv) {
     cout << "x1 covariance:\n" << marginals.marginalCovariance(1) << endl;
     cout << "x2 covariance:\n" << marginals.marginalCovariance(2) << endl;
     cout << "x3 covariance:\n" << marginals.marginalCovariance(3) << endl;
+
     cout << "x4 covariance:\n" << marginals.marginalCovariance(4) << endl;
-    cout << "x5 covariance:\n" << marginals.marginalCovariance(5) << endl;
+//    cout << "x5 covariance:\n" << marginals.marginalCovariance(5) << endl;
 
     return 0;
 }

@@ -68,8 +68,8 @@ int main(int argc, char **argv) {
     cv::Point2f pc(img2.cols / 2., img2.rows / 2.);
     cv::Mat r = cv::getRotationMatrix2D(pc, -customRotation , 1.0);
     std::cout << r << std::endl;
-//        cv::imshow("Display window", magTMP1);
-//        int k = cv::waitKey(0); // Wait for a keystroke in the window
+//    cv::imshow("Display window", img2);
+//    int k = cv::waitKey(0); // Wait for a keystroke in the window
 
     cv::warpAffine(img2, img2, r, img2.size()); // what size I should use?
     std::cout << img2.data[6] << std::endl;
@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
                                                                                                       voxelData2,
                                                                                                       0.5,
                                                                                                       false,
-                                                                                                      true);
+                                                                                                      true,0.012);
 
 
 

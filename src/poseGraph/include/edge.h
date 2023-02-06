@@ -13,8 +13,7 @@
 class edge {
 public:
     edge(const int fromVertex, const int toVertex, const Eigen::Vector3d& positionDifference,
-         const Eigen::Quaterniond& rotationDifference, const Eigen::Vector3d &covariancePosition,
-         const double covarianceQuaternion,
+         const Eigen::Quaterniond& rotationDifference, const Eigen::Matrix3d &covarianceMatrix,
          int degreeOfFreedom, int typeOfEdge,int keyOfEdgeInGraph) {
         if (degreeOfFreedom == 3) {
             this->fromKey = fromVertex;

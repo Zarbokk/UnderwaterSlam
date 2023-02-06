@@ -41,7 +41,7 @@ public:
         //adds the Prior. Makes sure that the initial position is at 0 0 0 and stays there.
         auto priorNoise = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.1, 0.1, 0.01));
         this->graph.addPrior(0, gtsam::Pose2(0, 0, 0), priorNoise);
-
+        
 //        this->deadReckoningNoiseModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.02, 0.02, 0.005));
         this->deadReckoningNoiseModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(0.03, 0.03, 0.01));
         this->loopClosureNoiseModel = gtsam::noiseModel::Diagonal::Sigmas(gtsam::Vector3(1, 1, 0.05));
@@ -56,11 +56,10 @@ public:
     }
 
     void addEdge(int fromKey, int toKey, Eigen::Vector3d positionDifference,
-                 Eigen::Quaterniond rotationDifference, Eigen::Vector3d covariancePosition,
-                 double covarianceQuaternion, int typeOfEdge);
+                 Eigen::Quaterniond rotationDifference, Eigen::Matrix3d covarianceMatrix, int typeOfEdge);
 
     void addVertex(int key, const Eigen::Vector3d &positionVertex, const Eigen::Quaterniond &rotationVertex,
-                   const Eigen::Vector3d &covariancePosition, double covarianceQuaternion,
+                   const Eigen::Matrix3d &covarianceMatrix,
                    intensityMeasurement intensityInput, double timeStamp, int typeOfVertex);
 
 
@@ -73,7 +72,7 @@ public:
 
     std::vector<edge> *getEdgeList();
 
-    void isam2OptimizeGraph(bool verbose);
+    void isam2OptimizeGraph(bool verbose, int numberOfUpdates = 10);
 
     void classicalOptimizeGraph(bool verbose);
 

@@ -131,3 +131,15 @@ Eigen::Matrix4d generalHelpfulTools::convertMatrixFromOurSystemToOpenCV(Eigen::M
 }
 
 
+double generalHelpfulTools::normalizeAngle(double inputAngle){
+
+    while(inputAngle<0){
+        inputAngle = inputAngle+M_PI*2;
+    }
+    inputAngle = inputAngle+M_PI*2;
+
+    return std::fmod(inputAngle,M_PI*2);
+
+}
+
+
