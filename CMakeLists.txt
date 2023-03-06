@@ -161,3 +161,6 @@ target_link_libraries(rosslamexp2 gtsam posegraph slamtools registrationlib Open
 #add_executable(randomShit src/completeSlamRuns/completlyFailedMapMatching.cpp)
 #target_link_libraries(randomShit gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
+add_executable(caveDatasetSlam src/completeSlamRuns/caveDatasetSLAM.cpp)
+target_link_libraries(caveDatasetSlam gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
+

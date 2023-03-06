@@ -27,14 +27,16 @@ public:
             this->covariance = covariance;
             this->typeOfVertex = typeOfVertex;
             this->timeStamp = timeStamp;
+            this->voxelData = NULL;
         } else {
             std::cout << "not yet implemented DOF 6" << std::endl;
             std::exit(-1);
         }
     }
+
     // point cloud and no intensities
     vertex(int vertexNumber, const Eigen::Vector3d &positionVertex, const Eigen::Quaterniond &rotationVertex,
-           int degreeOfFreedom, const pcl::PointCloud<pcl::PointXYZ>::Ptr& pointCloudRaw1,
+           int degreeOfFreedom, const pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloudRaw1,
            const Eigen::Matrix3d &covariance, double timeStamp, int typeOfVertex) {
         if (degreeOfFreedom == 3) {
             this->keyNumber = vertexNumber;
@@ -46,6 +48,7 @@ public:
             this->typeOfVertex = typeOfVertex;
             this->timeStamp = timeStamp;
             this->groundTruthTransformation = Eigen::Matrix4d::Zero();
+            this->voxelData = NULL;
         } else {
             std::cout << "not yet implemented DOF 6" << std::endl;
             std::exit(-1);
@@ -70,7 +73,6 @@ public:
             std::exit(-1);
         }
     }
-
 
 
     [[nodiscard]] int getKey() const;
@@ -115,6 +117,11 @@ public:
     [[nodiscard]] Eigen::Matrix4d getGroundTruthTransformation() const;
 
     void setGroundTruthTransformation(Eigen::Matrix4d inputMatrix);
+
+    void setIntensityScan(double *inputVoxelData, int sizeVoxelData);
+
+    void getIntensityScan(double *outputVoxelData, int sizeVoxelData);
+
 private:
     int keyNumber;
     Eigen::Vector3d positionVertex;// position w.r.t. Initiial Starting Position
@@ -122,6 +129,7 @@ private:
     Eigen::Matrix3d covariance;
     intensityMeasurement intensities;
     Eigen::Matrix4d groundTruthTransformation;
+    double *voxelData;
     int typeOfVertex;
     double timeStamp;
 };

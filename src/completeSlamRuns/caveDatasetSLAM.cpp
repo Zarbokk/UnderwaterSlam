@@ -15,13 +15,13 @@
 #include <std_srvs/SetBool.h>
 #include "commonbluerovmsg/staterobotforevaluation.h"
 
-#define NUMBER_OF_POINTS_DIMENSION 128
-#define DIMENSION_OF_VOXEL_DATA_FOR_MATCHING 6 // was 50 //tuhh tank 6
+#define NUMBER_OF_POINTS_DIMENSION 256
+#define DIMENSION_OF_VOXEL_DATA_FOR_MATCHING 120 // was 50 //tuhh tank 6
 #define NUMBER_OF_POINTS_MAP 512//was 512
 // 80 simulation 300 valentin 45.0 for Keller 10.0 TUHH TANK
-#define DIMENSION_OF_MAP 10.0
+#define DIMENSION_OF_MAP 100.0
 
-#define IGNORE_DISTANCE_TO_ROBOT 0.2 // was 1.0 // TUHH 0.2
+#define IGNORE_DISTANCE_TO_ROBOT 1.0 // was 1.0 // TUHH 0.2
 #define DEBUG_REGISTRATION false
 
 #define ROTATION_SONAR M_PI // sonar on robot M_PI // simulation 0
@@ -33,9 +33,9 @@
 #define INTEGRATED_NOISE_YAW 0.005 // was 0.03 // TUHH 0.005
 
 #define USE_INITIAL_TRANSLATION_LOOP_CLOSURE true
-#define MAXIMUM_LOOP_CLOSURE_DISTANCE 0.2 // 0.2 TUHH 2.0 valentin Keller 4.0 Valentin Oben // 2.0 simulation
+#define MAXIMUM_LOOP_CLOSURE_DISTANCE 2.0 // 0.2 TUHH 2.0 valentin Keller 4.0 Valentin Oben // 2.0 simulation
 
-#define TUHH_SYSTEM true
+#define TUHH_SYSTEM false
 #define SIMULATION_SYSTEM false
 
 

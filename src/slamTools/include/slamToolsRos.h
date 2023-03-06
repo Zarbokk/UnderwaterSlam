@@ -52,6 +52,10 @@ struct intensityValues {
     Eigen::Matrix4d transformation;
     intensityMeasurement intensity;
 };
+struct transformationStamped {
+    Eigen::Matrix4d transformation;
+    double timeStamp;
+};
 
 class slamToolsRos {
 
@@ -138,7 +142,7 @@ public:
                                                    bool debug, double potentialNecessaryForPeak = 0.1);
 
     static void
-    saveResultingRegistration(int indexFirstKeyFrame, int indexSecondKeyFrame, graphSlamSaveStructure &usedGraph,
+    saveResultingRegistration(double *voxelData1, double *voxelData2, graphSlamSaveStructure &usedGraph,
                               int dimensionOfVoxelData,
                               double ignoreDistanceToRobot, double distanceOfVoxelDataLengthSI, bool debugRegistration,
                               Eigen::Matrix4d currentTransformation);
@@ -147,17 +151,21 @@ public:
     loopDetectionByClosestPath(graphSlamSaveStructure &graphSaved, scanRegistrationClass &scanRegistrationObject,
                                int dimensionOfVoxelData,
                                double ignoreDistanceToRobot, double distanceOfVoxelDataLengthSI,
-                               bool debugRegistration,bool useInitialTranslation,double potentialNecessaryForPeak = 0.1, double maxLoopClosure = 100);
+                               bool debugRegistration, bool useInitialTranslation,
+                               double potentialNecessaryForPeak = 0.1, double maxLoopClosure = 100);
 
     static void saveResultingRegistrationTMPCOPY(int indexStart1, int indexEnd1, int indexStart2, int indexEnd2,
                                                  graphSlamSaveStructure &usedGraph, int dimensionOfVoxelData,
                                                  double ignoreDistanceToRobot, double distanceOfVoxelDataLengthSI,
-                                                 bool debugRegistration, Eigen::Matrix4d currentTransformation,Eigen::Matrix4d initialGuess);
+                                                 bool debugRegistration, Eigen::Matrix4d currentTransformation,
+                                                 Eigen::Matrix4d initialGuess);
 
     static bool
-    simpleLoopDetectionByKeyFrames(graphSlamSaveStructure &graphSaved, scanRegistrationClass &scanRegistrationObject,
+    simpleLoopDetectionByKeyFrames(graphSlamSaveStructure &graphSaved,
+                                   scanRegistrationClass &scanRegistrationObject,
                                    int dimensionOfVoxelData,
                                    double ignoreDistanceToRobot, double distanceOfVoxelDataLengthSI,
+                                   double maxLoopClosure,
                                    bool debugRegistration);
 
     static bool

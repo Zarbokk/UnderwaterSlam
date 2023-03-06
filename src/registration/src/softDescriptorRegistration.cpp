@@ -381,25 +381,26 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
             numberOfAngles = 1;
             averageCorrelation = correlationOfAngle[i].peakCorrelation;
             currentAverageAngle = correlationOfAngle[i].angle;
-            if(minimumCorrelation>correlationAveraged.back()){
+            if (minimumCorrelation > correlationAveraged.back()) {
                 minimumCorrelation = correlationAveraged.back();
             }
-            if(maximumCorrelation<correlationAveraged.back()){
+            if (maximumCorrelation < correlationAveraged.back()) {
                 maximumCorrelation = correlationAveraged.back();
             }
 
         }
     }
     correlationAveraged.push_back((float) (averageCorrelation / numberOfAngles));
-    if(minimumCorrelation>correlationAveraged.back()){
+    if (minimumCorrelation > correlationAveraged.back()) {
         minimumCorrelation = correlationAveraged.back();
     }
-    if(maximumCorrelation<correlationAveraged.back()){
+    if (maximumCorrelation < correlationAveraged.back()) {
         maximumCorrelation = correlationAveraged.back();
     }
 
-    for(int i = 0 ; i<correlationAveraged.size();i++){
-        correlationAveraged[i] = (correlationAveraged[i]-minimumCorrelation)/(maximumCorrelation-minimumCorrelation);
+    for (int i = 0; i < correlationAveraged.size(); i++) {
+        correlationAveraged[i] =
+                (correlationAveraged[i] - minimumCorrelation) / (maximumCorrelation - minimumCorrelation);
     }
 
     angleList.push_back((float) currentAverageAngle);
@@ -929,7 +930,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DTranslationAllPossibleSoluti
 //    double definedRadiusSI = cellSize * this->correlationN / 30.0;
     for (auto &potentialTranslation: potentialTranslations) {
         // calculate a distribution dependent on peak height
-        std::vector<Eigen::Vector2i> listOfPoints;
+        std::vector<Eigen::Vector2d> listOfPoints;
         for (int i = -definedRadiusVoxel; i < definedRadiusVoxel + 1; i++) {
             for (int j = -definedRadiusVoxel; j < definedRadiusVoxel + 1; j++) {
                 double currentPeakHeight = resultingCorrelationDouble[(potentialTranslation.translationVoxel.y() + j) +
@@ -937,7 +938,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DTranslationAllPossibleSoluti
                                                                       (potentialTranslation.translationVoxel.x() + i)];
                 int numberOfdatasetPoints = ceil(currentPeakHeight * currentPeakHeight / 1 * 200);
                 for (int k = 0; k < numberOfdatasetPoints; k++) {
-                    Eigen::Vector2i tmpVector(i * cellSize, j * cellSize);
+                    Eigen::Vector2d tmpVector(i * cellSize, j * cellSize);
                     listOfPoints.push_back(tmpVector);
                 }
             }
@@ -965,10 +966,10 @@ softDescriptorRegistration::sofftRegistrationVoxel2DTranslationAllPossibleSoluti
         cov2 = cov2 / (listOfPoints.size() - 1);
         var12 = var12 / (listOfPoints.size() - 1);
         Eigen::Matrix2d tmpCovariance;
-        tmpCovariance(0, 0) = cov1;
-        tmpCovariance(1, 1) = cov2;
-        tmpCovariance(0, 1) = var12;
-        tmpCovariance(1, 0) = var12;
+        tmpCovariance(0, 0) = cov1*10;
+        tmpCovariance(1, 1) = cov2*10;
+        tmpCovariance(0, 1) = var12*10;
+        tmpCovariance(1, 0) = var12*10;
         potentialTranslation.covariance = tmpCovariance;
 
 
@@ -1095,7 +1096,7 @@ softDescriptorRegistration::registrationOfTwoVoxelsSOFFTAllSoluations(double vox
                                                                       bool useGauss,
                                                                       bool debug, double potentialNecessaryForPeak) {
 
-    double timeToCalculate ;
+    double timeToCalculate;
 
 
     std::vector<transformationPeak> listOfTransformations;
@@ -1104,14 +1105,14 @@ softDescriptorRegistration::registrationOfTwoVoxelsSOFFTAllSoluations(double vox
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     estimatedAnglePeak = this->sofftRegistrationVoxel2DListOfPossibleRotations(voxelData1Input, voxelData2Input,
                                                                                debug);
-    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    std::cout << "1: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
+//    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+//    std::cout << "1: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
 
-    std::cout << "number of possible solutions: " << estimatedAnglePeak.size() << std::endl;
-
-    for (auto &estimatedAngle: estimatedAnglePeak) {
-        std::cout << estimatedAngle.angle << std::endl;
-    }
+//    std::cout << "number of possible solutions: " << estimatedAnglePeak.size() << std::endl;
+//
+//    for (auto &estimatedAngle: estimatedAnglePeak) {
+//        std::cout << estimatedAngle.angle << std::endl;
+//    }
 
     int angleIndex = 0;
     for (auto &estimatedAngle: estimatedAnglePeak) {
@@ -1139,17 +1140,17 @@ softDescriptorRegistration::registrationOfTwoVoxelsSOFFTAllSoluations(double vox
         cv::Mat r = cv::getRotationMatrix2D(pc, estimatedAngle.angle * 180.0 / M_PI, 1.0);
         cv::warpAffine(magTMP1, magTMP1, r, magTMP1.size()); // what size I should use?
 
-        end = std::chrono::steady_clock::now();
-        std::cout << "2: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
-        begin = std::chrono::steady_clock::now();
+//        end = std::chrono::steady_clock::now();
+//        std::cout << "2: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
+//        begin = std::chrono::steady_clock::now();
 
         std::vector<translationPeak> potentialTranslations = this->sofftRegistrationVoxel2DTranslationAllPossibleSolutions(
                 voxelData1, voxelData2,
                 cellSize,
                 1.0,
                 debug, angleIndex, potentialNecessaryForPeak);
-        end = std::chrono::steady_clock::now();
-        std::cout << "3: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
+//        end = std::chrono::steady_clock::now();
+//        std::cout << "3: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
         transformationPeak transformationPeakTMP;
         transformationPeakTMP.potentialRotation = estimatedAngle;
         transformationPeakTMP.potentialTranslations = potentialTranslations;

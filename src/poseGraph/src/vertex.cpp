@@ -37,7 +37,7 @@ void vertex::setCovarianceMatrix(Eigen::Matrix3d covariancePositionInput) {
     this->covariance = covariancePositionInput;
 }
 
-Eigen::Matrix4d vertex::getTransformation(){
+Eigen::Matrix4d vertex::getTransformation() {
     Eigen::Matrix4d transformation;
 
     transformation << 1, 0, 0, this->positionVertex.x(),
@@ -78,7 +78,29 @@ Eigen::Matrix4d vertex::getGroundTruthTransformation() const {
     return this->groundTruthTransformation;
 }
 
-void vertex::setGroundTruthTransformation(Eigen::Matrix4d inputMatrix){
+void vertex::setGroundTruthTransformation(Eigen::Matrix4d inputMatrix) {
 
     this->groundTruthTransformation = inputMatrix;
 }
+
+void vertex::setIntensityScan(double *inputVoxelData, int sizeVoxelData) {
+    if (!this->voxelData) {
+        free(this->voxelData);
+    }
+
+    this->voxelData = (double *) malloc(sizeof(double) * sizeVoxelData * sizeVoxelData);
+    for (int i = 0; i < sizeVoxelData * sizeVoxelData; i++) {
+        this->voxelData[i] = inputVoxelData[i];
+    }
+
+}
+
+void vertex::getIntensityScan(double *outputVoxelData, int sizeVoxelData) {
+    for (int i = 0; i < sizeVoxelData * sizeVoxelData; i++) {
+        outputVoxelData[i] = this->voxelData[i];
+    }
+
+}
+
+
+

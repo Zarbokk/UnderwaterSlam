@@ -50,9 +50,11 @@ void graphSlamSaveStructure::addVertex(int key, const Eigen::Vector3d &positionV
 void graphSlamSaveStructure::isam2OptimizeGraph(bool verbose, int numberOfUpdates) {
 
 
-//    this->graph.print();
-//    this->isam->printStats();
 
+//    this->isam->printStats();
+//    this->graph.print();
+//    std::cout <<this->graph.size() << std::endl;
+//    std::cout <<this->isam->size() << std::endl;
     this->isam->update(this->graph,this->currentEstimate);
 
 
