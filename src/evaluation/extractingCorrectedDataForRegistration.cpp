@@ -54,16 +54,11 @@
 #define SALT_AND_PEPPER_NOISE 0.01
 
 
-
-
 //#define HOME_LOCATION "/home/tim-external/dataFolder/2022FinalPaperData/onlyAngleStPere/"
-
-
 
 
 #define HOME_LOCATION "/home/tim-external/dataFolder/2022FinalPaperData/"
 #define WHICH_FOLDER_SHOULD_BE_SAVED "stPereHighNoise52NEW/"
-
 
 
 
@@ -76,11 +71,6 @@
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "stPereNoNoise52/"
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "valentinHighNoise52/"
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "valentinNoNoise52/"
-
-
-
-
-
 
 
 

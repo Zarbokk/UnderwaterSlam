@@ -14,7 +14,7 @@
 #include <filesystem>
 #include "scanRegistrationClass.h"
 
-void convertMatToDoubleArray(cv::Mat inputImg, double voxelData[],int dimensionScan) {
+void convertMatToDoubleArray(cv::Mat inputImg, double voxelData[], int dimensionScan) {
 
     std::vector<uchar> array;
     if (inputImg.isContinuous()) {
@@ -42,8 +42,10 @@ void convertMatToDoubleArray(cv::Mat inputImg, double voxelData[],int dimensionS
 
 int main(int argc, char **argv) {
     // input needs to be two scans as voxelData
+    fftw_complex *resultingCorrelationComplex;
+    resultingCorrelationComplex = fftw_alloc_complex(5);
 
-    double customRotation = +00;
+    double customRotation = +80;
 
     std::string current_exec_name = argv[0]; // Name of the current exec program
     std::vector<std::string> all_args;
@@ -66,7 +68,7 @@ int main(int argc, char **argv) {
             cv::IMREAD_GRAYSCALE);
 
     cv::Point2f pc(img2.cols / 2., img2.rows / 2.);
-    cv::Mat r = cv::getRotationMatrix2D(pc, -customRotation , 1.0);
+    cv::Mat r = cv::getRotationMatrix2D(pc, -customRotation, 1.0);
     std::cout << r << std::endl;
 //    cv::imshow("Display window", img2);
 //    int k = cv::waitKey(0); // Wait for a keystroke in the window
@@ -94,33 +96,31 @@ int main(int argc, char **argv) {
     double maximumMagnitude1 = 0;
     double maximumMagnitude2 = 0;
     //get magnitude and find maximum
-    for (int j = 0; j < dimensionScan*dimensionScan ; j++) {
-        if(voxelData1[j]>maximumMagnitude1){
+    for (int j = 0; j < dimensionScan * dimensionScan; j++) {
+        if (voxelData1[j] > maximumMagnitude1) {
             maximumMagnitude1 = voxelData1[j];
         }
     }
-    for (int j = 0; j < dimensionScan*dimensionScan ; j++) {
-        if(voxelData2[j]>maximumMagnitude2){
+    for (int j = 0; j < dimensionScan * dimensionScan; j++) {
+        if (voxelData2[j] > maximumMagnitude2) {
             maximumMagnitude2 = voxelData2[j];
         }
     }
-    if(maximumMagnitude2>maximumMagnitude1){
+    if (maximumMagnitude2 > maximumMagnitude1) {
         maximumMagnitude1 = maximumMagnitude2;
     }
 
-    for (int j = 0; j < dimensionScan*dimensionScan ; j++) {
+    for (int j = 0; j < dimensionScan * dimensionScan; j++) {
 
-        voxelData2[j]=voxelData2[j]/maximumMagnitude1;
-        voxelData1[j]=voxelData1[j]/maximumMagnitude1;
+        voxelData2[j] = voxelData2[j] / maximumMagnitude1;
+        voxelData1[j] = voxelData1[j] / maximumMagnitude1;
     }
 
     double fitnessX;
     double fitnessY;
-    std::vector<transformationPeak> estimatedTransformations = scanRegistrationObject.registrationOfTwoVoxelsSOFFTAllSoluations(voxelData1,
-                                                                                                      voxelData2,
-                                                                                                      0.5,
-                                                                                                      false,
-                                                                                                      true,0.012);
+    std::vector<transformationPeak> estimatedTransformations = scanRegistrationObject.registrationOfTwoVoxelsSOFFTAllSoluations(
+            voxelData1, voxelData2, 0.5,false, true, 5,
+            false, true, true);// 5 and
 
 
 
@@ -131,13 +131,13 @@ int main(int argc, char **argv) {
         //rotation
 
         for (auto &potentialTranslation: estimatedTransformation.potentialTranslations) {
-            if(potentialTranslation.peakHeight>highestPeak){
+            if (potentialTranslation.peakHeight > highestPeak) {
                 currentMatrix.block<3, 3>(0, 0) = generalHelpfulTools::getQuaternionFromRPY(0, 0,
                                                                                             estimatedTransformation.potentialRotation.angle).toRotationMatrix();
                 currentMatrix.block<3, 1>(0, 3) = Eigen::Vector3d(potentialTranslation.translationSI.x(),
                                                                   potentialTranslation.translationSI.y(), 0);
                 std::cout << estimatedTransformation.potentialRotation.angle << std::endl;
-                highestPeak =potentialTranslation.peakHeight;
+                highestPeak = potentialTranslation.peakHeight;
             }
             //translation
 
@@ -159,8 +159,8 @@ int main(int argc, char **argv) {
 
     Eigen::Vector3d rpyTMP = generalHelpfulTools::getRollPitchYaw(Eigen::Quaterniond(currentMatrix.block<3, 3>(0, 0)));
 
-    r = cv::getRotationMatrix2D(pc, rpyTMP[2]*180.0/M_PI , 1.0);
-    double warp_values[] = { 1.0, 0.0, currentMatrix(1,3), 0.0, 1.0, currentMatrix(0,3) };
+    r = cv::getRotationMatrix2D(pc, rpyTMP[2] * 180.0 / M_PI, 1.0);
+    double warp_values[] = {1.0, 0.0, currentMatrix(1, 3), 0.0, 1.0, currentMatrix(0, 3)};
     cv::Mat translation_matrix = cv::Mat(2, 3, CV_64F, warp_values);
 //    cv::Mat transformMat = (cv::Mat_<double>(2, 3) << tmpMatrixRotationCV(0, 0),
 //            tmpMatrixRotationCV(0,1),

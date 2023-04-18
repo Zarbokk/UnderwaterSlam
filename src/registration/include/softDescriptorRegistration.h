@@ -158,7 +158,8 @@ public:
 
     std::vector<rotationPeak>
     sofftRegistrationVoxel2DListOfPossibleRotations(double voxelData1Input[], double voxelData2Input[],
-                                                    bool debug = false);
+                                                    bool debug = false, bool multipleRadii = false,
+                                                    bool useClahe = true, bool useHamming = true);
 
 //    Eigen::Vector2d sofftRegistrationVoxel2DTranslation(double voxelData1Input[],
 //                                                        double voxelData2Input[],
@@ -179,7 +180,10 @@ public:
                                                                               double cellSize,
                                                                               bool useGauss,
                                                                               bool debug = false,
-                                                                              double potentialNecessaryForPeak = 0.1);
+                                                                              double potentialNecessaryForPeak = 0.1,
+                                                                              bool multipleRadii = false,
+                                                                              bool useClahe = true,
+                                                                              bool useHamming = true);
 
     double getSpectrumFromVoxelData2DCorrelation(double voxelData[], double magnitude[], double phase[],
                                                  bool gaussianBlur, double normalizationFactor);

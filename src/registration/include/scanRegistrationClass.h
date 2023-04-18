@@ -124,7 +124,10 @@ public:
                                                                               double cellSize,
                                                                               bool useGauss,
                                                                               bool debug = false,
-                                                                              double potentialNecessaryForPeak = 0.1);
+                                                                              double potentialNecessaryForPeak = 0.1,
+                                                                              bool multipleRadii = false,
+                                                                              bool useClahe = true,
+                                                                              bool useHamming = true);
 
 private:
     softDescriptorRegistration mySofftRegistrationClass;

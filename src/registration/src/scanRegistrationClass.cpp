@@ -374,7 +374,10 @@ scanRegistrationClass::registrationOfTwoVoxelsSOFFTAllSoluations(double voxelDat
                                                                  double voxelData2Input[],
                                                                  double cellSize,
                                                                  bool useGauss,
-                                                                 bool debug, double potentialNecessaryForPeak) {
+                                                                 bool debug, double potentialNecessaryForPeak,
+                                                                 bool multipleRadii,
+                                                                 bool useClahe,
+                                                                 bool useHamming) {
 
 
 
@@ -383,5 +386,8 @@ scanRegistrationClass::registrationOfTwoVoxelsSOFFTAllSoluations(double voxelDat
                                                                               voxelData2Input,
                                                                               cellSize,
                                                                               useGauss,
-                                                                              debug,potentialNecessaryForPeak);
+                                                                              debug, potentialNecessaryForPeak,
+                                                                              multipleRadii,
+                                                                              useClahe,
+                                                                              useHamming);
 }

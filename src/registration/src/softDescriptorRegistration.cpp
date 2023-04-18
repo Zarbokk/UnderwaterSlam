@@ -190,7 +190,9 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
 
 std::vector<rotationPeak>
 softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(double voxelData1Input[],
-                                                                            double voxelData2Input[], bool debug) {
+                                                                            double voxelData2Input[], bool debug,
+                                                                            bool multipleRadii, bool useClahe,
+                                                                            bool useHamming) {
 
     double maximumScan1Magnitude = this->getSpectrumFromVoxelData2D(voxelData1Input, this->magnitude1,
                                                                     this->phase1, false);
@@ -248,6 +250,9 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
             int indexX = (N / 2 + i) % N;
             int indexY = (N / 2 + j) % N;
 
+//            int indexX = i;
+//            int indexY = j;
+
             magnitude1Shifted[indexY + N * indexX] =
                     magnitude1[j + N * i] / globalMaximumMagnitude;
             magnitude2Shifted[indexY + N * indexX] =
@@ -264,11 +269,16 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
         resampledMagnitudeSO3_2TMP[i] = 0;
     }
 
-    int minRNumber = 10;//was 4
-    int maxRNumber = N / 2 - 2;
+    int minRNumber = 1 + floor(N * 0.05);//was 4
+    int maxRNumber = N / 2 - floor(N * 0.05);
     int bandwidth = N / 2;
+
+    if(multipleRadii){
+        minRNumber = maxRNumber - 1;
+    }
     //CHANGE HERE HAPPEND TESTS
-    for (int r = maxRNumber - 1; r < maxRNumber; r++) {
+    for (int r = minRNumber; r < maxRNumber; r++) {
+//    for (int r = minRNumber; r < maxRNumber; r++) {
         for (int j = 0; j < 2 * bandwidth; j++) {
             for (int k = 0; k < 2 * bandwidth; k++) {
                 int xIndex = std::round((double) r * std::sin(thetaIncrement((double) j, bandwidth)) *
@@ -277,28 +287,64 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
                                         std::sin(phiIncrement((double) k, bandwidth)) + bandwidth) - 1;
 //                int zIndex =
 //                        std::round((double) r * std::cos(thetaIncrement((double) j + 1, bandwidth)) + bandwidth) - 1;
+//                double hammingCoeff = 25.0/46.0-(1.0-25.0/46.0)*cos(2*M_PI*k/(2*bandwidth));
+                double hammingCoeff = 1;
                 resampledMagnitudeSO3_1TMP[k + j * bandwidth * 2] =
-                        255 * magnitude1Shifted[yIndex + N * xIndex];
+                        255 * magnitude1Shifted[yIndex + N * xIndex] * hammingCoeff;
                 resampledMagnitudeSO3_2TMP[k + j * bandwidth * 2] =
-                        255 * magnitude2Shifted[yIndex + N * xIndex];
+                        255 * magnitude2Shifted[yIndex + N * xIndex] * hammingCoeff;
             }
         }
+//        int removeLines = 20;
+//        for (int j = 0; j < 2 * bandwidth; j++) {
+//            for (int k = 0; k < 2 * bandwidth; k++) {
+//                if(j<removeLines || j > 2 * bandwidth-removeLines){
+//                    resampledMagnitudeSO3_1TMP[k + j * bandwidth * 2] = 0;
+//                    resampledMagnitudeSO3_2TMP[k + j * bandwidth * 2] = 0;
+//                }
+//            }
+//        }
+
+//        for (int j = 0; j < 2 * bandwidth; j++) {
+//            for (int k = 0; k < 2 * bandwidth; k++) {
+////                double hammingCoeff = 1;
+//                double hammingCoeff = 25.0 / 46.0 - (1.0 - 25.0 / 46.0) * cos(2 * M_PI * k / (2 * bandwidth));
+//
+//                resampledMagnitudeSO3_1TMP[j + k * bandwidth * 2] = resampledMagnitudeSO3_1TMP[j + k * bandwidth * 2] * hammingCoeff;
+//                resampledMagnitudeSO3_2TMP[j + k * bandwidth * 2] = resampledMagnitudeSO3_2TMP[j + k * bandwidth * 2] * hammingCoeff;
+//            }
+//        }
+
+
+
         cv::Mat magTMP1(N, N, CV_64FC1, resampledMagnitudeSO3_1TMP);
         cv::Mat magTMP2(N, N, CV_64FC1, resampledMagnitudeSO3_2TMP);
         magTMP1.convertTo(magTMP1, CV_8UC1);
         magTMP2.convertTo(magTMP2, CV_8UC1);
         cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
         clahe->setClipLimit(3);
-        clahe->apply(magTMP1, magTMP1);
-        clahe->apply(magTMP2, magTMP2);
+        if (useClahe){
+            clahe->apply(magTMP1, magTMP1);
+            clahe->apply(magTMP2, magTMP2);
+        }
+
 
 
         for (int j = 0; j < 2 * bandwidth; j++) {
             for (int k = 0; k < 2 * bandwidth; k++) {
+//                double hammingCoeff = 1;
+
+                double hammingCoeff = 1;
+                if(useHamming){
+                    hammingCoeff = 25.0 / 46.0 - (1.0 - 25.0 / 46.0) * cos(2 * M_PI * k / (2 * bandwidth));
+                }
+
                 resampledMagnitudeSO3_1[j + k * bandwidth * 2] = resampledMagnitudeSO3_1[j + k * bandwidth * 2] +
-                                                                 ((double) magTMP1.data[j + k * bandwidth * 2]) / 255.0;
+                                                                 ((double) magTMP1.data[j + k * bandwidth * 2]) /
+                                                                 255.0 * hammingCoeff;
                 resampledMagnitudeSO3_2[j + k * bandwidth * 2] = resampledMagnitudeSO3_2[j + k * bandwidth * 2] +
-                                                                 ((double) magTMP2.data[j + k * bandwidth * 2]) / 255.0;
+                                                                 ((double) magTMP2.data[j + k * bandwidth * 2]) /
+                                                                 255.0 * hammingCoeff;
             }
         }
 //        std::cout << resampledMagnitudeSO3_1[100 + 100 * bandwidth * 2] << std::endl;
@@ -338,15 +384,98 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
         fclose(fp);
     }
 
+
+    if (debug) {
+        double minimumCorrelation = INFINITY;
+        double maximumCorrelation = 0;
+        for (int i = 0; i < 8 * bwOut * bwOut * bwOut; i++) {
+            if (minimumCorrelation > resultingCorrelationComplex[i][0]) {
+                minimumCorrelation = resultingCorrelationComplex[i][0];
+            }
+            if (maximumCorrelation < resultingCorrelationComplex[i][0]) {
+                maximumCorrelation = resultingCorrelationComplex[i][0];
+            }
+        }
+
+
+        double correlationCurrent;
+        long N_Long = N / 2;
+        double *quaternionCorrelation = (double *) malloc(sizeof(double) * N_Long * N_Long * N_Long);
+        int *quaternionCorrelationINT = (int *) malloc(sizeof(int) * N_Long * N_Long * N_Long);
+
+
+        for (int i = 0; i < N_Long * N_Long * N_Long; i++) {
+            quaternionCorrelation[i] = 0;
+            quaternionCorrelationINT[i] = 0;
+        }
+
+        for (int j = 0; j < N; j++) {
+            for (int i = 0; i < N; i++) {
+                for (int k = 0; k < N; k++) {
+                    correlationCurrent = (resultingCorrelationComplex[j + N * (i + N * k)][0] - minimumCorrelation) /
+                                         (maximumCorrelation - minimumCorrelation);
+                    Eigen::AngleAxisd rotation_vectorz1(j * 2 * 3.14159 / N, Eigen::Vector3d(0, 0, 1));
+                    Eigen::AngleAxisd rotation_vectory(k * 3.14159 / N, Eigen::Vector3d(0, 1, 0));
+                    Eigen::AngleAxisd rotation_vectorz2(i * 2 * 3.14159 / N, Eigen::Vector3d(0, 0, 1));
+
+
+                    Eigen::Matrix3d tmpMatrix3d =
+                            rotation_vectorz1.toRotationMatrix() * rotation_vectory.toRotationMatrix() *
+                            rotation_vectorz2.toRotationMatrix();
+                    Eigen::Quaterniond quaternionResult(tmpMatrix3d);
+                    quaternionResult.normalize();
+                    if (quaternionResult.w() < 0) {
+                        Eigen::Quaterniond tmpQuad = quaternionResult;
+                        quaternionResult.w() = -tmpQuad.w();
+                        quaternionResult.x() = -tmpQuad.x();
+                        quaternionResult.y() = -tmpQuad.y();
+                        quaternionResult.z() = -tmpQuad.z();
+                    }
+//                    std::cout << quaternionResult.x() << " " << quaternionResult.y() <<" " << quaternionResult.z() <<" " << quaternionResult.w() << std::endl;
+                    long xx = (long) ((quaternionResult.x() + 1) / 2.0 * (N_Long - 1));
+                    long yy = (long) ((quaternionResult.y() + 1) / 2.0 * (N_Long - 1));
+                    long zz = (long) ((quaternionResult.z() + 1) / 2.0 * (N_Long - 1));
+                    long ww = (long) ((quaternionResult.w()) * (N_Long - 1));
+//                    std::cout << xx << " " << yy <<" " << zz <<" " << ww << std::endl;
+//                    std::cout << correlationCurrent << std::endl;
+                    if (N_Long * N_Long * N_Long < xx + N_Long * (yy + N_Long * (zz))) {
+                        std::cout << xx + N_Long * (yy + N_Long * (zz)) << std::endl;
+                        std::cout << N_Long * N_Long * N_Long << std::endl;
+                    }
+                    quaternionCorrelation[xx + N_Long * (yy + N_Long * (zz))] += correlationCurrent * 10000;
+                    quaternionCorrelationINT[xx + N_Long * (yy + N_Long * (zz))] += 1;
+                }
+            }
+        }
+
+        for (int i = 0; i < N_Long * N_Long * N_Long; i++) {
+            if (quaternionCorrelationINT[i] > 0) {
+                quaternionCorrelation[i] = quaternionCorrelation[i] / quaternionCorrelationINT[i];
+            }
+        }
+
+
+        FILE *fp;
+        fp = fopen(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resultCorrelation4D.csv",
+                "w");
+        for (int i = 0; i < N_Long * N_Long * N_Long; i++)
+            fprintf(fp, "%.16f\n", quaternionCorrelation[i]);
+        fclose(fp);
+        free(quaternionCorrelation);
+    }
+
+
+
     //calcs the rotation angle around z axis for 2D scans
-    double currentThetaAngle;
-    double currentPhiAngle;
+    double z1;
+    double z2;
     double maxCorrelation = 0;
     std::vector<rotationPeak> correlationOfAngle;
     for (int j = 0; j < N; j++) {
         for (int i = 0; i < N; i++) {
-            currentThetaAngle = j * 2.0 * M_PI / N;
-            currentPhiAngle = i * 2.0 * M_PI / N;
+            z1 = j * 2.0 * M_PI / N;
+            z2 = i * 2.0 * M_PI / N;
             //[i + N * j]
             rotationPeak tmpHolding;
             tmpHolding.peakCorrelation = resultingCorrelationComplex[j + N * (i + N * 0)][0]; // real part
@@ -354,7 +483,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
                 maxCorrelation = tmpHolding.peakCorrelation;
             }
             // test on dataset with N and N/2 and 0   first test + n/2
-            tmpHolding.angle = std::fmod(-(currentThetaAngle + currentPhiAngle) + 6 * M_PI + 0.0 * M_PI / (N),
+            tmpHolding.angle = std::fmod(-(z1 + z2) + 6 * M_PI + 0.0 * M_PI / (N),
                                          2 * M_PI);
             correlationOfAngle.push_back(tmpHolding);
         }
@@ -843,9 +972,15 @@ softDescriptorRegistration::sofftRegistrationVoxel2DTranslationAllPossibleSoluti
 //                    this->correlationN * this->correlationN / this->normalizationFactorCalculation(indexX, indexY));
             //maybe without sqrt, but for now thats fine
             double normalizationFactorForCorrelation =
-                    this->correlationN * this->correlationN / this->normalizationFactorCalculation(indexX, indexY);
-//            double normalizationFactorForCorrelation = 1;
+                    1 / this->normalizationFactorCalculation(indexX, indexY);
+//            double normalizationFactorForCorrelation = 1/this->normalizationFactorCalculation(indexX, indexY);
+            normalizationFactorForCorrelation = sqrt(normalizationFactorForCorrelation);
+//            normalizationFactorForCorrelation = 1;
 
+//            double normalizationFactorForCorrelation = 25.0 / 46.0 - (1.0 - 25.0 / 46.0) *
+//                                                                     cos(2 * M_PI * (i - this->correlationN / 2) *
+//                                                                         (j - this->correlationN / 2) /
+//                                                                         (pow(this->correlationN / 2, 2)));
 
 
             //            int indexX = i;// changed j and i here
@@ -926,6 +1061,8 @@ softDescriptorRegistration::sofftRegistrationVoxel2DTranslationAllPossibleSoluti
 //        potentialTranslation.covarianceX = resultingIntegral / maximumIntegral;
 //        potentialTranslation.covarianceY = resultingIntegral / maximumIntegral;
 //    }
+
+// covariance calculation
     int definedRadiusVoxel = ceil(this->correlationN / 20);
 //    double definedRadiusSI = cellSize * this->correlationN / 30.0;
     for (auto &potentialTranslation: potentialTranslations) {
@@ -966,13 +1103,36 @@ softDescriptorRegistration::sofftRegistrationVoxel2DTranslationAllPossibleSoluti
         cov2 = cov2 / (listOfPoints.size() - 1);
         var12 = var12 / (listOfPoints.size() - 1);
         Eigen::Matrix2d tmpCovariance;
-        tmpCovariance(0, 0) = cov1*10;
-        tmpCovariance(1, 1) = cov2*10;
-        tmpCovariance(0, 1) = var12*10;
-        tmpCovariance(1, 0) = var12*10;
+        tmpCovariance(0, 0) = cov1 * 10;
+        tmpCovariance(1, 1) = cov2 * 10;
+        tmpCovariance(0, 1) = var12 * 10;
+        tmpCovariance(1, 0) = var12 * 10;
         potentialTranslation.covariance = tmpCovariance;
+        std::cout << tmpCovariance << std::endl;
+
+        cov1 = 0, cov2 = 0, var12 = 0;
+        for (int i = -definedRadiusVoxel; i < definedRadiusVoxel + 1; i++) {
+            for (int j = -definedRadiusVoxel; j < definedRadiusVoxel + 1; j++) {
+                double currentPeakHeight = resultingCorrelationDouble[(potentialTranslation.translationVoxel.y() + j) +
+                                                                      this->correlationN *
+                                                                      (potentialTranslation.translationVoxel.x() + i)];
+                cov1 += pow((i * currentPeakHeight - meanVar1), 2);
+                cov2 += pow((j * currentPeakHeight - meanVar2), 2);
+                var12 += (i * currentPeakHeight - meanVar1) * (j * currentPeakHeight - meanVar2);
+
+            }
+        }
+        cov1 = cov1 / (listOfPoints.size() - 1);
+        cov2 = cov2 / (listOfPoints.size() - 1);
+        var12 = var12 / (listOfPoints.size() - 1);
 
 
+        tmpCovariance(0, 0) = cov1 * 500;
+        tmpCovariance(1, 1) = cov2 * 500;
+        tmpCovariance(0, 1) = var12 * 500;
+        tmpCovariance(1, 0) = var12 * 500;
+        std::cout << tmpCovariance << std::endl;
+        std::cout << "end" << std::endl;
     }
     return potentialTranslations;
 }
@@ -1094,7 +1254,9 @@ softDescriptorRegistration::registrationOfTwoVoxelsSOFFTAllSoluations(double vox
                                                                       double voxelData2Input[],
                                                                       double cellSize,
                                                                       bool useGauss,
-                                                                      bool debug, double potentialNecessaryForPeak) {
+                                                                      bool debug, double potentialNecessaryForPeak,bool multipleRadii,
+                                                                      bool useClahe,
+                                                                      bool useHamming) {
 
     double timeToCalculate;
 
@@ -1104,7 +1266,7 @@ softDescriptorRegistration::registrationOfTwoVoxelsSOFFTAllSoluations(double vox
     std::vector<rotationPeak> estimatedAnglePeak;
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     estimatedAnglePeak = this->sofftRegistrationVoxel2DListOfPossibleRotations(voxelData1Input, voxelData2Input,
-                                                                               debug);
+                                                                               debug,multipleRadii,useClahe,useHamming);
 //    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 //    std::cout << "1: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << std::endl;
 
@@ -1518,17 +1680,19 @@ cv::Mat softDescriptorRegistration::imregionalmax(cv::Mat &src) {
 double softDescriptorRegistration::normalizationFactorCalculation(int x, int y) {
 
     double tmpCalculation = 0;
+//    tmpCalculation = abs(1.0/((x-this->correlationN/2)*(y-this->correlationN/2)));
+//    tmpCalculation = this->correlationN * this->correlationN * (this->correlationN - (x + 1) + 1);
+//    tmpCalculation = tmpCalculation * (this->correlationN - (y + 1) + 1);
     if (x < ceil(this->correlationN / 2)) {
-        tmpCalculation = this->correlationN * this->correlationN * (x + 1);
+        tmpCalculation = (x + 1);
     } else {
-        tmpCalculation = this->correlationN * this->correlationN * (this->correlationN - (x + 1) + 1);
-
+        tmpCalculation = (this->correlationN - x);
     }
 
     if (y < ceil(this->correlationN / 2)) {
         tmpCalculation = tmpCalculation * (y + 1);
     } else {
-        tmpCalculation = tmpCalculation * (this->correlationN - (y + 1) + 1);
+        tmpCalculation = tmpCalculation * (this->correlationN - y);
     }
 
     return (tmpCalculation);
@@ -1552,7 +1716,7 @@ std::vector<translationPeak> softDescriptorRegistration::peakDetectionOf2DCorrel
             }
         }
     }
-
+    //normalize data
     for (int j = 0; j < this->correlationN; j++) {
         for (int i = 0; i < this->correlationN; i++) {
             current2DCorrelation[j + this->correlationN * i] =
@@ -1582,9 +1746,14 @@ std::vector<translationPeak> softDescriptorRegistration::peakDetectionOf2DCorrel
                                 Eigen::Vector2d((double) ((int) p.birth_position.x - (int) p.death_position.x),
                                                 (double) ((int) p.birth_position.y - (int) p.death_position.y)).norm() *
                                 511.0 / this->correlationN;
+//        std::cout << p.persistence<< std::endl;
+//        std::cout << Eigen::Vector2d((double) ((int) p.birth_position.x - (int) p.death_position.x),
+//                                     (double) ((int) p.birth_position.y - (int) p.death_position.y)).norm() << std::endl;
+
 //        if (p.persistence > 0.05  && p.birth_level>0.1) {
 //
 //        }
+
         bool inInterestingArea = true;
         if ((int) p.birth_position.x<ignoreSidesPercentage * this->correlationN || (int) p.birth_position.x>(
                 1 - ignoreSidesPercentage) * this->correlationN ||
@@ -1595,7 +1764,7 @@ std::vector<translationPeak> softDescriptorRegistration::peakDetectionOf2DCorrel
 
 
         if (p.birth_level > 0.1 && levelPotential > potentialNecessaryForPeak && inInterestingArea) {
-
+            std::cout << levelPotential << std::endl;
 //            std::cout << "(" << p.birth_position.x << ", " << p.birth_position.y << ")\t"
 //                      << p.birth_level << "  " << p.persistence << "  " << levelPotential
 //                      << "\t(" << p.death_position.x << ", " << p.death_position.y << ")\n";
@@ -1607,7 +1776,8 @@ std::vector<translationPeak> softDescriptorRegistration::peakDetectionOf2DCorrel
             tmpTranslationPeak.translationVoxel.x() = (int) p.birth_position.x;
             tmpTranslationPeak.translationVoxel.y() = (int) p.birth_position.y;
             tmpTranslationPeak.peakHeight = resultingCorrelationDouble[p.birth_position.y +
-                                                                       this->correlationN * p.birth_position.x];
+                                                                       this->correlationN * p.birth_position.x] *
+                                            maxValue;
             tmpTranslations.push_back(tmpTranslationPeak);
 
 //            std::cout << tmpTranslationPeak.translationSI.x() << "  " << tmpTranslationPeak.translationSI.y()
