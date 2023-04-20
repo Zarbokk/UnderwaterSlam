@@ -52,10 +52,18 @@ struct settingsExtension {
     bool useNoise;
     std::vector<int> listOfDimensions;
     double occlusionPercentage;
-    double noiseSaltPepper;
-    double noiseGauss;
+    double noiseSaltPepperPercentage;
+    double noiseGaussPercentage;
+    double randomShiftXY;
+    double randomRotation;
 };
 
+
+struct saveSettingsOfRandomSettings{
+    Eigen::Matrix4d randomShift;
+    double occlusionParameter;
+    std::vector<int> listN;
+};
 
 
 class rosClassEKF {
@@ -71,12 +79,13 @@ public:
         this->ourSettings.useOcclusions = true;
         this->ourSettings.useShift = true;
         this->ourSettings.useNoise = true;
-        this->ourSettings.listOfDimensions;
-        this->ourSettings.noiseSaltPepper = 0.1;
-        this->ourSettings.noiseGauss = 0.1;
+        std::vector<int> vect{32, 128};
+        this->ourSettings.listOfDimensions = vect;
+        this->ourSettings.noiseSaltPepperPercentage = 0.000001;
+        this->ourSettings.noiseGaussPercentage = 0.0000001;
         this->ourSettings.occlusionPercentage = 0.1;
-
-
+        this->ourSettings.randomRotation = 10.0/180.0*M_PI;
+        this->ourSettings.randomShiftXY = 1;
 
 
         this->subscriberEKF = n_.subscribe("publisherPoseEkf", 10000, &rosClassEKF::stateEstimationCallback, this);
@@ -287,51 +296,92 @@ private:
             std::filesystem::create_directory(directoryOfInterest);
             //create current settings: Number of Shifts/Dimensions(list)/Occlusions/Noise/shiftProperties
 
+            std::vector<saveSettingsOfRandomSettings> listOfSettings;
 
-            for(int numberOfShifts = 0 ; numberOfShifts<this->ourSettings.numberOfShifts ; numberOfShifts++){
+            for (int numberOfShifts = 0; numberOfShifts < this->ourSettings.numberOfShifts; numberOfShifts++) {
 
-                for(auto &numberOfPoints: this->ourSettings.listOfDimensions) {
+                Eigen::Matrix4d randomShiftAndRotation = Eigen::Matrix4d::Identity();
+                if (this->ourSettings.useOcclusions) {
+                    //if used, save % removed, save Overlap of both Occlusions
+                    this->testFunctionContour();
 
-                    double *voxelData1,*voxelData2;
+
+                }
+
+                if (this->ourSettings.useShift) {
+                    //if used save in txt file correct shift
+                    randomShiftAndRotation = this->randomShiftAndRotationCalculation(ourSettings.randomShiftXY,ourSettings.randomRotation);
+                }
+
+                // Add to append to TXT file
+                saveSettingsOfRandomSettings tmpSettings;
+                tmpSettings.randomShift = randomShiftAndRotation;
+                tmpSettings.listN = this->ourSettings.listOfDimensions;
+                tmpSettings.occlusionParameter = 0;//No IDEA
+                listOfSettings.push_back(tmpSettings);
+
+
+                for (auto &numberOfPoints: this->ourSettings.listOfDimensions) {
+
+                    double *voxelData1, *voxelData2;
 
                     voxelData1 = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
                     voxelData2 = (double *) malloc(sizeof(double) * numberOfPoints * numberOfPoints);
-                    if(this->ourSettings.useShift){
-                        //if used save in txt file correct shift
 
-                    }
-                    double maximumVoxel1 = slamToolsRos::createVoxelOfGraphStartEndPoint(voxelData1, indexStart1, indexEnd1,
+                    double maximumVoxel1 = slamToolsRos::createVoxelOfGraphStartEndPoint(voxelData1, indexStart1,
+                                                                                         indexEnd1,
                                                                                          numberOfPoints,
                                                                                          this->graphSaved,
                                                                                          IGNORE_DISTANCE_TO_ROBOT,
                                                                                          DIMENSION_OF_VOXEL_DATA_FOR_MATCHING,
                                                                                          Eigen::Matrix4d::Identity());//get voxel
-                    double maximumVoxel2 = slamToolsRos::createVoxelOfGraphStartEndPoint(voxelData1, indexStart1, indexEnd1,
+                    double maximumVoxel2 = slamToolsRos::createVoxelOfGraphStartEndPoint(voxelData2, indexStart1,
+                                                                                         indexEnd1,
                                                                                          numberOfPoints,
                                                                                          this->graphSaved,
                                                                                          IGNORE_DISTANCE_TO_ROBOT,
                                                                                          DIMENSION_OF_VOXEL_DATA_FOR_MATCHING,
-                                                                                         Eigen::Matrix4d::Identity());//get voxel
+                                                                                         randomShiftAndRotation);//get voxel
 
-                    if(this->ourSettings.useOcclusions){
+                    if (this->ourSettings.useOcclusions) {
                         //if used, save % removed, save Overlap of both Occlusions
 
                     }
-                    if(this->ourSettings.useNoise){
+                    if (this->ourSettings.useNoise) {
+                        this->addSaltPepperNoiseToVoxel(voxelData1, ourSettings.noiseSaltPepperPercentage, maximumVoxel1, numberOfPoints);
+                        this->addSaltPepperNoiseToVoxel(voxelData2, ourSettings.noiseSaltPepperPercentage, maximumVoxel1, numberOfPoints);
 
+                        this->addNoiseToVoxel(voxelData1, ourSettings.noiseGaussPercentage, maximumVoxel1, numberOfPoints);
+                        this->addNoiseToVoxel(voxelData2, ourSettings.noiseGaussPercentage, maximumVoxel1, numberOfPoints);
                     }
 
 
                     //convert every scan to Point Cloud
 
 
+                    pcl::PointCloud<pcl::PointXYZ> scan1Threshold = this->convertVoxelToPointcloud(voxelData1, 0.4,
+                                                                                                   maximumVoxel1,
+                                                                                                   numberOfPoints);
+                    pcl::PointCloud<pcl::PointXYZ> scan2Threshold = this->convertVoxelToPointcloud(voxelData2, 0.4,
+                                                                                                   maximumVoxel1,
+                                                                                                   numberOfPoints);
 
 
+                    pcl::io::savePCDFile(directoryOfInterest + std::to_string(this->numberOfScan) +
+                                         std::string("scan1") + "_" + std::to_string(numberOfShifts) + "_" +
+                                         std::string(std::to_string(numberOfPoints)) +
+                                         std::string("_pcl.pcd"),
+                                         scan1Threshold);
+                    pcl::io::savePCDFile(directoryOfInterest + std::to_string(this->numberOfScan) +
+                                         std::string("scan2") + "_" + std::to_string(numberOfShifts) + "_" +
+                                         std::string(std::to_string(numberOfPoints)) +
+                                         std::string("_pcl.pcd"),
+                                         scan2Threshold);
 
 
                     std::ofstream outShifted1(directoryOfInterest + std::to_string(this->numberOfScan) +
-                                             std::string("scan1") + "_" + std::to_string(numberOfShifts) + "_" +
-                                             std::string(std::to_string(numberOfPoints)) + std::string(".csv"));
+                                              std::string("scan1") + "_" + std::to_string(numberOfShifts) + "_" +
+                                              std::string(std::to_string(numberOfPoints)) + std::string(".csv"));
                     for (int j = 0; j < numberOfPoints; j++) {
                         for (int k = 0; k < numberOfPoints; k++) {
                             outShifted1 << voxelData1[j + numberOfPoints * k] << ',';
@@ -543,7 +593,11 @@ private:
     }
 
 
-    Eigen::Matrix4d createVoxelWithFollowingRandomChanges(double voxelData[],Eigen::Matrix4d movePosition,int typeOfMatching,int numberOfPoints,double percentageSaltAndPepper,double stdDivGaussianNoise,double percentageOcclusions,std::ofstream outShifted, int indexStart,int indexEnd){
+    Eigen::Matrix4d
+    createVoxelWithFollowingRandomChanges(double voxelData[], Eigen::Matrix4d movePosition, int typeOfMatching,
+                                          int numberOfPoints, double percentageSaltAndPepper,
+                                          double stdDivGaussianNoise, double percentageOcclusions,
+                                          std::ofstream outShifted, int indexStart, int indexEnd) {
 
 //        int numberOfPoints = 32;//NUMBER_OF_POINTS_DIMENSION;
         double *voxelData1;
@@ -571,7 +625,7 @@ private:
 //                                 std::string(std::to_string(numberOfPoints)) + std::string(".csv"));
 
         for (int j = 0; j < numberOfPoints; j++) {
-            for (int k = 0; k < numberOfPoints; k++){
+            for (int k = 0; k < numberOfPoints; k++) {
                 outShifted << voxelData1[j + numberOfPoints * k] << ',';
             }
             outShifted << '\n';
@@ -580,6 +634,110 @@ private:
 
 
         return Eigen::Matrix4d::Identity();
+    }
+
+
+    pcl::PointCloud<pcl::PointXYZ>
+    convertVoxelToPointcloud(double voxelData[], double thresholdFactor, double maximumVoxelData, int dimensionVoxel) {
+
+        pcl::PointCloud<pcl::PointXYZ> ourPCL;
+        for (int j = 0; j < dimensionVoxel; j++) {
+            for (int k = 0; k < dimensionVoxel; k++) {
+                if (voxelData[j + dimensionVoxel * k] > maximumVoxelData * thresholdFactor) {
+                    double xPosPoint = (j - dimensionVoxel / 2.0) * DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
+                                       ((double) dimensionVoxel);
+                    double yPosPoint = (k - dimensionVoxel / 2.0) * DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
+                                       ((double) dimensionVoxel);
+                    ourPCL.push_back(pcl::PointXYZ(xPosPoint, yPosPoint, 0));
+
+                }
+            }
+        }
+
+
+        return ourPCL;
+    }
+
+    void addNoiseToVoxel(double voxelData[], double stdDiviationGaussPercent, double maximumVoxelData, int dimensionVoxel) {
+        std::random_device rd;
+
+        std::mt19937 gen(rd());
+
+        std::uniform_real_distribution<> dis(
+
+                0.0, 1.0);
+
+        std::normal_distribution<> disNormal(0.0, stdDiviationGaussPercent*maximumVoxelData);
+
+
+
+        for (int j = 0; j < dimensionVoxel; j++) {
+            for (int k = 0; k < dimensionVoxel; k++) {
+                voxelData[j + dimensionVoxel * k]+=disNormal(gen);
+            }
+        }
+    }
+
+    void addSaltPepperNoiseToVoxel(double voxelData[], double saltPepperNoisePercent, double maximumVoxelData, int dimensionVoxel) {
+        std::random_device rd;
+
+        std::mt19937 gen(rd());
+
+        std::uniform_real_distribution<> dis(
+
+                0.0, 1.0);
+
+        std::normal_distribution<> disNormal(0.0, 1);
+
+
+
+        for (int j = 0; j < dimensionVoxel; j++) {
+            for (int k = 0; k < dimensionVoxel; k++) {
+                if(saltPepperNoisePercent >dis(gen)){
+                    voxelData[j + dimensionVoxel * k] =dis(gen)*maximumVoxelData;
+                }
+            }
+        }
+    }
+
+
+    Eigen::Matrix4d randomShiftAndRotationCalculation(double xyRange, double rotationRange){
+
+        std::random_device rd;
+
+        std::mt19937 gen(rd());
+
+        std::uniform_real_distribution<> disXY(
+                -xyRange, xyRange);
+
+        std::uniform_real_distribution<> disAngle(
+
+                -rotationRange, rotationRange);
+
+        double xDiff = disXY(gen);
+        double yDiff = disXY(gen);
+        double angleDiff = disAngle(gen);
+
+
+        Eigen::Matrix4d returnMatrix = Eigen::Matrix4d::Identity();
+
+        returnMatrix.block<3, 3>(0, 0) = generalHelpfulTools::getTransformationMatrixFromRPY(0,0,angleDiff).block<3, 3>(0, 0);
+        returnMatrix(0, 3) = xDiff;
+        returnMatrix(1, 3) = yDiff;
+
+        return returnMatrix;
+    }
+
+    void testFunctionContour(){
+        //gleich schenkliges dreieck
+        double scalingDirect = 1000;
+        std::vector<cv::Point2f> testPoints {cv::Point2f(0, scalingDirect), cv::Point2f(cos(2.0 * M_PI / 3.0) * scalingDirect, -sin(2.0 * M_PI / 3.0) * scalingDirect), cv::Point2f(-cos(2.0 * M_PI / 3.0) * scalingDirect, -sin(2.0 * M_PI / 3.0) * scalingDirect)};
+
+        std::cout << cv::contourArea(testPoints) << std::endl;
+
+        std::cout << cv::pointPolygonTest(testPoints,cv::Point2f(0,0),false) << std::endl;
+        std::cout << cv::pointPolygonTest(testPoints,cv::Point2f(30,30),false) << std::endl;
+        std::cout << cv::pointPolygonTest(testPoints,cv::Point2f(0.5,5),false) << std::endl;
     }
 
 public:
