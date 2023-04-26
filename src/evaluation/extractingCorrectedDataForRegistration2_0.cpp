@@ -56,13 +56,23 @@ struct settingsExtension {
     double noiseGaussPercentage;
     double randomShiftXY;
     double randomRotation;
+
 };
 
 
-struct saveSettingsOfRandomSettings{
+struct saveSettingsOfRandomSettings {
     Eigen::Matrix4d randomShift;
-    double occlusionParameter;
+    Eigen::Vector2d shiftFirstOcclusion;
+    Eigen::Vector2d shiftSecondOcclusion;
+    double rotationFirstOcclusion;
+    double rotationSecondOcclusion;
+    int patternOcclusion;
     std::vector<int> listN;
+    double scalingOcclusionFirst;
+    double scalingOcclusionSecond;
+    double randomOcclusionParameterFirst;
+    double randomOcclusionParameterSecond;
+    double sizeVoxelData;
 };
 
 
@@ -79,13 +89,13 @@ public:
         this->ourSettings.useOcclusions = true;
         this->ourSettings.useShift = true;
         this->ourSettings.useNoise = true;
-        std::vector<int> vect{32, 128};
+        std::vector<int> vect{128,256, 512};
         this->ourSettings.listOfDimensions = vect;
-        this->ourSettings.noiseSaltPepperPercentage = 0.000001;
-        this->ourSettings.noiseGaussPercentage = 0.0000001;
+        this->ourSettings.noiseSaltPepperPercentage = 0.01;
+        this->ourSettings.noiseGaussPercentage = 0.01;
         this->ourSettings.occlusionPercentage = 0.1;
-        this->ourSettings.randomRotation = 10.0/180.0*M_PI;
-        this->ourSettings.randomShiftXY = 1;
+        this->ourSettings.randomRotation = 15.0 / 180.0 * M_PI;
+        this->ourSettings.randomShiftXY = 5;
 
 
         this->subscriberEKF = n_.subscribe("publisherPoseEkf", 10000, &rosClassEKF::stateEstimationCallback, this);
@@ -301,25 +311,41 @@ private:
             for (int numberOfShifts = 0; numberOfShifts < this->ourSettings.numberOfShifts; numberOfShifts++) {
 
                 Eigen::Matrix4d randomShiftAndRotation = Eigen::Matrix4d::Identity();
-                if (this->ourSettings.useOcclusions) {
-                    //if used, save % removed, save Overlap of both Occlusions
-                    this->testFunctionContour();
 
-
-                }
 
                 if (this->ourSettings.useShift) {
                     //if used save in txt file correct shift
-                    randomShiftAndRotation = this->randomShiftAndRotationCalculation(ourSettings.randomShiftXY,ourSettings.randomRotation);
+                    randomShiftAndRotation = this->randomShiftAndRotationCalculation(ourSettings.randomShiftXY,
+                                                                                     ourSettings.randomRotation);
                 }
 
                 // Add to append to TXT file
                 saveSettingsOfRandomSettings tmpSettings;
                 tmpSettings.randomShift = randomShiftAndRotation;
                 tmpSettings.listN = this->ourSettings.listOfDimensions;
-                tmpSettings.occlusionParameter = 0;//No IDEA
-                listOfSettings.push_back(tmpSettings);
+                tmpSettings.sizeVoxelData = DIMENSION_OF_VOXEL_DATA_FOR_MATCHING;
 
+
+                if (this->ourSettings.useOcclusions) {
+                    //if used, save % removed, save Overlap of both Occlusions 933013
+                    std::random_device rd;
+
+                    std::mt19937 gen(rd());
+
+                    std::uniform_real_distribution<> dis(0.0, 1.0);
+                    tmpSettings.patternOcclusion = 2;
+                    tmpSettings.rotationFirstOcclusion = dis(gen) * M_PI * 2;
+                    tmpSettings.rotationSecondOcclusion = dis(gen) * M_PI * 2;
+                    tmpSettings.shiftFirstOcclusion = Eigen::Vector2d((dis(gen) - 0.5) * 2, (dis(gen) - 0.5) * 2);
+                    tmpSettings.shiftSecondOcclusion = Eigen::Vector2d((dis(gen) - 0.5) * 2, (dis(gen) - 0.5) * 2);
+                    tmpSettings.scalingOcclusionFirst = dis(gen);
+                    tmpSettings.scalingOcclusionSecond = dis(gen);
+                    tmpSettings.randomOcclusionParameterFirst = dis(gen);
+                    tmpSettings.randomOcclusionParameterSecond = dis(gen);
+                }
+
+
+                listOfSettings.push_back(tmpSettings);
 
                 for (auto &numberOfPoints: this->ourSettings.listOfDimensions) {
 
@@ -341,18 +367,39 @@ private:
                                                                                          this->graphSaved,
                                                                                          IGNORE_DISTANCE_TO_ROBOT,
                                                                                          DIMENSION_OF_VOXEL_DATA_FOR_MATCHING,
-                                                                                         randomShiftAndRotation);//get voxel
-
+                                                                                         tmpSettings.randomShift);//get voxel
+                    //makes voxel 1 all 1
+//                    for (int i = 0; i < numberOfPoints * numberOfPoints; i++) {
+//                        voxelData1[i] = maximumVoxel1;
+//                    }
                     if (this->ourSettings.useOcclusions) {
                         //if used, save % removed, save Overlap of both Occlusions
-
+                        double percentageOverlap1 = this->applyContourToVoxelData(voxelData1, listOfSettings.back().rotationFirstOcclusion,
+                                                      listOfSettings.back().shiftFirstOcclusion,
+                                                      listOfSettings.back().patternOcclusion,
+                                                      listOfSettings.back().scalingOcclusionFirst, numberOfPoints,
+                                                      listOfSettings.back().randomOcclusionParameterFirst);
+                        double percentageOverlap2 =  this->applyContourToVoxelData(voxelData2, listOfSettings.back().rotationSecondOcclusion,
+                                                      listOfSettings.back().shiftSecondOcclusion,
+                                                      listOfSettings.back().patternOcclusion,
+                                                      listOfSettings.back().scalingOcclusionSecond, numberOfPoints,
+                                                      listOfSettings.back().randomOcclusionParameterSecond);
+                        double overlapOcclusions = this->calculateOverlap(listOfSettings.back().rotationFirstOcclusion, listOfSettings.back().rotationSecondOcclusion, listOfSettings.back().patternOcclusion, listOfSettings.back().patternOcclusion, listOfSettings.back().shiftFirstOcclusion,
+                        listOfSettings.back().shiftSecondOcclusion, listOfSettings.back().scalingOcclusionFirst, listOfSettings.back().scalingOcclusionSecond, listOfSettings.back().randomOcclusionParameterFirst,
+                        listOfSettings.back().randomOcclusionParameterSecond, numberOfPoints);
+                        std::cout<<"overlapOcclusions"<< std::endl;
+                        std::cout<<percentageOverlap1<< " " <<percentageOverlap2<< " " <<overlapOcclusions<< std::endl;
                     }
                     if (this->ourSettings.useNoise) {
-                        this->addSaltPepperNoiseToVoxel(voxelData1, ourSettings.noiseSaltPepperPercentage, maximumVoxel1, numberOfPoints);
-                        this->addSaltPepperNoiseToVoxel(voxelData2, ourSettings.noiseSaltPepperPercentage, maximumVoxel1, numberOfPoints);
+                        this->addSaltPepperNoiseToVoxel(voxelData1, ourSettings.noiseSaltPepperPercentage,
+                                                        maximumVoxel1, numberOfPoints);
+                        this->addSaltPepperNoiseToVoxel(voxelData2, ourSettings.noiseSaltPepperPercentage,
+                                                        maximumVoxel1, numberOfPoints);
 
-                        this->addNoiseToVoxel(voxelData1, ourSettings.noiseGaussPercentage, maximumVoxel1, numberOfPoints);
-                        this->addNoiseToVoxel(voxelData2, ourSettings.noiseGaussPercentage, maximumVoxel1, numberOfPoints);
+                        this->addNoiseToVoxel(voxelData1, ourSettings.noiseGaussPercentage, maximumVoxel1,
+                                              numberOfPoints);
+                        this->addNoiseToVoxel(voxelData2, ourSettings.noiseGaussPercentage, maximumVoxel1,
+                                              numberOfPoints);
                     }
 
 
@@ -403,6 +450,7 @@ private:
 
 
                 }
+                std::cout << tmpSettings.randomShift << std::endl;
             }
 
 //            double maximumVoxel2 = slamToolsRos::createVoxelOfGraphStartEndPoint(voxelData2, indexStart2, indexEnd2,
@@ -411,6 +459,36 @@ private:
 //                                                                                 IGNORE_DISTANCE_TO_ROBOT,
 //                                                                                 DIMENSION_OF_VOXEL_DATA_FOR_MATCHING,
 //                                                                                 Eigen::Matrix4d::Identity());//get voxel
+
+
+
+
+
+            // Save settings of everything
+
+            // still missing: occlusion values (% and so on)
+            std::ofstream fileForSettings(directoryOfInterest + "settingsForThisDirectory" + std::string(".csv"));
+            fileForSettings << listOfSettings.size() << '\n';
+            fileForSettings << listOfSettings[0].sizeVoxelData << '\n';
+            for(auto &sizeN : listOfSettings[0].listN ){
+                fileForSettings << sizeN << ",";
+
+            }
+            fileForSettings << '\n';
+
+            for (auto &tmp: listOfSettings) {
+                for (int j = 0; j < 4; j++) {
+                    for (int k = 0; k < 4; k++) {
+                        fileForSettings << tmp.randomShift(j , k) << ',';
+                    }
+                    fileForSettings << '\n';
+                }
+            }
+
+            fileForSettings.close();
+
+
+
 
             Eigen::Matrix3d covarianceEstimation = Eigen::Matrix3d::Zero();
             std::cout << "direct matching consecutive: " << std::endl;
@@ -658,7 +736,8 @@ private:
         return ourPCL;
     }
 
-    void addNoiseToVoxel(double voxelData[], double stdDiviationGaussPercent, double maximumVoxelData, int dimensionVoxel) {
+    void
+    addNoiseToVoxel(double voxelData[], double stdDiviationGaussPercent, double maximumVoxelData, int dimensionVoxel) {
         std::random_device rd;
 
         std::mt19937 gen(rd());
@@ -667,18 +746,18 @@ private:
 
                 0.0, 1.0);
 
-        std::normal_distribution<> disNormal(0.0, stdDiviationGaussPercent*maximumVoxelData);
-
+        std::normal_distribution<> disNormal(0.0, stdDiviationGaussPercent * maximumVoxelData);
 
 
         for (int j = 0; j < dimensionVoxel; j++) {
             for (int k = 0; k < dimensionVoxel; k++) {
-                voxelData[j + dimensionVoxel * k]+=disNormal(gen);
+                voxelData[j + dimensionVoxel * k] += disNormal(gen);
             }
         }
     }
 
-    void addSaltPepperNoiseToVoxel(double voxelData[], double saltPepperNoisePercent, double maximumVoxelData, int dimensionVoxel) {
+    void addSaltPepperNoiseToVoxel(double voxelData[], double saltPepperNoisePercent, double maximumVoxelData,
+                                   int dimensionVoxel) {
         std::random_device rd;
 
         std::mt19937 gen(rd());
@@ -690,18 +769,17 @@ private:
         std::normal_distribution<> disNormal(0.0, 1);
 
 
-
         for (int j = 0; j < dimensionVoxel; j++) {
             for (int k = 0; k < dimensionVoxel; k++) {
-                if(saltPepperNoisePercent >dis(gen)){
-                    voxelData[j + dimensionVoxel * k] =dis(gen)*maximumVoxelData;
+                if (saltPepperNoisePercent > dis(gen)) {
+                    voxelData[j + dimensionVoxel * k] = dis(gen) * maximumVoxelData;
                 }
             }
         }
     }
 
 
-    Eigen::Matrix4d randomShiftAndRotationCalculation(double xyRange, double rotationRange){
+    Eigen::Matrix4d randomShiftAndRotationCalculation(double xyRange, double rotationRange) {
 
         std::random_device rd;
 
@@ -721,23 +799,147 @@ private:
 
         Eigen::Matrix4d returnMatrix = Eigen::Matrix4d::Identity();
 
-        returnMatrix.block<3, 3>(0, 0) = generalHelpfulTools::getTransformationMatrixFromRPY(0,0,angleDiff).block<3, 3>(0, 0);
+        returnMatrix.block<3, 3>(0, 0) = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
+                                                                                             angleDiff).block<3, 3>(0,
+                                                                                                                    0);
         returnMatrix(0, 3) = xDiff;
         returnMatrix(1, 3) = yDiff;
 
         return returnMatrix;
     }
 
-    void testFunctionContour(){
+    double applyContourToVoxelData(double voxelData[], double angle, Eigen::Vector2d shift, int pattern, double scaling,
+                                 int dimensionPoints, double randomOcclusionParameter) {
+
+
+
+        //square
+        std::vector<cv::Point2f> testPointsCV = getPattern(scaling, randomOcclusionParameter, pattern, angle,
+                                                           shift, dimensionPoints);
+
+
+        int numberOfPointsRemoved = 0;
+        for (int j = 0; j < dimensionPoints; j++) {
+            for (int k = 0; k < dimensionPoints; k++) {
+                int indexX =
+                        (int) (j - dimensionPoints / 2);
+                int indexY =
+                        (int) (k - dimensionPoints / 2);
+                if (cv::pointPolygonTest(testPointsCV, cv::Point2f(indexX, indexY), false) == 1) {
+                    voxelData[j + dimensionPoints * k] = 0;
+                    numberOfPointsRemoved++;
+                }
+            }
+        }
+//        std::cout << "percentage removed" << std::endl;
+//        std::cout <<  << std::endl;
+        return (double) numberOfPointsRemoved / (double) dimensionPoints / (double) dimensionPoints;
+//        std::cout << cv::pointPolygonTest(testPointsCV,cv::Point2f(0,0),false) << std::endl;
+//        std::cout << cv::pointPolygonTest(testPointsCV,cv::Point2f(30,30),false) << std::endl;
+//        std::cout << cv::pointPolygonTest(testPointsCV,cv::Point2f(0.5,5),false) << std::endl;
+    }
+
+    double calculateOverlap(double angle1, double angle2, int pattern1, double pattern2, Eigen::Vector2d shift1,
+                            Eigen::Vector2d shift2, double scaling1, double scaling2, double randomOcclusionParameter1,
+                            double randomOcclusionParameter2, int dimensionPoints) {
+
+        std::vector<cv::Point2f> testPoints1 = getPattern(scaling1, randomOcclusionParameter1, pattern1,angle1,shift1,dimensionPoints);
+        std::vector<cv::Point2f> testPoints2 = getPattern(scaling2, randomOcclusionParameter2, pattern2,angle2,shift2,dimensionPoints);
+
+        int overlapParameter = 0;
+        for (int j = 0; j < dimensionPoints; j++) {
+            for (int k = 0; k < dimensionPoints; k++) {
+                int indexX =
+                        (int) (j - dimensionPoints / 2);
+                int indexY =
+                        (int) (k - dimensionPoints / 2);
+                int tmp = 0;
+                if (cv::pointPolygonTest(testPoints1, cv::Point2f(indexX, indexY), false) == 1) {
+                    tmp++;
+                }
+                if (cv::pointPolygonTest(testPoints2, cv::Point2f(indexX, indexY), false) == 1) {
+                    tmp++;
+                }
+                if(tmp>0){
+                    overlapParameter++;
+                }
+            }
+        }
+
+        return ((double) overlapParameter)/((double)(dimensionPoints*dimensionPoints*2));
+    }
+
+    std::vector<cv::Point2f>
+    getPattern(double scaling, double randomOcclusionParameter, int pattern, double angle, Eigen::Vector2d shift,
+               int dimensionPoints) {
+        double scalingDirect = scaling * dimensionPoints / 2;
+        std::vector<Eigen::Vector2d> testPoints;
         //gleich schenkliges dreieck
-        double scalingDirect = 1000;
-        std::vector<cv::Point2f> testPoints {cv::Point2f(0, scalingDirect), cv::Point2f(cos(2.0 * M_PI / 3.0) * scalingDirect, -sin(2.0 * M_PI / 3.0) * scalingDirect), cv::Point2f(-cos(2.0 * M_PI / 3.0) * scalingDirect, -sin(2.0 * M_PI / 3.0) * scalingDirect)};
+        if (pattern == 0) {
+            std::vector<Eigen::Vector2d> testPoints2{Eigen::Vector2d(0, scalingDirect),
+                                                     Eigen::Vector2d(
+                                                             cos(2.0 * M_PI / 3.0 - 2.0 * M_PI / 4.0) * scalingDirect,
+                                                             -sin(2.0 * M_PI / 3.0 - 2.0 * M_PI / 4.0) * scalingDirect),
+                                                     Eigen::Vector2d(
+                                                             -cos(2.0 * M_PI / 3.0 - 2.0 * M_PI / 4.0) * scalingDirect,
+                                                             -sin(2.0 * M_PI / 3.0 - 2.0 * M_PI / 4.0) *
+                                                             scalingDirect)};
+            testPoints = testPoints2;
+        }
 
-        std::cout << cv::contourArea(testPoints) << std::endl;
+        if (pattern == 1) {
+            std::vector<Eigen::Vector2d> testPoints2{Eigen::Vector2d(scalingDirect, scalingDirect),
+                                                     Eigen::Vector2d(
+                                                             -scalingDirect,
+                                                             scalingDirect),
+                                                     Eigen::Vector2d(
+                                                             -scalingDirect,
+                                                             -scalingDirect),
+                                                     Eigen::Vector2d(
+                                                             scalingDirect,
+                                                             -scalingDirect)};
+            testPoints = testPoints2;
+        }
 
-        std::cout << cv::pointPolygonTest(testPoints,cv::Point2f(0,0),false) << std::endl;
-        std::cout << cv::pointPolygonTest(testPoints,cv::Point2f(30,30),false) << std::endl;
-        std::cout << cv::pointPolygonTest(testPoints,cv::Point2f(0.5,5),false) << std::endl;
+        if (pattern == 2) {
+
+            double numberForCross = randomOcclusionParameter * (15 - 0.8) + 0.8;//0.8-15
+            std::vector<Eigen::Vector2d> testPoints2{Eigen::Vector2d(scalingDirect / numberForCross, scalingDirect),
+                                                     Eigen::Vector2d(-scalingDirect / numberForCross, scalingDirect),
+                                                     Eigen::Vector2d(-scalingDirect / numberForCross,
+                                                                     scalingDirect / numberForCross),
+                                                     Eigen::Vector2d(-scalingDirect, scalingDirect / numberForCross),
+                                                     Eigen::Vector2d(-scalingDirect, -scalingDirect / numberForCross),
+                                                     Eigen::Vector2d(-scalingDirect / numberForCross,
+                                                                     -scalingDirect / numberForCross),
+                                                     Eigen::Vector2d(-scalingDirect / numberForCross, -scalingDirect),
+                                                     Eigen::Vector2d(scalingDirect / numberForCross, -scalingDirect),
+                                                     Eigen::Vector2d(scalingDirect / numberForCross,
+                                                                     -scalingDirect / numberForCross),
+                                                     Eigen::Vector2d(scalingDirect, -scalingDirect / numberForCross),
+                                                     Eigen::Vector2d(scalingDirect, scalingDirect / numberForCross),
+                                                     Eigen::Vector2d(scalingDirect / numberForCross,
+                                                                     scalingDirect / numberForCross)};
+            testPoints = testPoints2;
+        }
+
+        //rotation
+        Eigen::Matrix2d rotationMatrixEigen;
+
+
+        rotationMatrixEigen(0, 0) = cos(angle);
+        rotationMatrixEigen(1, 0) = sin(angle);
+        rotationMatrixEigen(0, 1) = -sin(angle);
+        rotationMatrixEigen(1, 1) = cos(angle);
+        std::cout << rotationMatrixEigen << std::endl;
+        for (auto &tmp: testPoints) {
+            tmp = shift * dimensionPoints / 2.0 + rotationMatrixEigen * tmp;
+        }
+        std::vector<cv::Point2f> testPointsCV;
+        for (auto tmp: testPoints) {
+            testPointsCV.push_back(cv::Point2f(tmp[0], tmp[1]));
+        }
+        return testPointsCV;
     }
 
 public:

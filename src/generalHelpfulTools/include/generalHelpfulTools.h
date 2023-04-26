@@ -34,6 +34,8 @@ public:
     static Eigen::Matrix4d convertMatrixFromOurSystemToOpenCV(Eigen::Matrix4d inputMatrix);
 
     static double normalizeAngle(double inputAngle);
+
+    static std::vector<std::string> getNextLineAndSplitIntoTokens(std::istream &str);
 };
 
 

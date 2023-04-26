@@ -125,8 +125,8 @@ target_include_directories(hilbertmaps PUBLIC src/hilbertMaps/include ${catkin_I
 #add_executable(comparisonMatchingLiveRosBag src/evaluation/comparisonEveryMatchingMethod.cpp )
 #target_link_libraries(comparisonMatchingLiveRosBag ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
 
-add_executable(extractingCorrectedDataForRegistration src/evaluation/extractingCorrectedDataForRegistration.cpp )
-target_link_libraries(extractingCorrectedDataForRegistration gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
+#add_executable(extractingCorrectedDataForRegistration src/evaluation/extractingCorrectedDataForRegistration.cpp )
+#target_link_libraries(extractingCorrectedDataForRegistration gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 add_executable(compareEveryMatchingMethodBasedOnFolder src/evaluation/compareEveryMatchingMethodBasedOnFolder.cpp )
 target_link_libraries(compareEveryMatchingMethodBasedOnFolder gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
@@ -153,6 +153,9 @@ target_link_libraries(gtsamExample gtsam )
 
 add_executable(registrationOfTwoImages src/registration/registrationOfTwoImageScans.cpp )
 target_link_libraries(registrationOfTwoImages OpenMP::OpenMP_CXX registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
+
+add_executable(registrationOfTwoCSV src/registration/registrationTwoImagesCSV.cpp )
+target_link_libraries(registrationOfTwoCSV OpenMP::OpenMP_CXX registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
 
 add_executable(rosslamexp1 src/completeSlamRuns/rosSlamExp1.cpp)
 target_link_libraries(rosslamexp1 gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
