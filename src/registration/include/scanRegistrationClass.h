@@ -40,6 +40,7 @@
 #include <ndt_matcher_p2d.h>
 #include <ndt_matcher_d2d_2d.h>
 
+#include <image_registration.h>
 
 #ifndef SIMULATION_BLUEROV_SCANREGISTRATIONCLASS_H
 #define SIMULATION_BLUEROV_SCANREGISTRATIONCLASS_H
@@ -128,6 +129,13 @@ public:
                                                                               bool multipleRadii = false,
                                                                               bool useClahe = true,
                                                                               bool useHamming = true);
+
+    Eigen::Matrix4d registrationFourerMellin(double voxelData1Input[],
+                                                     double voxelData2Input[],
+                                                     double cellSize,
+                                                     bool debug = false);
+
+
 
 private:
     softDescriptorRegistration mySofftRegistrationClass;

@@ -277,7 +277,9 @@ Eigen::Matrix4d scanRegistrationClass::ndt_d2d_2d(pcl::PointCloud<pcl::PointXYZ>
                                                   pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                                   Eigen::Matrix4d initialGuess,
                                                   bool useInitialGuess) {
-
+    Eigen::Matrix4d transformationX180Degree = generalHelpfulTools::getTransformationMatrixFromRPY(0.00001, 0, 0);
+    pcl::transformPointCloud(cloudFirstScan, cloudFirstScan, transformationX180Degree);
+    pcl::transformPointCloud(cloudSecondScan, cloudSecondScan, transformationX180Degree);
 //    initialGuess(0, 1) = -initialGuess(0, 1);
 //    initialGuess(1, 0) = -initialGuess(1, 0);
 //    initialGuess(1, 3) = -initialGuess(1, 3);
@@ -307,6 +309,10 @@ Eigen::Matrix4d scanRegistrationClass::ndt_p2d(pcl::PointCloud<pcl::PointXYZ> &c
                                                pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                                Eigen::Matrix4d initialGuess,
                                                bool useInitialGuess) {
+
+    Eigen::Matrix4d transformationX180Degree = generalHelpfulTools::getTransformationMatrixFromRPY(0.00001, 0, 0);
+    pcl::transformPointCloud(cloudFirstScan, cloudFirstScan, transformationX180Degree);
+    pcl::transformPointCloud(cloudSecondScan, cloudSecondScan, transformationX180Degree);
 
 //    initialGuess(0, 1) = -initialGuess(0, 1);
 //    initialGuess(1, 0) = -initialGuess(1, 0);
@@ -390,4 +396,46 @@ scanRegistrationClass::registrationOfTwoVoxelsSOFFTAllSoluations(double voxelDat
                                                                               multipleRadii,
                                                                               useClahe,
                                                                               useHamming);
+}
+
+
+
+
+
+
+Eigen::Matrix4d scanRegistrationClass::registrationFourerMellin(double voxelData1Input[],
+                                         double voxelData2Input[],
+                                         double cellSize,
+                                         bool debug){
+    cv::Mat convertedMat1;
+    cv::Mat convertedMat2;
+
+
+
+    cv::Mat magTMP1(this->sizeVoxelData,this->sizeVoxelData, CV_64F, voxelData1Input);
+    cv::Mat magTMP2(this->sizeVoxelData,this->sizeVoxelData, CV_64F, voxelData2Input);
+    magTMP1.convertTo(convertedMat1, CV_8U);
+    magTMP2.convertTo(convertedMat2, CV_8U);
+
+    cv::cvtColor(convertedMat1,convertedMat1,cv::COLOR_GRAY2BGR);
+    cv::cvtColor(convertedMat2,convertedMat2,cv::COLOR_GRAY2BGR);
+
+    fourierMellinRegistration image_registration(convertedMat1);
+
+    // x, y, rotation, scale
+    std::vector<double> transform_params(4, 0.0);
+    cv::Mat registered_image;
+    image_registration.registerImage(convertedMat2, registered_image, transform_params, true);
+
+    Eigen::Matrix4d resultTransformation = Eigen::Matrix4d::Identity();
+    Eigen::AngleAxisd rotation_vector2(transform_params[2] / 180.0 * 3.14159, Eigen::Vector3d(0, 0, 1));
+    Eigen::Matrix3d tmpMatrix3d = rotation_vector2.toRotationMatrix();
+    resultTransformation.block<3, 3>(0, 0) = tmpMatrix3d;
+
+    resultTransformation(0, 3) = transform_params[1] ;
+    resultTransformation(1, 3) = transform_params[0] ;
+    resultTransformation(2, 3) = 0;
+
+
+    return resultTransformation;
 }

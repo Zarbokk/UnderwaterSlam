@@ -85,17 +85,17 @@ public:
                                                                                        NUMBER_OF_POINTS_DIMENSION / 2,
                                                                                        NUMBER_OF_POINTS_DIMENSION / 2 -
                                                                                        1) {
-        this->ourSettings.numberOfShifts = 10;
+        this->ourSettings.numberOfShifts = 100;
         this->ourSettings.useOcclusions = true;
         this->ourSettings.useShift = true;
         this->ourSettings.useNoise = true;
-        std::vector<int> vect{128,256, 512};
+        std::vector<int> vect{128,256,512};
         this->ourSettings.listOfDimensions = vect;
         this->ourSettings.noiseSaltPepperPercentage = 0.01;
-        this->ourSettings.noiseGaussPercentage = 0.01;
+        this->ourSettings.noiseGaussPercentage = 0.03;
         this->ourSettings.occlusionPercentage = 0.1;
         this->ourSettings.randomRotation = 15.0 / 180.0 * M_PI;
-        this->ourSettings.randomShiftXY = 5;
+        this->ourSettings.randomShiftXY = 1;
 
 
         this->subscriberEKF = n_.subscribe("publisherPoseEkf", 10000, &rosClassEKF::stateEstimationCallback, this);
@@ -726,7 +726,8 @@ private:
                                        ((double) dimensionVoxel);
                     double yPosPoint = (k - dimensionVoxel / 2.0) * DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
                                        ((double) dimensionVoxel);
-                    ourPCL.push_back(pcl::PointXYZ(xPosPoint, yPosPoint, 0));
+                    //mix X and Y for enu to ned
+                    ourPCL.push_back(pcl::PointXYZ( yPosPoint,xPosPoint, 0));
 
                 }
             }

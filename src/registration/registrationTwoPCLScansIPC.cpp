@@ -75,22 +75,30 @@ int main(int argc, char **argv) {
 //    initialGuess.block<3, 3>(0, 0) = m;
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-    estimatedTransformation = scanRegistrationObject.generalizedIcpRegistration(scan1,scan2,final,fitnessY,initialGuess);
+//    estimatedTransformation = scanRegistrationObject.generalizedIcpRegistration(scan1,scan2,final,fitnessY,initialGuess);
+    estimatedTransformation = scanRegistrationObject.ndt_p2d(scan1,scan2,initialGuess,true);
+//    estimatedTransformation = scanRegistrationObject.ndt_d2d_2d(scan1,scan2,initialGuess,true);
+//    estimatedTransformation = scanRegistrationObject.super4PCSRegistration(scan1,scan2,initialGuess,false,false);
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 //
 //    std::cout << "Time difference complete Registration = "
-//              << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
+//              << std::chrono::duration_cast<std::chrono::millisecond  s>(end - begin).count()
 //              << "[ms]" << std::endl;
 //        numberOfTimeItTakes.push_back((double)(std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()));
 //    }
-    //saving resulting PCL
-    pcl::io::savePCDFileASCII("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resulting0PCL1.pcd",
-                              scan2);
-    pcl::io::savePCDFileASCII("/home/tim-linux/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resulting0PCL2.pcd",
-                              final);
+
 
     std::cout << "registration with ICP done" << std::endl;
     std::cout << estimatedTransformation << std::endl;
+    std::cout << "registration with ICP done NEXT" << std::endl;
+    std::cout << estimatedTransformation.inverse() << std::endl;
+
+
+    //saving resulting PCL
+    pcl::io::savePCDFileASCII("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resulting0PCL1.pcd",
+                              scan1);
+    pcl::io::savePCDFileASCII("/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/resulting0PCL2.pcd",
+                              final);
 
     std::ofstream myFile11;
     myFile11.open(

@@ -77,7 +77,13 @@ add_library(posegraph SHARED src/poseGraph/src/edge.cpp src/poseGraph/src/graphS
 target_link_libraries(posegraph PUBLIC generalinterface json generalhelpfullib ${Eigen_LIBRARIES})
 target_include_directories(posegraph PUBLIC ${catkin_INCLUDE_DIRS} src/poseGraph/include)
 
+################################################################################
+# fourier-mellin-registration
+################################################################################
 
+add_library(fmt_registration SHARED  src/registration/src/image_registration.cpp src/registration/src/image_transforms.cpp src/registration/src/image_dft.cpp)
+target_link_libraries(fmt_registration PUBLIC ${Eigen_LIBRARIES})
+target_include_directories(fmt_registration PUBLIC src/registration/include ${catkin_INCLUDE_DIRS})
 
 
 ################################################################################
@@ -85,7 +91,7 @@ target_include_directories(posegraph PUBLIC ${catkin_INCLUDE_DIRS} src/poseGraph
 ################################################################################
 
 add_library(registrationlib SHARED src/registration/src/scanRegistrationClass.cpp src/registration/src/sofftCorrelationClass.cpp src/registration/src/softDescriptorRegistration.cpp)
-target_link_libraries(registrationlib PUBLIC ${PCL_LIBRARIES} ${Eigen_LIBRARIES} ${OpenCV_LIBS} generalhelpfullib gr::algo findpeaks)
+target_link_libraries(registrationlib PUBLIC ${PCL_LIBRARIES} ${Eigen_LIBRARIES} ${OpenCV_LIBS} generalhelpfullib gr::algo findpeaks fmt_registration)
 target_include_directories(registrationlib PUBLIC src/registration/include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} )
 
 ################################################################################
@@ -107,15 +113,14 @@ target_include_directories(hilbertmaps PUBLIC src/hilbertMaps/include ${catkin_I
 
 
 
-
 ################################################################################
 # Executables
 ################################################################################
 
-#add_executable(registrationOfTwoPCLICP src/registration/registrationTwoPCLScansIPC.cpp)
-#target_link_libraries(registrationOfTwoPCLICP OpenMP::OpenMP_CXX slamtools registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
-#target_include_directories(registrationOfTwoPCLICP PUBLIC ${OpenCV_INCLUDE_DIRS} )
-#
+add_executable(registrationOfTwoPCLICP src/registration/registrationTwoPCLScansIPC.cpp)
+target_link_libraries(registrationOfTwoPCLICP gtsam OpenMP::OpenMP_CXX slamtools registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
+
+
 #add_executable(registrationOfTwoPCLs src/registration/registrationOfTwoPCLScans.cpp)
 #target_link_libraries(registrationOfTwoPCLs OpenMP::OpenMP_CXX registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
 #target_include_directories(registrationOfTwoPCLs PUBLIC ${OpenCV_INCLUDE_DIRS} )
@@ -151,6 +156,7 @@ target_link_libraries(gtsamExample gtsam )
 #target_link_libraries(testSLAM gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 
+
 add_executable(registrationOfTwoImages src/registration/registrationOfTwoImageScans.cpp )
 target_link_libraries(registrationOfTwoImages OpenMP::OpenMP_CXX registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
 
@@ -180,3 +186,8 @@ add_executable(extractionOfData src/evaluation/extractingCorrectedDataForRegistr
 target_link_libraries(extractionOfData gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 
+add_executable(fourierMellinRegistration src/registration/fourierMellinRegistration.cpp )
+target_link_libraries(fourierMellinRegistration OpenMP::OpenMP_CXX registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
+
+add_executable(testFeatureRegistration src/registration/testFeatureRegistration.cpp )
+target_link_libraries(testFeatureRegistration OpenMP::OpenMP_CXX ${OpenCV_LIBS} generalhelpfullib ${catkin_LIBRARIES})
