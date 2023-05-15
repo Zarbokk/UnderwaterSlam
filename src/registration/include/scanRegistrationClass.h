@@ -131,10 +131,14 @@ public:
                                                                               bool useHamming = true);
 
     Eigen::Matrix4d registrationFourerMellin(double voxelData1Input[],
-                                                     double voxelData2Input[],
-                                                     double cellSize,
-                                                     bool debug = false);
+                                             double voxelData2Input[],
+                                             double cellSize,
+                                             bool debug = false);
 
+    Eigen::Matrix4d registrationFeatureBased(double voxelData1Input[],
+                                             double voxelData2Input[],
+                                             double cellSize,int methodType,
+                                             bool debug = false);
 
 
 private:

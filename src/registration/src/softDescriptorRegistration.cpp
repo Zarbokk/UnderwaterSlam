@@ -463,6 +463,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DListOfPossibleRotations(doub
             fprintf(fp, "%.16f\n", quaternionCorrelation[i]);
         fclose(fp);
         free(quaternionCorrelation);
+        free(quaternionCorrelationINT);
     }
 
 
@@ -1108,7 +1109,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DTranslationAllPossibleSoluti
         tmpCovariance(0, 1) = var12 * 10;
         tmpCovariance(1, 0) = var12 * 10;
         potentialTranslation.covariance = tmpCovariance;
-        std::cout << tmpCovariance << std::endl;
+//        std::cout << tmpCovariance << std::endl;
 
         cov1 = 0, cov2 = 0, var12 = 0;
         for (int i = -definedRadiusVoxel; i < definedRadiusVoxel + 1; i++) {
@@ -1131,8 +1132,8 @@ softDescriptorRegistration::sofftRegistrationVoxel2DTranslationAllPossibleSoluti
         tmpCovariance(1, 1) = cov2 * 500;
         tmpCovariance(0, 1) = var12 * 500;
         tmpCovariance(1, 0) = var12 * 500;
-        std::cout << tmpCovariance << std::endl;
-        std::cout << "end" << std::endl;
+//        std::cout << tmpCovariance << std::endl;
+//        std::cout << "end" << std::endl;
     }
     return potentialTranslations;
 }
@@ -1550,7 +1551,7 @@ softDescriptorRegistration::peakDetectionOf2DCorrelationOpenCVHoughTransform(dou
     cv::imshow("Contours", filterContours);
     cv::waitKey(0);
 
-
+    free(current2DCorrelation);
     std::vector<translationPeak> potentialTranslations;
     return potentialTranslations;
 }
@@ -1764,7 +1765,7 @@ std::vector<translationPeak> softDescriptorRegistration::peakDetectionOf2DCorrel
 
 
         if (p.birth_level > 0.1 && levelPotential > potentialNecessaryForPeak && inInterestingArea) {
-            std::cout << levelPotential << std::endl;
+//            std::cout << levelPotential << std::endl;
 //            std::cout << "(" << p.birth_position.x << ", " << p.birth_position.y << ")\t"
 //                      << p.birth_level << "  " << p.persistence << "  " << levelPotential
 //                      << "\t(" << p.death_position.x << ", " << p.death_position.y << ")\n";
@@ -1784,7 +1785,7 @@ std::vector<translationPeak> softDescriptorRegistration::peakDetectionOf2DCorrel
 //                      << std::endl;
         }
     }
-
+    free(current2DCorrelation);
     return (tmpTranslations);
 
 }

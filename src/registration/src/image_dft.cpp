@@ -186,26 +186,30 @@ Eigen::MatrixXd ImageDFT::getHighPassFilter()
 
 Eigen::MatrixXd ImageDFT::neighbourhood(const Eigen::MatrixXd &f1, int centre_row, int centre_col, int radius)
 {
+//    std::cout << "test1" << std::endl;
     int size = 1 + radius * 2;
     Eigen::MatrixXd subArray(size, size);
     int row_start = centre_row - radius;
     int row_end   = centre_row + radius;
     int col_start = centre_col - radius;
     int col_end   = centre_col + radius;
+//    std::cout << "test2" << std::endl;
     // neighbourhood falls within original size
-    if (row_start > 0 && row_end < f1.rows() && col_start > 0 && col_start < f1.cols())
+    if (row_start > size && row_end < f1.rows()-size && col_start > size && col_start < f1.cols()-size)
     {
+//        std::cout << "test3" << std::endl;
         subArray = f1.block(row_start, col_start, size, size);
     }
     // need to wrap around
     else
     {
+//        std::cout << "test4" << std::endl;
         for (int i = 0; i < size; i++)
         {
-            int ii = (i + row_start) % f1.rows();
+            int ii = (i + row_start+f1.rows()) % f1.rows();
             for(int j = 0; j < size; j++)
              {
-                 int jj = (j + col_start) % f1.cols();
+                 int jj = (j + col_start+f1.cols()) % f1.cols();
                  subArray(i, j) = f1(ii, jj);
              }
         }
