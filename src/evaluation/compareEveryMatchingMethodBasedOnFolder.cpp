@@ -16,6 +16,8 @@
 #include "std_srvs/SetBool.h"
 #include <filesystem>
 #include "scanRegistrationClass.h"
+#include "future"
+
 //#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_30_5_RandomShifts1510/"
 
@@ -151,6 +153,30 @@ Eigen::Matrix4d registrationOfDesiredMethod(pcl::PointCloud<pcl::PointXYZ> pclNo
                                                                            3, false);
 //            std::cout << returnMatrix << std::endl;
 //            std::cout << "test" << std::endl;
+            break;
+        case 11:
+            covarianceEstimation = Eigen::Matrix3d::Zero();
+            // THRESHOLD_FOR_TRANSLATION_MATCHING 0.05 // standard is 0.1, 0.05 und 0.01  // 0.05 for valentin Oben
+            returnMatrix = slamToolsRos::registrationOfTwoVoxels(voxelData, voxelDataShifted,
+                                                                 initialGuess,
+                                                                 covarianceEstimation, useInitialGuess,
+                                                                 useInitialGuess,
+                                                                 currentCellSize,
+                                                                 false, scanRegistrationObject,
+                                                                 false,
+                                                                 0.05,false,false,true);
+            break;
+        case 12:
+            covarianceEstimation = Eigen::Matrix3d::Zero();
+            // THRESHOLD_FOR_TRANSLATION_MATCHING 0.05 // standard is 0.1, 0.05 und 0.01  // 0.05 for valentin Oben
+            returnMatrix = slamToolsRos::registrationOfTwoVoxels(voxelData, voxelDataShifted,
+                                                                 initialGuess,
+                                                                 covarianceEstimation, useInitialGuess,
+                                                                 useInitialGuess,
+                                                                 currentCellSize,
+                                                                 false, scanRegistrationObject,
+                                                                 false,
+                                                                 0.05,false,false,false);
             break;
 
     }
@@ -409,7 +435,10 @@ int main(int argc, char **argv) {
 
     std::vector<measurementResults> resultVector;
 
-
+    std::vector<std::future<std::vector<measurementResults>>> resultsVectors;
+    for (int i = 0; i < listOfDirectories.size(); i++) {
+        resultsVectors.push_back(std::async(std::launch::async, handleRegistrationsOfDirectory, listOfDirectories[i]));
+    }
     for (int i = 0; i < listOfDirectories.size(); i++) {
 //    for (int i = 0; i < 2; i++) {
         std::vector<measurementResults> tmpVector = handleRegistrationsOfDirectory(listOfDirectories[i],

@@ -21,7 +21,7 @@
 #define DIMENSION_OF_VOXEL_DATA_FOR_MATCHING 50 // was 50 //tuhh tank 6
 #define NUMBER_OF_POINTS_MAP 512//was 512
 // 80 simulation 300 valentin 45.0 for Keller 10.0 TUHH TANK
-#define DIMENSION_OF_MAP 45.0
+#define DIMENSION_OF_MAP 300.0
 
 #define IGNORE_DISTANCE_TO_ROBOT 1.0 // was 1.0 // TUHH 0.2
 #define DEBUG_REGISTRATION false
@@ -42,7 +42,7 @@
 
 
 #define HOME_LOCATION "/home/tim-external/dataFolder/journalPaperDatasets/"
-#define WHICH_FOLDER_SHOULD_BE_SAVED "noNoiseSmallMotionKeller/"
+#define WHICH_FOLDER_SHOULD_BE_SAVED "highNoiseBigMotionValentin/"
 
 // Shifts/Dimensions(list)/Occlusions/Noise/shiftProperties
 struct settingsExtension {
@@ -80,13 +80,7 @@ struct saveSettingsOfRandomSettings {
 
 class rosClassEKF {
 public:
-    rosClassEKF(ros::NodeHandle n_, const std::string &nameOfTheServiceCall) : graphSaved(3, INTENSITY_BASED_GRAPH),
-                                                                               scanRegistrationObject(
-                                                                                       NUMBER_OF_POINTS_DIMENSION,
-                                                                                       NUMBER_OF_POINTS_DIMENSION / 2,
-                                                                                       NUMBER_OF_POINTS_DIMENSION / 2,
-                                                                                       NUMBER_OF_POINTS_DIMENSION / 2 -
-                                                                                       1) {
+    rosClassEKF(ros::NodeHandle n_, const std::string &nameOfTheServiceCall) : graphSaved(3, INTENSITY_BASED_GRAPH) {
         // simple random motion
 //        this->ourSettings.numberOfShifts = 100;
 //        this->ourSettings.useOcclusions = false;
@@ -101,7 +95,7 @@ public:
 //        this->ourSettings.randomShiftXY = 1;
 
         // high noise with occlusions and high motions
-        this->ourSettings.numberOfShifts = 500;
+        this->ourSettings.numberOfShifts = 200;
         this->ourSettings.useOcclusions = true;
         this->ourSettings.useShift = true;
         this->ourSettings.useNoise = true;
@@ -203,7 +197,7 @@ private:
     std::mutex stateEstimationMutex;
     std::mutex groundTruthMutex;
     std::mutex graphSlamMutex;
-
+    scanRegistrationClass tmpTest;
     //GraphSlam things
     ros::Publisher publisherKeyFrameClouds, publisherPathOverTime, publisherMarkerArray, publisherPathOverTimeGT, publisherMarkerArrayLoopClosures, publisherLastPCL, publisherRegistrationPCL, publisherBeforeCorrection, publisherAfterCorrection;
 
@@ -224,7 +218,7 @@ private:
     double sigmaScaling;
 
     graphSlamSaveStructure graphSaved;
-    scanRegistrationClass scanRegistrationObject;
+//    scanRegistrationClass scanRegistrationObject;
     bool firstSonarInput, firstCompleteSonarScan, saveGraphStructure;
     int numberOfTimesFirstScan;
 

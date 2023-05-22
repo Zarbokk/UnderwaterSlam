@@ -22,6 +22,8 @@
 //#include "soft20/soft_fftw.h"
 //#include "fftw3.h"
 #include "soft20/wrap_fftw.h"
+#include "thread"
+#include "future"
 
 Eigen::Quaterniond returnQuaternion(double z1, double y, double z2) {
     Eigen::AngleAxisd rotation_vectorz1(z1 / 64.0 * 2*3.14159, Eigen::Vector3d(0, 0, 1));
@@ -34,14 +36,41 @@ Eigen::Quaterniond returnQuaternion(double z1, double y, double z2) {
     return Eigen::Quaterniond(tmpMatrix3d);
 };
 
+std::mutex m;
+double testFunction(double z2,double z1) {
+    sleep(10);
+    std::lock_guard<std::mutex> guard(m);
+
+    return z2*2*z1;
+};
+
+
 int main(int argc, char **argv) {
 
-    Eigen::Quaterniond quat1 = returnQuaternion(31, 35, 45);
-    std::cout << quat1.x() <<" " << quat1.y() <<" "<< quat1.z() <<" "<< quat1.w() << std::endl;
-    quat1 = returnQuaternion(1, 35, 1);
-    std::cout << quat1.x() <<" " << quat1.y() <<" "<< quat1.z() <<" "<< quat1.w() << std::endl;
-    quat1 = returnQuaternion(63, 35, 1);
-    std::cout << quat1.x() <<" " << quat1.y() <<" "<< quat1.z() <<" "<< quat1.w() << std::endl;
+//    Eigen::Quaterniond quat1 = returnQuaternion(31, 35, 45);
+//    std::cout << quat1.x() <<" " << quat1.y() <<" "<< quat1.z() <<" "<< quat1.w() << std::endl;
+//    quat1 = returnQuaternion(1, 35, 1);
+//    std::cout << quat1.x() <<" " << quat1.y() <<" "<< quat1.z() <<" "<< quat1.w() << std::endl;
+//    quat1 = returnQuaternion(63, 35, 1);
+//    std::cout << quat1.x() <<" " << quat1.y() <<" "<< quat1.z() <<" "<< quat1.w() << std::endl;
+
+    std::vector<std::thread> threads;
+    std::vector<int> resultList;
+    std::vector<std::future<double>> calcs;
+    for (int i = 0; i < 100; i++) {
+        calcs.push_back(std::async(std::launch::async, testFunction, i,i));
+    }
+
+
+    for (auto&& fut:calcs){
+        resultList.push_back(fut.get());
+    }
+
+
+
+    for (int i = 0; i < 100; i++) {
+        std::cout << resultList[i] << std::endl;
+    }
 
     return (0);
 }

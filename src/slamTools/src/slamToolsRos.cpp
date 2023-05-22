@@ -1171,10 +1171,12 @@ Eigen::Matrix4d slamToolsRos::registrationOfTwoVoxels(double voxelData1Input[],
                                                       double cellSize,
                                                       bool useGauss,
                                                       scanRegistrationClass &scanRegistrationObject,
-                                                      bool debug, double potentialNecessaryForPeak) {
+                                                      bool debug, double potentialNecessaryForPeak, bool multipleRadii,
+                                                      bool useClahe,
+                                                      bool useHamming) {
 
     std::vector<transformationPeak> listOfTransformations = scanRegistrationObject.registrationOfTwoVoxelsSOFFTAllSoluations(
-            voxelData1Input, voxelData2Input, cellSize, useGauss, debug, potentialNecessaryForPeak);
+            voxelData1Input, voxelData2Input, cellSize, useGauss, debug, potentialNecessaryForPeak,multipleRadii,useClahe,useHamming);
     double initialAngle = std::atan2(initialGuess(1, 0),
                                      initialGuess(0, 0));
     std::vector<transformationPeak> potentialTranslationsWithAngle;

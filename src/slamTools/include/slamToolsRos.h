@@ -139,7 +139,9 @@ public:
                                                    double cellSize,
                                                    bool useGauss,
                                                    scanRegistrationClass &scanRegistrationObject,
-                                                   bool debug, double potentialNecessaryForPeak = 0.1);
+                                                   bool debug, double potentialNecessaryForPeak = 0.1, bool multipleRadii = false,
+                                                   bool useClahe = true,
+                                                   bool useHamming = true);
 
     static void
     saveResultingRegistration(double *voxelData1, double *voxelData2, graphSlamSaveStructure &usedGraph,
