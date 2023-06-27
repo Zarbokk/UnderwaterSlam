@@ -10,6 +10,8 @@ scanRegistrationClass::generalizedIcpRegistration(pcl::PointCloud<pcl::PointXYZ>
                                                   pcl::PointCloud<pcl::PointXYZ> &Final,
                                                   double &fitnessScore, Eigen::Matrix4d &initialGuessTransformation) {
 
+    std::lock_guard<std::mutex> guard(*this->icpMutex);
+
     if(cloudFirstScan.size()<20 || cloudSecondScan.size()<20){
         Eigen::Matrix4d guess = Eigen::Matrix4d::Identity();
         guess(3,3) = -1;
@@ -46,7 +48,7 @@ scanRegistrationClass::generalizedIcpRegistrationSimple(pcl::PointCloud<pcl::Poi
             0, 0, 1, 0,
             0, 0, 0, 1;
     pcl::PointCloud<pcl::PointXYZ> Final;
-    return scanRegistrationClass::generalizedIcpRegistration(cloudFirstScan, cloudSecondScan, Final,
+    return this->generalizedIcpRegistration(cloudFirstScan, cloudSecondScan, Final,
                                                              fitnessScore, guess);
 }
 
@@ -56,7 +58,7 @@ scanRegistrationClass::generalizedIcpRegistrationSimple(pcl::PointCloud<pcl::Poi
                                                         double &fitnessScore, Eigen::Matrix4d &guess) {
 
     pcl::PointCloud<pcl::PointXYZ> Final;
-    return scanRegistrationClass::generalizedIcpRegistration(cloudFirstScan, cloudSecondScan, Final,
+    return this->generalizedIcpRegistration(cloudFirstScan, cloudSecondScan, Final,
                                                              fitnessScore, guess);
 }
 
@@ -134,6 +136,8 @@ Eigen::Matrix4d scanRegistrationClass::super4PCSRegistration(pcl::PointCloud<pcl
                                                              pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                                              Eigen::Matrix4d initialGuess, bool useInitialGuess,
                                                              bool debug) {
+    std::lock_guard<std::mutex> guard(*this->supersMutex);
+
 //    Eigen::Matrix4d transformationX180Degree = generalHelpfulTools::getTransformationMatrixFromRPY(0.00001, 0, 0);
 //    pcl::transformPointCloud(cloudFirstScan, cloudFirstScan, transformationX180Degree);
 //    pcl::transformPointCloud(cloudSecondScan, cloudSecondScan, transformationX180Degree);
@@ -288,6 +292,7 @@ Eigen::Matrix4d scanRegistrationClass::ndt_d2d_2d(pcl::PointCloud<pcl::PointXYZ>
                                                   pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                                   Eigen::Matrix4d initialGuess,
                                                   bool useInitialGuess) {
+    std::lock_guard<std::mutex> guard(*this->ndtd2dMutex);
     Eigen::Matrix4d transformationX180Degree = generalHelpfulTools::getTransformationMatrixFromRPY(0.00001, 0, 0);
     pcl::transformPointCloud(cloudFirstScan, cloudFirstScan, transformationX180Degree);
     pcl::transformPointCloud(cloudSecondScan, cloudSecondScan, transformationX180Degree);
@@ -320,7 +325,7 @@ Eigen::Matrix4d scanRegistrationClass::ndt_p2d(pcl::PointCloud<pcl::PointXYZ> &c
                                                pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                                Eigen::Matrix4d initialGuess,
                                                bool useInitialGuess) {
-
+    std::lock_guard<std::mutex> guard(*this->ndtp2dMutex);
     Eigen::Matrix4d transformationX180Degree = generalHelpfulTools::getTransformationMatrixFromRPY(0.00001, 0, 0);
     pcl::transformPointCloud(cloudFirstScan, cloudFirstScan, transformationX180Degree);
     pcl::transformPointCloud(cloudSecondScan, cloudSecondScan, transformationX180Degree);
@@ -396,8 +401,8 @@ scanRegistrationClass::registrationOfTwoVoxelsSOFFTAllSoluations(double voxelDat
                                                                  bool useClahe,
                                                                  bool useHamming) {
 
-
-
+    std::lock_guard<std::mutex> guard(*this->oursMutex);
+    std::cout << "Starting soft: " <<this->sizeVoxelData << std::endl;
     //changing voxel 1 and 2 because we want to have the transformation from 1 to 2 and not from 2 to 1(which is the registration)@TODO
     return mySofftRegistrationClass.registrationOfTwoVoxelsSOFFTAllSoluations(voxelData1Input,
                                                                               voxelData2Input,
@@ -467,6 +472,7 @@ Eigen::Matrix4d scanRegistrationClass::registrationFourerMellin(double voxelData
                                                                 double voxelData2Input[],
                                                                 double cellSize,
                                                                 bool debug) {
+    std::lock_guard<std::mutex> guard(*this->fourierMellinMutex);
     cv::Mat convertedMat1;
     cv::Mat convertedMat2;
 
@@ -510,7 +516,7 @@ Eigen::Matrix4d scanRegistrationClass::registrationFeatureBased(double voxelData
                                                                 double voxelData2Input[],
                                                                 double cellSize,int methodType,
                                                                 bool debug) {
-
+    std::lock_guard<std::mutex> guard(*this->featureBasedMutex);
 
     cv::Mat magTMP1(this->sizeVoxelData, this->sizeVoxelData, CV_64F, voxelData1Input);
     cv::Mat magTMP2(this->sizeVoxelData, this->sizeVoxelData, CV_64F, voxelData2Input);

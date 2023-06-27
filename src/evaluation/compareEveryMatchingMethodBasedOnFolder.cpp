@@ -57,6 +57,15 @@ struct measurementResults {
     int voxelSize;
 };
 
+
+// GLOBAL
+std::vector<scanRegistrationClass> scanRegistrationList;
+std::vector<settingsMethodUsed> settingsMethodUsedList;
+
+
+
+
+
 std::vector<std::string> get_directories(const std::string &s) {
     std::vector<std::string> r;
     for (auto &p: std::filesystem::directory_iterator(s))
@@ -186,9 +195,7 @@ Eigen::Matrix4d registrationOfDesiredMethod(pcl::PointCloud<pcl::PointXYZ> pclNo
 }
 
 std::vector<measurementResults>
-handleRegistrationsOfDirectory(const std::string &s,
-                               std::vector<scanRegistrationClass> &scanRegistrationList,
-                               std::vector<settingsMethodUsed> settingsMethodUsedList) {
+handleRegistrationsOfDirectory(const std::string &s) {
     //load all the data
     std::vector<measurementResults> returnMeasurementsList;
 
@@ -205,7 +212,7 @@ handleRegistrationsOfDirectory(const std::string &s,
     for (int currentNumberOfScanInDirectory = 0;
          currentNumberOfScanInDirectory < numberOfScans; currentNumberOfScanInDirectory++) {
 //    for (int currentNumberOfScanInDirectory = 0;
-//         currentNumberOfScanInDirectory < 1; currentNumberOfScanInDirectory++) {
+//         currentNumberOfScanInDirectory < 2; currentNumberOfScanInDirectory++) {
         std::cout << "current number = " << currentNumberOfScanInDirectory << std::endl;
         std::vector<std::string> transformationMatrixList = getNextLineAndSplitIntoTokens(
                 sizeVoxelGridFile);
@@ -352,7 +359,7 @@ handleRegistrationsOfDirectory(const std::string &s,
         Eigen::Vector3d translationEstimated = initialGuess.block<3, 1>(0, 3);
         double errorDistance = (translationGT - translationEstimated).norm();
         tmpMeasurements.errorInDistance = errorDistance;
-        tmpMeasurements.whichMethod = 11;
+        tmpMeasurements.whichMethod = -1;
         returnMeasurementsList.push_back(tmpMeasurements);
 
     }
@@ -364,7 +371,7 @@ handleRegistrationsOfDirectory(const std::string &s,
 int main(int argc, char **argv) {
 
     //1: GICP, 2: SUPER4PCS, 3: NDT D2D 2D, 4: NDT P2D, 5: FourierMellinTransform, 6: Our FMS 2D 7: initial guess
-    std::vector<settingsMethodUsed> settingsMethodUsedList;
+//    std::vector<settingsMethodUsed> settingsMethodUsedList;
     // fill in objects
 
 
@@ -402,6 +409,13 @@ int main(int argc, char **argv) {
     tmpSettings.initialGuess = false;
     tmpSettings.whichMethod = 10;
     settingsMethodUsedList.push_back(tmpSettings);
+    tmpSettings.initialGuess = false;
+    tmpSettings.whichMethod = 11;
+    settingsMethodUsedList.push_back(tmpSettings);
+    tmpSettings.initialGuess = false;
+    tmpSettings.whichMethod = 12;
+    settingsMethodUsedList.push_back(tmpSettings);
+
 
     std::string current_exec_name = argv[0]; // Name of the current exec program
     std::vector<std::string> all_args;
@@ -425,7 +439,7 @@ int main(int argc, char **argv) {
     sizeOfVoxelGridList = getNextLineAndSplitIntoTokens(sizeVoxelGridFile);
     sizeOfVoxelGridList = getNextLineAndSplitIntoTokens(sizeVoxelGridFile);
     sizeVoxelGridFile.close();
-    std::vector<scanRegistrationClass> scanRegistrationList;
+//    std::vector<scanRegistrationClass> scanRegistrationList;
     for (int i = 0; i < sizeOfVoxelGridList.size() - 1; i++) {
         int sizeVoxel = std::stoi(sizeOfVoxelGridList[i]);
         scanRegistrationClass scanRegistrationObject(sizeVoxel, sizeVoxel / 2, sizeVoxel / 2, sizeVoxel / 2 - 1);
@@ -436,19 +450,35 @@ int main(int argc, char **argv) {
     std::vector<measurementResults> resultVector;
 
     std::vector<std::future<std::vector<measurementResults>>> resultsVectors;
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+
     for (int i = 0; i < listOfDirectories.size(); i++) {
         resultsVectors.push_back(std::async(std::launch::async, handleRegistrationsOfDirectory, listOfDirectories[i]));
+        sleep(10);
+//        std::vector<measurementResults> tmpVector = resultsVectors.back().get();
+//        resultVector.insert(std::end(resultVector), std::begin(tmpVector), std::end(tmpVector));
     }
-    for (int i = 0; i < listOfDirectories.size(); i++) {
-//    for (int i = 0; i < 2; i++) {
-        std::vector<measurementResults> tmpVector = handleRegistrationsOfDirectory(listOfDirectories[i],
-                                                                                   scanRegistrationList,
-                                                                                   settingsMethodUsedList);
-
+    std::cout << "started all threads" << std::endl;
+    for (auto&& fut:resultsVectors){
+        std::vector<measurementResults> tmpVector = fut.get();
         resultVector.insert(std::end(resultVector), std::begin(tmpVector), std::end(tmpVector));
-        std::cout << "############################# we are at Number: " << i << std::endl;
-
     }
+    std::cout << "done" << std::endl;
+    std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+    std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]" << std::endl;
+
+//    for (int i = 0; i < listOfDirectories.size(); i++) {
+////    for (int i = 0; i < 2; i++) {
+//        std::vector<measurementResults> tmpVector = handleRegistrationsOfDirectory(listOfDirectories[i]);
+//
+//        resultVector.insert(std::end(resultVector), std::begin(tmpVector), std::end(tmpVector));
+//        std::cout << "############################# we are at Number: " << i << std::endl;
+//
+//    }
+
+
+
 
     std::ofstream resultsMatching;
     resultsMatching.open(std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED) + "/results.csv");

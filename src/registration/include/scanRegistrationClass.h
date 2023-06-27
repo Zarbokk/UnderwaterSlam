@@ -51,21 +51,30 @@ public:
     scanRegistrationClass(int N = 64, int bwOut = 64 / 2, int bwIn = 64 / 2, int degLim = 64 / 2 - 1)
             : mySofftRegistrationClass(N, bwOut, bwIn, degLim) {
         sizeVoxelData = N;
+        icpMutex = new std::mutex();
+        supersMutex = new std::mutex();
+        ndtd2dMutex = new std::mutex();
+        ndtp2dMutex = new std::mutex();
+        fourierMellinMutex = new std::mutex();
+        oursMutex = new std::mutex();
+        featureBasedMutex = new std::mutex();
+
+
     }
 
     ~scanRegistrationClass() {
         mySofftRegistrationClass.~softDescriptorRegistration();
     }
 
-    static Eigen::Matrix4d generalizedIcpRegistrationSimple(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+    Eigen::Matrix4d generalizedIcpRegistrationSimple(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
                                                             pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                                             double &fitnessScore);
 
-    static Eigen::Matrix4d generalizedIcpRegistrationSimple(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+    Eigen::Matrix4d generalizedIcpRegistrationSimple(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
                                                             pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                                             double &fitnessScore, Eigen::Matrix4d &guess);
 
-    static Eigen::Matrix4d generalizedIcpRegistration(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+    Eigen::Matrix4d generalizedIcpRegistration(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
                                                       pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                                       pcl::PointCloud<pcl::PointXYZ> &Final,
                                                       double &fitnessScore,
@@ -81,7 +90,7 @@ public:
                                         bool useInitialGuess,
                                         bool debug = false);
 
-    static Eigen::Matrix4d icpRegistration(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+    Eigen::Matrix4d icpRegistration(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
                                            pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
                                            pcl::PointCloud<pcl::PointXYZ> &Final);
 
@@ -146,6 +155,7 @@ private:
 
     int sizeVoxelData;
 
+    std::mutex *icpMutex,*supersMutex,*ndtd2dMutex,*ndtp2dMutex,*fourierMellinMutex,*oursMutex,*featureBasedMutex;
 };
 
 
