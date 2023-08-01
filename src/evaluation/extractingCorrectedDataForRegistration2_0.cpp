@@ -9,7 +9,6 @@
 #include "slamToolsRos.h"
 #include "commonbluerovmsg/saveGraph.h"
 #include "nav_msgs/OccupancyGrid.h"
-#include "scanRegistrationClass.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "std_srvs/SetBoolRequest.h"
 #include <std_srvs/SetBool.h>
@@ -21,7 +20,7 @@
 #define DIMENSION_OF_VOXEL_DATA_FOR_MATCHING 50 // was 50 //tuhh tank 6
 #define NUMBER_OF_POINTS_MAP 512//was 512
 // 80 simulation 300 valentin 45.0 for Keller 10.0 TUHH TANK
-#define DIMENSION_OF_MAP 300.0
+#define DIMENSION_OF_MAP 45.0
 
 #define IGNORE_DISTANCE_TO_ROBOT 1.0 // was 1.0 // TUHH 0.2
 #define DEBUG_REGISTRATION false
@@ -41,8 +40,16 @@
 #define SIMULATION_SYSTEM false
 
 
-#define HOME_LOCATION "/home/tim-external/dataFolder/journalPaperDatasets/"
-#define WHICH_FOLDER_SHOULD_BE_SAVED "highNoiseBigMotionValentin/"
+#define HOME_LOCATION "/home/tim-external/dataFolder/journalPaperDatasets/newDatasetsCreation/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "highNoiseBigMotionValentin/"
+#define WHICH_FOLDER_SHOULD_BE_SAVED "highNoiseBigMotionKeller/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "noNoiseSmallMotionValentin/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "noNoiseSmallMotionKeller/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "onlyRotationNoNoiseKeller/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "onlyRotationNoNoiseValentin/"
+
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "noNoiseSmallMotionStPere/"
+
 
 // Shifts/Dimensions(list)/Occlusions/Noise/shiftProperties
 struct settingsExtension {
@@ -56,6 +63,7 @@ struct settingsExtension {
     double noiseGaussPercentage;
     double randomShiftXY;
     double randomRotation;
+    bool onlyOneRotationDirection;
 
 };
 
@@ -81,44 +89,52 @@ struct saveSettingsOfRandomSettings {
 class rosClassEKF {
 public:
     rosClassEKF(ros::NodeHandle n_, const std::string &nameOfTheServiceCall) : graphSaved(3, INTENSITY_BASED_GRAPH) {
+
         // simple random motion
+
 //        this->ourSettings.numberOfShifts = 100;
 //        this->ourSettings.useOcclusions = false;
 //        this->ourSettings.useShift = true;
 //        this->ourSettings.useNoise = false;
-//        std::vector<int> vect{64, 128, 256, 512};
+//        std::vector<int> vect{64, 128, 256};
 //        this->ourSettings.listOfDimensions = vect;
 //        this->ourSettings.noiseSaltPepperPercentage = 0.005;
 //        this->ourSettings.noiseGaussPercentage = 0.035;
-//        this->ourSettings.occlusionPercentage = 0.1;
+//        this->ourSettings.occlusionPercentage = 0.8;
 //        this->ourSettings.randomRotation = 5.0 / 180.0 * M_PI;
 //        this->ourSettings.randomShiftXY = 1;
+//        this->ourSettings.onlyOneRotationDirection = false;
 
-        // high noise with occlusions and high motions
-        this->ourSettings.numberOfShifts = 200;
+        // high noise and high motions
+        this->ourSettings.numberOfShifts = 100;
         this->ourSettings.useOcclusions = true;
         this->ourSettings.useShift = true;
         this->ourSettings.useNoise = true;
-        std::vector<int> vect{64, 128, 256, 512};
+        std::vector<int> vect{64,128,256};
         this->ourSettings.listOfDimensions = vect;
-        this->ourSettings.noiseSaltPepperPercentage = 0.005;
-        this->ourSettings.noiseGaussPercentage = 0.035;
-        this->ourSettings.occlusionPercentage = 0.1;
+        this->ourSettings.noiseSaltPepperPercentage = 0.006;
+        this->ourSettings.noiseGaussPercentage = 0.040;//0.035
+        this->ourSettings.occlusionPercentage = 1.0;
         this->ourSettings.randomRotation = 15.0 / 180.0 * M_PI;
         this->ourSettings.randomShiftXY = 5;
+        this->ourSettings.onlyOneRotationDirection = false;
 
         // only Angle
 //        this->ourSettings.numberOfShifts = 100;
 //        this->ourSettings.useOcclusions = false;
 //        this->ourSettings.useShift = true;
 //        this->ourSettings.useNoise = false;
-//        std::vector<int> vect{64, 128, 256, 512};
+//        std::vector<int> vect{64, 128, 256};
 //        this->ourSettings.listOfDimensions = vect;
 //        this->ourSettings.noiseSaltPepperPercentage = 0.005;
 //        this->ourSettings.noiseGaussPercentage = 0.035;
 //        this->ourSettings.occlusionPercentage = 0.1;
 //        this->ourSettings.randomRotation = 120.0 / 180.0 * M_PI;
 //        this->ourSettings.randomShiftXY = 0;
+//        this->ourSettings.onlyOneRotationDirection = true;
+
+
+
 
         this->subscriberEKF = n_.subscribe("publisherPoseEkf", 10000, &rosClassEKF::stateEstimationCallback, this);
         ros::Duration(2).sleep();
@@ -162,7 +178,6 @@ public:
                 map.data.push_back(50);
             }
         }
-
         this->numberOfScan = 0;
         std::filesystem::create_directory(std::string(HOME_LOCATION) + std::string(WHICH_FOLDER_SHOULD_BE_SAVED));
         // Save Settings to File
@@ -355,7 +370,7 @@ private:
                 if (this->ourSettings.useShift) {
                     //if used save in txt file correct shift
                     randomShiftAndRotation = this->randomShiftAndRotationCalculation(ourSettings.randomShiftXY,
-                                                                                     ourSettings.randomRotation);
+                                                                                     ourSettings.randomRotation,ourSettings.onlyOneRotationDirection);
                 }
 
                 // Add to append to TXT file
@@ -373,6 +388,12 @@ private:
 
                     std::uniform_real_distribution<> dis(0.0, 1.0);
 
+
+
+
+
+
+
                     double patternCalc = dis(gen) * 3;
                     if (patternCalc < 1) {
                         tmpSettings.patternOcclusionFirst = 0;
@@ -383,6 +404,8 @@ private:
                             tmpSettings.patternOcclusionFirst = 2;
                         }
                     }
+                    patternCalc = dis(gen) * 3;
+
                     if (patternCalc < 1) {
                         tmpSettings.patternOcclusionSecond = 0;
                     } else {
@@ -397,8 +420,8 @@ private:
                     tmpSettings.rotationSecondOcclusion = dis(gen) * M_PI * 2;
                     tmpSettings.shiftFirstOcclusion = Eigen::Vector2d((dis(gen) - 0.5) * 2, (dis(gen) - 0.5) * 2);
                     tmpSettings.shiftSecondOcclusion = Eigen::Vector2d((dis(gen) - 0.5) * 2, (dis(gen) - 0.5) * 2);
-                    tmpSettings.scalingOcclusionFirst = dis(gen) * 1.5;
-                    tmpSettings.scalingOcclusionSecond = dis(gen) * 1.5;
+                    tmpSettings.scalingOcclusionFirst = dis(gen) * 2.0;// was 1.5
+                    tmpSettings.scalingOcclusionSecond = dis(gen) * 2.0;// was 1.5
                     tmpSettings.randomOcclusionParameterFirst = dis(gen);
                     tmpSettings.randomOcclusionParameterSecond = dis(gen);
                     double overlapOcclusions = this->calculateOverlap(tmpSettings.rotationFirstOcclusion,
@@ -415,7 +438,15 @@ private:
 //                    std::cout << "overlapOcclusions" << std::endl;
 //                    std::cout << percentageOverlap1 << " " << percentageOverlap2 << " " << overlapOcclusions
 //                              << std::endl;
+
+
+
+
+
                     tmpSettings.overlapOcclusions = overlapOcclusions;
+                    if(dis(gen)>this->ourSettings.occlusionPercentage){
+                        tmpSettings.overlapOcclusions = 0;
+                    }
                 }
 
 
@@ -446,23 +477,24 @@ private:
 //                    for (int i = 0; i < numberOfPoints * numberOfPoints; i++) {
 //                        voxelData1[i] = maximumVoxel1;
 //                    }
-                    if (this->ourSettings.useOcclusions) {
-                        //if used, save % removed, save Overlap of both Occlusions
-                        double percentageOverlap1 = this->applyContourToVoxelData(voxelData1,
-                                                                                  listOfSettings.back().rotationFirstOcclusion,
-                                                                                  listOfSettings.back().shiftFirstOcclusion,
-                                                                                  listOfSettings.back().patternOcclusionFirst,
-                                                                                  listOfSettings.back().scalingOcclusionFirst,
-                                                                                  numberOfPoints,
-                                                                                  listOfSettings.back().randomOcclusionParameterFirst);
-                        double percentageOverlap2 = this->applyContourToVoxelData(voxelData2,
-                                                                                  listOfSettings.back().rotationSecondOcclusion,
-                                                                                  listOfSettings.back().shiftSecondOcclusion,
-                                                                                  listOfSettings.back().patternOcclusionSecond,
-                                                                                  listOfSettings.back().scalingOcclusionSecond,
-                                                                                  numberOfPoints,
-                                                                                  listOfSettings.back().randomOcclusionParameterSecond);
-
+                    if (this->ourSettings.useOcclusions ) {
+                        if(tmpSettings.overlapOcclusions>0) {
+                            //if used, save % removed, save Overlap of both Occlusions
+                            double percentageOverlap1 = this->applyContourToVoxelData(voxelData1,
+                                                                                      listOfSettings.back().rotationFirstOcclusion,
+                                                                                      listOfSettings.back().shiftFirstOcclusion,
+                                                                                      listOfSettings.back().patternOcclusionFirst,
+                                                                                      listOfSettings.back().scalingOcclusionFirst,
+                                                                                      numberOfPoints,
+                                                                                      listOfSettings.back().randomOcclusionParameterFirst);
+                            double percentageOverlap2 = this->applyContourToVoxelData(voxelData2,
+                                                                                      listOfSettings.back().rotationSecondOcclusion,
+                                                                                      listOfSettings.back().shiftSecondOcclusion,
+                                                                                      listOfSettings.back().patternOcclusionSecond,
+                                                                                      listOfSettings.back().scalingOcclusionSecond,
+                                                                                      numberOfPoints,
+                                                                                      listOfSettings.back().randomOcclusionParameterSecond);
+                        }
                     }
                     if (this->ourSettings.useNoise) {
                         this->addSaltPepperNoiseToVoxel(voxelData1, ourSettings.noiseSaltPepperPercentage,
@@ -480,12 +512,12 @@ private:
                     //convert every scan to Point Cloud
 
 
-                    pcl::PointCloud<pcl::PointXYZ> scan1Threshold = this->convertVoxelToPointcloud(voxelData1, 0.4,
+                    pcl::PointCloud<pcl::PointXYZ> scan1Threshold = slamToolsRos::convertVoxelToPointcloud(voxelData1, 0.4,
                                                                                                    maximumVoxel1,
-                                                                                                   numberOfPoints);
-                    pcl::PointCloud<pcl::PointXYZ> scan2Threshold = this->convertVoxelToPointcloud(voxelData2, 0.4,
+                                                                                                   numberOfPoints,DIMENSION_OF_VOXEL_DATA_FOR_MATCHING);
+                    pcl::PointCloud<pcl::PointXYZ> scan2Threshold = slamToolsRos::convertVoxelToPointcloud(voxelData2, 0.4,
                                                                                                    maximumVoxel1,
-                                                                                                   numberOfPoints);
+                                                                                                   numberOfPoints,DIMENSION_OF_VOXEL_DATA_FOR_MATCHING);
 
 
                     pcl::io::savePCDFile(directoryOfInterest +
@@ -792,27 +824,27 @@ private:
     }
 
 
-    pcl::PointCloud<pcl::PointXYZ>
-    convertVoxelToPointcloud(double voxelData[], double thresholdFactor, double maximumVoxelData, int dimensionVoxel) {
-
-        pcl::PointCloud<pcl::PointXYZ> ourPCL;
-        for (int j = 0; j < dimensionVoxel; j++) {
-            for (int k = 0; k < dimensionVoxel; k++) {
-                if (voxelData[j + dimensionVoxel * k] > maximumVoxelData * thresholdFactor) {
-                    double xPosPoint = (j - dimensionVoxel / 2.0) * DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
-                                       ((double) dimensionVoxel);
-                    double yPosPoint = (k - dimensionVoxel / 2.0) * DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
-                                       ((double) dimensionVoxel);
-                    //mix X and Y for enu to ned
-                    ourPCL.push_back(pcl::PointXYZ(yPosPoint, xPosPoint, 0));
-
-                }
-            }
-        }
-
-
-        return ourPCL;
-    }
+//    pcl::PointCloud<pcl::PointXYZ>
+//    convertVoxelToPointcloud(double voxelData[], double thresholdFactor, double maximumVoxelData, int dimensionVoxel) {
+//
+//        pcl::PointCloud<pcl::PointXYZ> ourPCL;
+//        for (int j = 0; j < dimensionVoxel; j++) {
+//            for (int k = 0; k < dimensionVoxel; k++) {
+//                if (voxelData[j + dimensionVoxel * k] > maximumVoxelData * thresholdFactor) {
+//                    double xPosPoint = (j - dimensionVoxel / 2.0) * DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
+//                                       ((double) dimensionVoxel);
+//                    double yPosPoint = (k - dimensionVoxel / 2.0) * DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
+//                                       ((double) dimensionVoxel);
+//                    //mix X and Y for enu to ned
+//                    ourPCL.push_back(pcl::PointXYZ(yPosPoint, xPosPoint, 0));
+//
+//                }
+//            }
+//        }
+//
+//
+//        return ourPCL;
+//    }
 
     void
     addNoiseToVoxel(double voxelData[], double stdDiviationGaussPercent, double maximumVoxelData, int dimensionVoxel) {
@@ -857,7 +889,7 @@ private:
     }
 
 
-    Eigen::Matrix4d randomShiftAndRotationCalculation(double xyRange, double rotationRange) {
+    Eigen::Matrix4d randomShiftAndRotationCalculation(double xyRange, double rotationRange,bool onlyOneRotationDirection) {
 
         std::random_device rd;
 
@@ -869,6 +901,15 @@ private:
         std::uniform_real_distribution<> disAngle(
 
                 -rotationRange, rotationRange);
+        if(onlyOneRotationDirection){
+            disAngle = std::uniform_real_distribution<>(0,rotationRange);
+        }
+
+
+
+
+
+
 
         double xDiff = disXY(gen);
         double yDiff = disXY(gen);
@@ -946,7 +987,7 @@ private:
             }
         }
 
-        return ((double) overlapParameter) / ((double) (dimensionPoints * dimensionPoints * 2));
+        return ((double) overlapParameter) / ((double) (dimensionPoints * dimensionPoints));
     }
 
     std::vector<cv::Point2f>

@@ -15,7 +15,6 @@
 #include <opencv2/imgcodecs.hpp>
 #include "std_srvs/SetBool.h"
 #include <filesystem>
-#include "scanRegistrationClass.h"
 #include "future"
 
 //#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
@@ -55,15 +54,15 @@ struct measurementResults {
     bool initialGuess;
     double overlapValue;
     int voxelSize;
+    double xGT;
+    double yGT;
+    double angleGT;
 };
 
 
 // GLOBAL
 std::vector<scanRegistrationClass> scanRegistrationList;
 std::vector<settingsMethodUsed> settingsMethodUsedList;
-
-
-
 
 
 std::vector<std::string> get_directories(const std::string &s) {
@@ -101,7 +100,10 @@ Eigen::Matrix4d registrationOfDesiredMethod(pcl::PointCloud<pcl::PointXYZ> pclNo
                                             int whichMethod, bool useInitialGuess,
                                             scanRegistrationClass &scanRegistrationObject) {
 
-    //1: GICP, 2: SUPER4PCS, 3: NDT D2D 2D, 4: NDT P2D, 5: FourierMellinTransform, 6: Our FMS 2D 7: initial guess
+    //1: GICP, 2: SUPER4PCS, 3: NDT D2D 2D, 4: NDT P2D, 5: FourierMellinTransform,
+    //6: Our FMS 2D 7: FMS hamming 8: FMS none
+    //9: Feature0 10: Feature1  11: Feature2 12: Feature3 13: Feature4 14: Feature5
+    //15: gmmRegistrationD2D 16: gmmRegistrationP2D
     Eigen::Matrix4d returnMatrix;
     Eigen::Matrix3d covarianceEstimation;
     switch (whichMethod) {
@@ -140,54 +142,78 @@ Eigen::Matrix4d registrationOfDesiredMethod(pcl::PointCloud<pcl::PointXYZ> pclNo
                                                                  0.05);
             break;
         case 7:
+            covarianceEstimation = Eigen::Matrix3d::Zero();
+            // THRESHOLD_FOR_TRANSLATION_MATCHING 0.05 // standard is 0.1, 0.05 und 0.01  // 0.05 for valentin Oben
+            returnMatrix = slamToolsRos::registrationOfTwoVoxels(voxelData, voxelDataShifted,
+                                                                 initialGuess,
+                                                                 covarianceEstimation, useInitialGuess,
+                                                                 useInitialGuess,
+                                                                 currentCellSize,
+                                                                 false, scanRegistrationObject,
+                                                                 false,
+                                                                 0.05, false, false, true);
+            break;
+        case 8:
+            covarianceEstimation = Eigen::Matrix3d::Zero();
+            // THRESHOLD_FOR_TRANSLATION_MATCHING 0.05 // standard is 0.1, 0.05 und 0.01  // 0.05 for valentin Oben
+            returnMatrix = slamToolsRos::registrationOfTwoVoxels(voxelData, voxelDataShifted,
+                                                                 initialGuess,
+                                                                 covarianceEstimation, useInitialGuess,
+                                                                 useInitialGuess,
+                                                                 currentCellSize,
+                                                                 false, scanRegistrationObject,
+                                                                 false,
+                                                                 0.05, false, false, false);
+            break;
+        case 9:
             returnMatrix = scanRegistrationObject.registrationFeatureBased(voxelData, voxelDataShifted, currentCellSize,
                                                                            0, false);
 //            std::cout << returnMatrix << std::endl;
 //            std::cout << "test" << std::endl;
             break;
-        case 8:
+        case 10:
             returnMatrix = scanRegistrationObject.registrationFeatureBased(voxelData, voxelDataShifted, currentCellSize,
                                                                            1, false);
+
 //            std::cout << returnMatrix << std::endl;
 //            std::cout << "test" << std::endl;
             break;
-        case 9:
+        case 11:
             returnMatrix = scanRegistrationObject.registrationFeatureBased(voxelData, voxelDataShifted, currentCellSize,
                                                                            2, false);
 //            std::cout << returnMatrix << std::endl;
 //            std::cout << "test" << std::endl;
             break;
-        case 10:
+        case 12:
             returnMatrix = scanRegistrationObject.registrationFeatureBased(voxelData, voxelDataShifted, currentCellSize,
                                                                            3, false);
 //            std::cout << returnMatrix << std::endl;
 //            std::cout << "test" << std::endl;
             break;
-        case 11:
-            covarianceEstimation = Eigen::Matrix3d::Zero();
-            // THRESHOLD_FOR_TRANSLATION_MATCHING 0.05 // standard is 0.1, 0.05 und 0.01  // 0.05 for valentin Oben
-            returnMatrix = slamToolsRos::registrationOfTwoVoxels(voxelData, voxelDataShifted,
-                                                                 initialGuess,
-                                                                 covarianceEstimation, useInitialGuess,
-                                                                 useInitialGuess,
-                                                                 currentCellSize,
-                                                                 false, scanRegistrationObject,
-                                                                 false,
-                                                                 0.05,false,false,true);
+        case 13:
+            returnMatrix = scanRegistrationObject.registrationFeatureBased(voxelData, voxelDataShifted, currentCellSize,
+                                                                           4, false);
+//            std::cout << returnMatrix << std::endl;
+//            std::cout << "test" << std::endl;
             break;
-        case 12:
-            covarianceEstimation = Eigen::Matrix3d::Zero();
-            // THRESHOLD_FOR_TRANSLATION_MATCHING 0.05 // standard is 0.1, 0.05 und 0.01  // 0.05 for valentin Oben
-            returnMatrix = slamToolsRos::registrationOfTwoVoxels(voxelData, voxelDataShifted,
-                                                                 initialGuess,
-                                                                 covarianceEstimation, useInitialGuess,
-                                                                 useInitialGuess,
-                                                                 currentCellSize,
-                                                                 false, scanRegistrationObject,
-                                                                 false,
-                                                                 0.05,false,false,false);
+        case 14:
+            returnMatrix = scanRegistrationObject.registrationFeatureBased(voxelData, voxelDataShifted, currentCellSize,
+                                                                           5, false);
+//            std::cout << returnMatrix << std::endl;
+//            std::cout << "test" << std::endl;
             break;
-
+        case 15:
+            returnMatrix = scanRegistrationObject.gmmRegistrationD2D(pclNotShifted, pclShifted, initialGuess,
+                                                                     useInitialGuess,true);
+//            std::cout << returnMatrix << std::endl;
+//            std::cout << "test" << std::endl;
+            break;
+        case 16:
+            returnMatrix = scanRegistrationObject.gmmRegistrationP2D(pclNotShifted, pclShifted, initialGuess,
+                                                                     useInitialGuess,true);
+//            std::cout << returnMatrix << std::endl;
+//            std::cout << "test" << std::endl;
+            break;
     }
 
     return returnMatrix;
@@ -333,13 +359,19 @@ handleRegistrationsOfDirectory(const std::string &s) {
                 free(voxelDataShifted);
                 free(voxelData);
 
-                if(estimatedTransformation(3,3)<0){
+                if (estimatedTransformation(3, 3) < 0) {
                     tmpMeasurements.errorInRotation = -1;
                     tmpMeasurements.errorInDistance = -1;
                 }
+
+                tmpMeasurements.xGT = gtTransformation.block<3, 1>(0, 3)[0];
+                tmpMeasurements.yGT = gtTransformation.block<3, 1>(0, 3)[1];
+                tmpMeasurements.angleGT = angleGT;
+
 //                std::cout << estimatedTransformation.inverse() << std::endl;
 //                std::cout << estimatedTransformation << std::endl;
 //                std::cout << gtTransformation << std::endl;
+
                 returnMeasurementsList.push_back(tmpMeasurements);
             }
         }
@@ -400,7 +432,13 @@ int main(int argc, char **argv) {
     tmpSettings.initialGuess = false;
     tmpSettings.whichMethod = 7;
     settingsMethodUsedList.push_back(tmpSettings);
+    tmpSettings.initialGuess = true;
+    tmpSettings.whichMethod = 7;
+    settingsMethodUsedList.push_back(tmpSettings);
     tmpSettings.initialGuess = false;
+    tmpSettings.whichMethod = 8;
+    settingsMethodUsedList.push_back(tmpSettings);
+    tmpSettings.initialGuess = true;
     tmpSettings.whichMethod = 8;
     settingsMethodUsedList.push_back(tmpSettings);
     tmpSettings.initialGuess = false;
@@ -415,7 +453,18 @@ int main(int argc, char **argv) {
     tmpSettings.initialGuess = false;
     tmpSettings.whichMethod = 12;
     settingsMethodUsedList.push_back(tmpSettings);
-
+    tmpSettings.initialGuess = false;
+    tmpSettings.whichMethod = 13;
+    settingsMethodUsedList.push_back(tmpSettings);
+    tmpSettings.initialGuess = false;
+    tmpSettings.whichMethod = 14;
+    settingsMethodUsedList.push_back(tmpSettings);
+    tmpSettings.initialGuess = false;
+    tmpSettings.whichMethod = 15;
+    settingsMethodUsedList.push_back(tmpSettings);
+    tmpSettings.initialGuess = false;
+    tmpSettings.whichMethod = 16;
+    settingsMethodUsedList.push_back(tmpSettings);
 
     std::string current_exec_name = argv[0]; // Name of the current exec program
     std::vector<std::string> all_args;
@@ -441,6 +490,7 @@ int main(int argc, char **argv) {
     sizeVoxelGridFile.close();
 //    std::vector<scanRegistrationClass> scanRegistrationList;
     for (int i = 0; i < sizeOfVoxelGridList.size() - 1; i++) {
+//    for (int i = 0; i < 1; i++) {
         int sizeVoxel = std::stoi(sizeOfVoxelGridList[i]);
         scanRegistrationClass scanRegistrationObject(sizeVoxel, sizeVoxel / 2, sizeVoxel / 2, sizeVoxel / 2 - 1);
         scanRegistrationList.push_back(scanRegistrationObject);
@@ -454,19 +504,22 @@ int main(int argc, char **argv) {
 
 
     for (int i = 0; i < listOfDirectories.size(); i++) {
+//    for (int i = 0; i < 1; i++) {
         resultsVectors.push_back(std::async(std::launch::async, handleRegistrationsOfDirectory, listOfDirectories[i]));
         sleep(10);
 //        std::vector<measurementResults> tmpVector = resultsVectors.back().get();
 //        resultVector.insert(std::end(resultVector), std::begin(tmpVector), std::end(tmpVector));
     }
     std::cout << "started all threads" << std::endl;
-    for (auto&& fut:resultsVectors){
+
+    for (auto &&fut: resultsVectors) {
         std::vector<measurementResults> tmpVector = fut.get();
         resultVector.insert(std::end(resultVector), std::begin(tmpVector), std::end(tmpVector));
     }
     std::cout << "done" << std::endl;
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-    std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]" << std::endl;
+    std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]"
+              << std::endl;
 
 //    for (int i = 0; i < listOfDirectories.size(); i++) {
 ////    for (int i = 0; i < 2; i++) {
@@ -498,9 +551,15 @@ int main(int argc, char **argv) {
         resultsMatching << resultVector[i].calculationTime;//time
         resultsMatching << ",";
         resultsMatching << resultVector[i].overlapValue;//time
+        resultsMatching << ",";
+        resultsMatching << resultVector[i].xGT;//time
+        resultsMatching << ",";
+        resultsMatching << resultVector[i].yGT;//time
+        resultsMatching << ",";
+        resultsMatching << resultVector[i].angleGT;//time
         resultsMatching << "\n";//error
-
     }
+
     resultsMatching.close();
 
     return (0);

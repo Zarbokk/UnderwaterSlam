@@ -9,7 +9,6 @@
 
 #include "generalHelpfulTools.h"
 #include "slamToolsRos.h"
-#include "scanRegistrationClass.h"
 
 int main(int argc, char **argv) {
     // 1Cloud 2Cloud InitialGuessAngle
@@ -76,9 +75,12 @@ int main(int argc, char **argv) {
 
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 //    estimatedTransformation = scanRegistrationObject.generalizedIcpRegistration(scan1,scan2,final,fitnessY,initialGuess);
-    estimatedTransformation = scanRegistrationObject.ndt_p2d(scan1,scan2,initialGuess,true);
+//    estimatedTransformation = scanRegistrationObject.ndt_p2d(scan1,scan2,initialGuess,true);
 //    estimatedTransformation = scanRegistrationObject.ndt_d2d_2d(scan1,scan2,initialGuess,true);
 //    estimatedTransformation = scanRegistrationObject.super4PCSRegistration(scan1,scan2,initialGuess,false,false);
+    estimatedTransformation = scanRegistrationObject.gmmRegistrationD2D(scan1,scan2,initialGuess,true);
+//    estimatedTransformation = scanRegistrationObject.gmmRegistrationP2D(scan1,scan2,initialGuess,true);
+
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 //
 //    std::cout << "Time difference complete Registration = "

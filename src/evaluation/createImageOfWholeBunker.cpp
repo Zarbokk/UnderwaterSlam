@@ -15,14 +15,13 @@
 #include <opencv2/imgcodecs.hpp>
 #include "std_srvs/SetBool.h"
 #include <filesystem>
-#include "scanRegistrationClass.h"
+//#include "scanRegistrationClass.h"
 #include "nav_msgs/OccupancyGrid.h"
 
 
 
 
 #define NUMBER_OF_POINTS_MAP 256
-
 
 #define NUMBER_OF_SKIPPING_SCANS 1
 
@@ -68,10 +67,7 @@
 
 
 
-struct intensityValues {
-    Eigen::Matrix4d transformation;
-    intensityMeasurement intensity;
-};
+
 
 struct groundTruthPositionStruct {
     double x;
@@ -104,7 +100,8 @@ public:
         this->numberOfScan = 0;
 
         subscriberEKF = n_.subscribe("publisherPoseEkf", 1000, &rosClassEKF::stateEstimationCallback, this);
-        ros::Duration(1).sleep();
+
+        ros::Duration(2).sleep();
         subscriberIntensitySonar = n_.subscribe("sonar/intensity", 1000, &rosClassEKF::scanCallback, this);
 
 //        subscriberGroundTruth = n_.subscribe("/magnetic_heading", 1000, &rosClassEKF::groundTruthCallbackStPere, this);
@@ -121,9 +118,6 @@ public:
         transformationX180Degree.block<3, 3>(0, 0) = tmpMatrix3d;
         transformationX180Degree(3, 3) = 1;
 
-        graphSaved.addVertex(0, Eigen::Vector3d(0, 0, 0), Eigen::Quaterniond(1, 0, 0, 0),
-                             Eigen::Vector3d(0, 0, 0), 0, ros::Time::now().toSec(),
-                             FIRST_ENTRY);
 
 
         this->sigmaScaling = 0.2;

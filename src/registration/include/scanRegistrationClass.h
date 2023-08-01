@@ -41,6 +41,15 @@
 #include <ndt_matcher_d2d_2d.h>
 
 #include <image_registration.h>
+#include "opencv2/xfeatures2d.hpp"
+#include "opencv2/features2d.hpp"
+
+#include <gmm_registration/front_end/GaussianMixturesModel.h>
+#include <gmm_registration/front_end/GmmFrontEnd.hpp>
+#include <gmm_registration/method/DistributionToDistribution2D.h>
+#include <gmm_registration/solver/CholeskyLineSearchNewtonMethod.h>
+#include <gmm_registration/method/PointsToDistribution2D.h>
+
 
 #ifndef SIMULATION_BLUEROV_SCANREGISTRATIONCLASS_H
 #define SIMULATION_BLUEROV_SCANREGISTRATIONCLASS_H
@@ -58,7 +67,8 @@ public:
         fourierMellinMutex = new std::mutex();
         oursMutex = new std::mutex();
         featureBasedMutex = new std::mutex();
-
+        gmmd2dMutex = new std::mutex();
+        gmmp2dMutex = new std::mutex();
 
     }
 
@@ -149,13 +159,22 @@ public:
                                              double cellSize,int methodType,
                                              bool debug = false);
 
+    Eigen::Matrix4d gmmRegistrationD2D(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                                       pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
+                                       Eigen::Matrix4d initialGuess, bool useInitialGuess, bool debug = false);
+
+    Eigen::Matrix4d gmmRegistrationP2D(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                                       pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
+                                       Eigen::Matrix4d initialGuess, bool useInitialGuess, bool debug = false);
+
+
 
 private:
     softDescriptorRegistration mySofftRegistrationClass;
 
     int sizeVoxelData;
 
-    std::mutex *icpMutex,*supersMutex,*ndtd2dMutex,*ndtp2dMutex,*fourierMellinMutex,*oursMutex,*featureBasedMutex;
+    std::mutex *icpMutex,*supersMutex,*ndtd2dMutex,*ndtp2dMutex,*fourierMellinMutex,*oursMutex,*featureBasedMutex,*gmmd2dMutex,*gmmp2dMutex;
 };
 
 

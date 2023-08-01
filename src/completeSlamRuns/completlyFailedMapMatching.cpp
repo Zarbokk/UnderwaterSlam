@@ -9,7 +9,7 @@
 #include "slamToolsRos.h"
 #include "commonbluerovmsg/saveGraph.h"
 #include "nav_msgs/OccupancyGrid.h"
-#include "scanRegistrationClass.h"
+//#include "scanRegistrationClass.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "std_srvs/SetBoolRequest.h"
 #include <std_srvs/SetBool.h>

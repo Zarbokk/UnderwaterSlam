@@ -30,13 +30,12 @@
  */
 
 /**
- * @file example_d2d_2d.cpp
- * @brief Two-dimensional example for the Distribution to Distribution point cloud registration method
+ * @file example_p2d_2d.cpp
+ * @brief Two-dimensional example for the Points to Distribution point cloud registration method
  * @author Pau Vial
  */
-
 /**
- * A simple 2D Distribution to Distribution registration example
+ * A simple 2D Points to Distribution registration example
  *  - The scan is a line generated with random noise
  *  - We give an specific transformation in order to have a ground truth
  *  - The gmm are generated with ndt_constructor giving 2 units cell size and a minimum of 3 points per component
@@ -55,7 +54,7 @@
 #include <gmm_registration/front_end/GmmFrontEnd.hpp>
 #include <gmm_registration/front_end/GaussianMixturesModel.h>
 #include <gmm_registration/method/ScanMatchingMethods.h>
-#include <gmm_registration/method/DistributionToDistribution2D.h>
+#include <gmm_registration/method/PointsToDistribution2D.h>
 #include <gmm_registration/solver/Solver.h>
 #include <gmm_registration/solver/CholeskyLineSearchNewtonMethod.h>
 
@@ -65,8 +64,8 @@ int main(int argc, char** argv)
 {
     // Ground truth transformation to apply on the scan as (translation_x,translation_y,rotation)
     Eigen::Vector3d t1;
-     t1 << 2.1, 0.25, -2.8;
-//    t1 << 0.8, -0.6, 0.3;
+    // t1 << 0.1, 0.25, -0.15;
+    t1 << 0.8, -0.6, 0.3;
     Eigen::Matrix3d T = se_exp_map(t1);
 
     //////////////////
@@ -74,7 +73,7 @@ int main(int argc, char** argv)
 
     // Go through the file with the scan to get its length
     string path = std::getenv("GMM_REGISTRATION_PATH");
-    string scan_file = path + "/data/scan_0.xyz";
+    string scan_file = path + "/data/scan_5.xyz";
     ifstream fin(scan_file);
     double x, y, z;
     int len = 0;
@@ -114,38 +113,29 @@ int main(int argc, char** argv)
     // REGISTER
 
     // Generate a GMM out of the reference scan
-    shared_ptr<GaussianMixturesModel<2>> reference_gmm;
-    // reference_gmm = ndt_constructor(reference_scan,3,3);
-    // reference_gmm = k_means_constructor(reference_scan,4);
-    // reference_gmm = em_constructor(reference_scan,4);
-    reference_gmm = bayesian_gmm_constructor(reference_scan, 10);
-    reference_gmm->balance_covariances(0.05);
-    reference_gmm->plot_components_density(0, reference_scan, true);
+    shared_ptr<GaussianMixturesModel<2>> gmm;
+    // gmm = ndt_constructor(reference_scan,3,3);
+    // gmm = k_means_constructor(reference_scan,4);
+    // gmm = em_constructor(reference_scan,4);
+    gmm = bayesian_gmm_constructor(reference_scan, 10);
+    gmm->balance_covariances(0.05);
+    gmm->plot_components_density(0, reference_scan, true);
 
-    // Generate a GMM out of the current scan
-    shared_ptr<GaussianMixturesModel<2>> current_gmm;
-    // current_gmm = ndt_constructor(current_scan,3,3);
-    // current_gmm = k_means_constructor(current_scan,4);
-    // current_gmm = em_constructor(current_scan,4);
-    current_gmm = bayesian_gmm_constructor(current_scan, 10);
-    current_gmm->balance_covariances(0.05);
-    current_gmm->plot_components_density(1, current_scan, true);
-
-    // Set both GMM to a D2D method
-    shared_ptr<DistributionToDistribution2D> method(new DistributionToDistribution2D(reference_gmm, current_gmm));
+    // Set both the GMM and the scan to a P2D method
+    shared_ptr<PointsToDistribution2D> method(
+            new PointsToDistribution2D(gmm, make_shared<std::vector<Eigen::Vector2d>>(current_scan)));
     // method->set_cpu_threads(6);
 
-    // Set the method to the solver with default parameters
+    // Set the method to the solver with its needed parameters
     unique_ptr<CholeskyLineSearchNewtonMethod<3>> solver(new CholeskyLineSearchNewtonMethod<3>(method));
 
     // Solve the registration problem starting with a zero seed
     solver->compute_optimum();
-    solver->plot_process(0, true, 0.01);
+    solver->plot_process(0, true);
     Eigen::Vector3d t_opt = solver->get_optimal();
     Eigen::Matrix3d h_opt = solver->get_optimal_uncertainty();
-    std::cout << t_opt << std::endl;
-    reference_gmm.reset();
-    current_gmm.reset();
+
+    gmm.reset();
     method.reset();
     solver.reset();
 }

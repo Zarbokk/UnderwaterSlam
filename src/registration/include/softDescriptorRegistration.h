@@ -173,7 +173,8 @@ public:
                                                      bool useInitialAngle, bool useInitialTranslation,
                                                      double cellSize,
                                                      bool useGauss,
-                                                     bool debug = false);
+                                                     bool debug = false,
+                                                     double potentialNecessaryForPeak = 0.1);
 
     std::vector<transformationPeak> registrationOfTwoVoxelsSOFFTAllSoluations(double voxelData1Input[],
                                                                               double voxelData2Input[],

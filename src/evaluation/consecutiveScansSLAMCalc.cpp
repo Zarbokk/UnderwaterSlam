@@ -9,7 +9,7 @@
 #include "slamToolsRos.h"
 #include "commonbluerovmsg/saveGraph.h"
 #include "nav_msgs/OccupancyGrid.h"
-#include "scanRegistrationClass.h"
+//#include "scanRegistrationClass.h"
 #include "geometry_msgs/PoseWithCovarianceStamped.h"
 #include "std_srvs/SetBoolRequest.h"
 #include <std_srvs/SetBool.h>
@@ -19,7 +19,7 @@
 #define DIMENSION_OF_VOXEL_DATA_FOR_MATCHING 6 // was 50 //tuhh tank 6
 #define NUMBER_OF_POINTS_MAP 512//was 512
 // 80 simulation 300 valentin 45.0 for Keller 10.0 TUHH TANK
-#define DIMENSION_OF_MAP 10.0
+#define DIMENSION_OF_MAP 80.0
 
 #define IGNORE_DISTANCE_TO_ROBOT 0.2 // was 1.0 // TUHH 0.2
 #define DEBUG_REGISTRATION false
@@ -35,8 +35,8 @@
 #define USE_INITIAL_TRANSLATION_LOOP_CLOSURE true
 #define MAXIMUM_LOOP_CLOSURE_DISTANCE 0.2 // 0.2 TUHH 2.0 valentin Keller 4.0 Valentin Oben // 2.0 simulation
 
-#define TUHH_SYSTEM true
-#define SIMULATION_SYSTEM false
+#define TUHH_SYSTEM false
+#define SIMULATION_SYSTEM true
 
 //#define NAME_OF_CURRENT_METHOD "_s_curve_classical_slam_"
 //#define NAME_OF_CURRENT_METHOD "_valentinOben_classical_slam_"
@@ -423,9 +423,9 @@ private:
 
         std::ofstream myFile1, myFile2;
         myFile1.open(
-                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/IROSResults/positionEstimationOverTime" + std::string(NAME_OF_CURRENT_METHOD)+ ".csv");
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultsJournalFMS2D/resultsConsecutiveScans/positionEstimationOverTime" + std::string(NAME_OF_CURRENT_METHOD)+ ".csv");
         myFile2.open(
-                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/IROSResults/groundTruthOverTime" + std::string(NAME_OF_CURRENT_METHOD)+ ".csv");
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/resultsJournalFMS2D/resultsConsecutiveScans/groundTruthOverTime" + std::string(NAME_OF_CURRENT_METHOD)+ ".csv");
 
         for (int k = 0; k < this->graphSaved.getVertexList()->size(); k++) {
 
@@ -521,6 +521,7 @@ private:
     void groundTruthEvaluationCallback(const commonbluerovmsg::staterobotforevaluation::ConstPtr &msg) {
         std::lock_guard<std::mutex> lock(this->groundTruthMutex);
         //first time? calc current Position
+//        std::cout <<"test" << std::endl;
         Eigen::Matrix4d tmpMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(msg->roll, msg->pitch,
                                                                                         msg->yaw);
         tmpMatrix(0, 3) = msg->xPosition;

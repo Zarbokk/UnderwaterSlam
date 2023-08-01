@@ -15,7 +15,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include "std_srvs/SetBool.h"
 #include <filesystem>
-#include "scanRegistrationClass.h"
+//#include "scanRegistrationClass.h"
 
 //#define numberOfPoints 128
 #define DIMENSION_OF_VOXEL_DATA 60

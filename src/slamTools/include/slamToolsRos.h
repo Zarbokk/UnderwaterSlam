@@ -143,6 +143,19 @@ public:
                                                    bool useClahe = true,
                                                    bool useHamming = true);
 
+    static Eigen::Matrix4d registrationOfTwoVoxelsFast(double voxelData1Input[],
+                                                   double voxelData2Input[],
+                                                   Eigen::Matrix4d initialGuess,
+                                                   Eigen::Matrix3d &covarianceMatrix,
+                                                   bool useInitialAngle,
+                                                   bool useInitialTranslation,
+                                                   double cellSize,
+                                                   bool useGauss,
+                                                   scanRegistrationClass &scanRegistrationObject,
+                                                   bool debug, double potentialNecessaryForPeak = 0.1, bool multipleRadii = false,
+                                                   bool useClahe = true,
+                                                   bool useHamming = true);
+
     static void
     saveResultingRegistration(double *voxelData1, double *voxelData2, graphSlamSaveStructure &usedGraph,
                               int dimensionOfVoxelData,
@@ -172,6 +185,19 @@ public:
 
     static bool
     calculateEndIndexForVoxelCreationByStartIndex(int indexStart, int &indexEnd, graphSlamSaveStructure &usedGraph);
-};
+
+    static pcl::PointCloud<pcl::PointXYZ>
+    convertVoxelToPointcloud(double voxelData[], double thresholdFactor, double maximumVoxelData, int dimensionVoxel,double dimensionOfVoxelDataForMatching);
+
+    static Eigen::Matrix4d registrationOfDesiredMethod(pcl::PointCloud<pcl::PointXYZ> pclNotShifted,
+                                                                     pcl::PointCloud<pcl::PointXYZ> pclShifted,
+                                                                     pcl::PointCloud<pcl::PointXYZ> &final, double voxelData[],
+                                                                     double voxelDataShifted[],
+                                                                     Eigen::Matrix4d initialGuess, double currentCellSize,
+                                                                     int whichMethod, bool useInitialGuess,
+                                                                     scanRegistrationClass &scanRegistrationObject);
+
+
+    };
 
 #endif //SIMULATION_BLUEROV_VISUALIZESLAMINROS_H

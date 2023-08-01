@@ -11,7 +11,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include "std_srvs/SetBool.h"
 #include <filesystem>
-#include "scanRegistrationClass.h"
+//#include "scanRegistrationClass.h"
 #include "nav_msgs/OccupancyGrid.h"
 
 

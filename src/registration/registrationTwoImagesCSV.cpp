@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
     double fitnessX;
     double fitnessY;
     std::vector<transformationPeak> estimatedTransformations = scanRegistrationObject.registrationOfTwoVoxelsSOFFTAllSoluations(
-            voxelData1, voxelData2, 1.0,false, false, 5,
+            voxelData1, voxelData2, 1.0,false, true, 5,
             false, true, true);// 5 and
 
 

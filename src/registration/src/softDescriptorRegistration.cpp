@@ -1145,7 +1145,7 @@ Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoVoxelsSOFFTFast(dou
                                                                              bool useInitialTranslation,
                                                                              double cellSize,
                                                                              bool useGauss,
-                                                                             bool debug) {
+                                                                             bool debug,double potentialNecessaryForPeak) {
 
 
     double goodGuessAlpha = std::atan2(initialGuess(1, 0),
@@ -1198,7 +1198,7 @@ Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoVoxelsSOFFTFast(dou
                 voxelData1, voxelData2,
                 cellSize,
                 1.0,
-                debug, angleIndex);
+                debug, angleIndex,potentialNecessaryForPeak);
         Eigen::Matrix4d estimatedRotationScans = Eigen::Matrix4d::Identity();
         Eigen::AngleAxisd rotation_vectorTMP(estimatedAngle.angle, Eigen::Vector3d(0, 0, 1));
         Eigen::Matrix3d tmpRotMatrix3d = rotation_vectorTMP.toRotationMatrix();

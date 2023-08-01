@@ -11,7 +11,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/features2d.hpp>
-
+#include "opencv2/xfeatures2d.hpp"
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
 #include <filesystem>
@@ -79,9 +79,13 @@ int main(int argc, char **argv) {
 
 
 //    cv::Ptr<cv::AKAZE> D = cv::AKAZE::create();
-    cv::Ptr<cv::KAZE> D = cv::KAZE::create();
+//    cv::Ptr<cv::KAZE> D = cv::KAZE::create();
+
 //    cv::Ptr<cv::ORB> D = cv::ORB::create();
 //    cv::Ptr<cv::BRISK> D = cv::BRISK::create();
+
+    cv::Ptr<cv::xfeatures2d::SURF> D = cv::xfeatures2d::SURF::create();
+//    cv::Ptr<cv::SIFT> D = cv::SIFT::create();
 
 
     std::vector<cv::KeyPoint> kpts1, kpts2, matched1, matched2;
@@ -100,8 +104,8 @@ int main(int argc, char **argv) {
     cv::waitKey(0);
 
     //Use brute-force matcher to find 2-nn matches
-//    cv::BFMatcher M(cv::NORM_L2);
-    cv::BFMatcher M(cv::NORM_HAMMING);
+    cv::BFMatcher M(cv::NORM_L2);
+//    cv::BFMatcher M(cv::NORM_HAMMING);
     std::vector< std::vector<cv::DMatch> > knn_matches;
     std::vector<cv::DMatch> good_matches;
     M.knnMatch(desc2, desc1, knn_matches, 2);
@@ -153,10 +157,10 @@ int main(int argc, char **argv) {
 
     onlyRotationMatrix.block<2,2>(0,0) = testResultMatrix.block<2,2>(0,0);
 //    negativeTranslation.block<2,2>(0,0) = testResultMatrix.block<2,2>(0,0);
-    negativeTranslation(0,2) =-256;//-testResultMatrix(0,2);
-    negativeTranslation(1,2) =-256;//-testResultMatrix(1,2);
-    positiveTranslation(0,2) =256;//testResultMatrix(0,2);
-    positiveTranslation(1,2) =256;//testResultMatrix(1,2);
+    negativeTranslation(0,2) =-256/2;//-testResultMatrix(0,2);
+    negativeTranslation(1,2) =-256/2;//-testResultMatrix(1,2);
+    positiveTranslation(0,2) =256/2;//testResultMatrix(0,2);
+    positiveTranslation(1,2) =256/2;//testResultMatrix(1,2);
 
 //    std::cout << H << std::endl;
 //    std::cout << onlyRotationMatrix << std::endl;

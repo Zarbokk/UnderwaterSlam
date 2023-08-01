@@ -5,6 +5,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CATKIN_ENABLE_TESTING OFF)
 
 
+
 project(underwaterslam)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -12,16 +13,21 @@ project(underwaterslam)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg roscpp pcl_ros soft20 ping360_sonar waterlinked_dvl message_generation cv_bridge commonbluerovmsg dynamic_reconfigure perception_oru tf2 tf2_ros)
+## is used, also find other catkin packages cv_bridge PATHS "/usr/local/"
+find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg roscpp pcl_ros soft20 ping360_sonar waterlinked_dvl message_generation  commonbluerovmsg dynamic_reconfigure perception_oru tf2 tf2_ros)
 find_package(Boost REQUIRED COMPONENTS system)
-find_package(OpenCV 4 REQUIRED)
+find_package(OpenCV 4.7 REQUIRED )
 find_package(PCL 1.10 REQUIRED COMPONENTS common io visualization)
 find_package(OpenGR REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(GTSAM REQUIRED)
 find_package(Eigen3 3.3 REQUIRED)
 
+#include_directories("/usr/local/")
+include_directories(${OpenCV_INCLUDE_DIRS})
+find_package(PythonLibs REQUIRED)
+find_package(gmm_registration REQUIRED)
+include_directories(${PYTHON_INCLUDE_DIRS})
 #find_package(PkgConfig REQUIRED)
 #pkg_search_module(FFTW REQUIRED fftw3 IMPORTED_TARGET)
 #include_directories(PkgConfig::FFTW)
@@ -91,7 +97,7 @@ target_include_directories(fmt_registration PUBLIC src/registration/include ${ca
 ################################################################################
 
 add_library(registrationlib SHARED src/registration/src/scanRegistrationClass.cpp src/registration/src/sofftCorrelationClass.cpp src/registration/src/softDescriptorRegistration.cpp)
-target_link_libraries(registrationlib PUBLIC ${PCL_LIBRARIES} ${Eigen_LIBRARIES} ${OpenCV_LIBS} generalhelpfullib gr::algo findpeaks fmt_registration)
+target_link_libraries(registrationlib PUBLIC ${PCL_LIBRARIES} ${Eigen_LIBRARIES} ${OpenCV_LIBS} generalhelpfullib gr::algo findpeaks fmt_registration gmm_registration)
 target_include_directories(registrationlib PUBLIC src/registration/include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 
 ################################################################################
@@ -131,11 +137,14 @@ target_link_libraries(registrationOfTwoPCLICP gtsam OpenMP::OpenMP_CXX slamtools
 #target_link_libraries(extractingCorrectedDataForRegistration gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 add_executable(compareEveryMatchingMethodBasedOnFolder src/evaluation/compareEveryMatchingMethodBasedOnFolder.cpp)
-target_link_libraries(compareEveryMatchingMethodBasedOnFolder gtsam posegraph slamtools registrationlib fmt_registration OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
+target_link_libraries(compareEveryMatchingMethodBasedOnFolder gtsam posegraph slamtools registrationlib fmt_registration OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS} gmm_registration)
 
-#add_executable(createImageOfWholeBunker src/evaluation/createImageOfWholeBunker.cpp)
-#target_link_libraries(createImageOfWholeBunker ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
-#
+add_executable(createImageOfWholeBunker src/evaluation/createImageOfWholeBunker.cpp)
+target_link_libraries(createImageOfWholeBunker ${catkin_LIBRARIES} ${OpenCV_LIBS} slamtools registrationlib OpenMP::OpenMP_CXX fftw3)
+
+add_executable(createImageOfWholeBunker2 src/evaluation/createImageOfWholeBunker2.cpp)
+target_link_libraries(createImageOfWholeBunker2 ${catkin_LIBRARIES} ${OpenCV_LIBS} slamtools registrationlib OpenMP::OpenMP_CXX fftw3)
+
 #add_executable(continousMapGeneration src/evaluation/continousMapGeneration.cpp )
 #target_link_libraries(continousMapGeneration ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
 
@@ -167,15 +176,17 @@ target_link_libraries(rosslamexp2 gtsam posegraph slamtools registrationlib Open
 #add_executable(randomShit src/completeSlamRuns/completlyFailedMapMatching.cpp)
 #target_link_libraries(randomShit gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
-add_executable(caveDatasetSlam src/completeSlamRuns/caveDatasetSLAM.cpp)
-target_link_libraries(caveDatasetSlam gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
+#add_executable(caveDatasetSlam src/completeSlamRuns/caveDatasetSLAM.cpp)
+#target_link_libraries(caveDatasetSlam gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 add_executable(understandingshit src/registration/understanding3Dso3soft.cpp)
 target_link_libraries(understandingshit OpenMP::OpenMP_CXX registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
 
 add_executable(testFile1 src/testFiles/testFile1.cpp)
-target_link_libraries(testFile1 OpenMP::OpenMP_CXX registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES})
+target_link_libraries(testFile1 OpenMP::OpenMP_CXX registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES} ${PYTHON_LIBRARIES} gmm_registration)
 
+add_executable(testFile2 src/testFiles/testFile2.cpp)
+target_link_libraries(testFile2 OpenMP::OpenMP_CXX registrationlib ${OpenCV_LIBS} fftw3 ${catkin_LIBRARIES} ${PYTHON_LIBRARIES} gmm_registration)
 
 add_executable(extractionOfData src/evaluation/extractingCorrectedDataForRegistration2_0.cpp)
 target_link_libraries(extractionOfData gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
@@ -187,11 +198,11 @@ target_link_libraries(fourierMellinRegistration OpenMP::OpenMP_CXX registrationl
 add_executable(testFeatureRegistration src/registration/testFeatureRegistration.cpp)
 target_link_libraries(testFeatureRegistration OpenMP::OpenMP_CXX ${OpenCV_LIBS} generalhelpfullib ${catkin_LIBRARIES})
 
-add_executable(consecutiveScansSimulation src/evaluation/consecutiveScansSimulation.cpp)
-target_link_libraries(consecutiveScansSimulation gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
+add_executable(consecutiveScansSlam src/evaluation/consecutiveScansSLAMCalc.cpp)
+target_link_libraries(consecutiveScansSlam gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
-add_executable(consecutiveScansTUHH src/evaluation/consecutiveScansTUHH.cpp)
-target_link_libraries(consecutiveScansTUHH gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
+add_executable(consecutiveScansRegistration src/evaluation/consecutiveScansMatchingMethod.cpp)
+target_link_libraries(consecutiveScansRegistration gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 add_executable(createMapOfDataSet src/evaluation/continousMapGeneration.cpp)
 target_link_libraries(createMapOfDataSet gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
