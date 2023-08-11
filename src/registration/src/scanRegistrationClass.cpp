@@ -113,11 +113,11 @@ Eigen::Matrix4d scanRegistrationClass::sofftRegistration2D(pcl::PointCloud<pcl::
 
 
 double scanRegistrationClass::sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[], double voxelData2Input[],
-                                                                   double goodGuessAlpha, bool debug) {
+                                                                   double goodGuessAlpha,double &covariance, bool debug) {
 
 
     return mySofftRegistrationClass.sofftRegistrationVoxel2DRotationOnly(voxelData1Input, voxelData2Input,
-                                                                         goodGuessAlpha, debug);
+                                                                         goodGuessAlpha,covariance, debug);
 
 }
 
@@ -374,6 +374,7 @@ Eigen::Matrix4d scanRegistrationClass::ndt_p2d(pcl::PointCloud<pcl::PointXYZ> &c
 Eigen::Matrix4d scanRegistrationClass::registrationOfTwoVoxelsSOFFTFast(double voxelData1Input[],
                                                                         double voxelData2Input[],
                                                                         Eigen::Matrix4d initialGuess,
+                                                                        Eigen::Matrix3d &covarianceMatrix,
                                                                         bool useInitialAngle,
                                                                         bool useInitialTranslation,
                                                                         double cellSize,
@@ -386,7 +387,7 @@ Eigen::Matrix4d scanRegistrationClass::registrationOfTwoVoxelsSOFFTFast(double v
     //changing voxel 1 and 2 because we want to have the transformation from 1 to 2 and not from 2 to 1(which is the registration)@TODO
     return mySofftRegistrationClass.registrationOfTwoVoxelsSOFFTFast(voxelData1Input,
                                                                      voxelData2Input,
-                                                                     initialGuess,
+                                                                     initialGuess,covarianceMatrix,
                                                                      useInitialAngle, useInitialTranslation,
                                                                      cellSize,
                                                                      useGauss,

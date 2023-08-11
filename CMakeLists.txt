@@ -139,11 +139,11 @@ target_link_libraries(registrationOfTwoPCLICP gtsam OpenMP::OpenMP_CXX slamtools
 add_executable(compareEveryMatchingMethodBasedOnFolder src/evaluation/compareEveryMatchingMethodBasedOnFolder.cpp)
 target_link_libraries(compareEveryMatchingMethodBasedOnFolder gtsam posegraph slamtools registrationlib fmt_registration OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS} gmm_registration)
 
-add_executable(createImageOfWholeBunker src/evaluation/createImageOfWholeBunker.cpp)
-target_link_libraries(createImageOfWholeBunker ${catkin_LIBRARIES} ${OpenCV_LIBS} slamtools registrationlib OpenMP::OpenMP_CXX fftw3)
+#add_executable(createImageOfWholeBunker src/evaluation/createImageOfWholeBunker.cpp)
+#target_link_libraries(createImageOfWholeBunker ${catkin_LIBRARIES} ${OpenCV_LIBS} slamtools registrationlib OpenMP::OpenMP_CXX fftw3)
 
 add_executable(createImageOfWholeBunker2 src/evaluation/createImageOfWholeBunker2.cpp)
-target_link_libraries(createImageOfWholeBunker2 ${catkin_LIBRARIES} ${OpenCV_LIBS} slamtools registrationlib OpenMP::OpenMP_CXX fftw3)
+target_link_libraries(createImageOfWholeBunker2 ${catkin_LIBRARIES} ${OpenCV_LIBS} gtsam slamtools registrationlib OpenMP::OpenMP_CXX fftw3)
 
 #add_executable(continousMapGeneration src/evaluation/continousMapGeneration.cpp )
 #target_link_libraries(continousMapGeneration ${catkin_LIBRARIES} ${OpenCV_LIBS} registrationlib OpenMP::OpenMP_CXX fftw3)
@@ -172,6 +172,9 @@ target_link_libraries(rosslamexp1 gtsam posegraph slamtools registrationlib Open
 
 add_executable(rosslamexp2 src/completeSlamRuns/rosSlamExp2.cpp)
 target_link_libraries(rosslamexp2 gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
+
+add_executable(rosslamexp3 src/completeSlamRuns/rosSlamExp3.cpp)
+target_link_libraries(rosslamexp3 gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 #add_executable(randomShit src/completeSlamRuns/completlyFailedMapMatching.cpp)
 #target_link_libraries(randomShit gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})

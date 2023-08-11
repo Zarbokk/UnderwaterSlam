@@ -42,11 +42,16 @@
 
 #define HOME_LOCATION "/home/tim-external/dataFolder/journalPaperDatasets/newDatasetsCreation/"
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "highNoiseBigMotionValentin/"
-#define WHICH_FOLDER_SHOULD_BE_SAVED "highNoiseBigMotionKeller/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "highNoiseBigMotionKeller/"
+
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "noNoiseSmallMotionValentin/"
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "noNoiseSmallMotionKeller/"
-//#define WHICH_FOLDER_SHOULD_BE_SAVED "onlyRotationNoNoiseKeller/"
+
+#define WHICH_FOLDER_SHOULD_BE_SAVED "onlyRotationNoNoiseKeller/"
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "onlyRotationNoNoiseValentin/"
+
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "speedTestsValentin/"
+//#define WHICH_FOLDER_SHOULD_BE_SAVED "speedTestsKeller/"
 
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "noNoiseSmallMotionStPere/"
 
@@ -106,32 +111,46 @@ public:
 //        this->ourSettings.onlyOneRotationDirection = false;
 
         // high noise and high motions
-        this->ourSettings.numberOfShifts = 100;
-        this->ourSettings.useOcclusions = true;
-        this->ourSettings.useShift = true;
-        this->ourSettings.useNoise = true;
-        std::vector<int> vect{64,128,256};
-        this->ourSettings.listOfDimensions = vect;
-        this->ourSettings.noiseSaltPepperPercentage = 0.006;
-        this->ourSettings.noiseGaussPercentage = 0.040;//0.035
-        this->ourSettings.occlusionPercentage = 1.0;
-        this->ourSettings.randomRotation = 15.0 / 180.0 * M_PI;
-        this->ourSettings.randomShiftXY = 5;
-        this->ourSettings.onlyOneRotationDirection = false;
+//        this->ourSettings.numberOfShifts = 100;
+//        this->ourSettings.useOcclusions = true;
+//        this->ourSettings.useShift = true;
+//        this->ourSettings.useNoise = true;
+//        std::vector<int> vect{64,128,256};
+//        this->ourSettings.listOfDimensions = vect;
+//        this->ourSettings.noiseSaltPepperPercentage = 0.006;
+//        this->ourSettings.noiseGaussPercentage = 0.040;//0.035
+//        this->ourSettings.occlusionPercentage = 1.0;
+//        this->ourSettings.randomRotation = 15.0 / 180.0 * M_PI;
+//        this->ourSettings.randomShiftXY = 5;
+//        this->ourSettings.onlyOneRotationDirection = false;
 
         // only Angle
-//        this->ourSettings.numberOfShifts = 100;
+        this->ourSettings.numberOfShifts = 100;
+        this->ourSettings.useOcclusions = false;
+        this->ourSettings.useShift = true;
+        this->ourSettings.useNoise = false;
+        std::vector<int> vect{64, 128, 256};
+        this->ourSettings.listOfDimensions = vect;
+        this->ourSettings.noiseSaltPepperPercentage = 0.005;
+        this->ourSettings.noiseGaussPercentage = 0.035;
+        this->ourSettings.occlusionPercentage = 0.1;
+        this->ourSettings.randomRotation = 120.0 / 180.0 * M_PI;
+        this->ourSettings.randomShiftXY = 0;
+        this->ourSettings.onlyOneRotationDirection = true;
+
+        // speed Test
+//        this->ourSettings.numberOfShifts = 10;
 //        this->ourSettings.useOcclusions = false;
 //        this->ourSettings.useShift = true;
-//        this->ourSettings.useNoise = false;
-//        std::vector<int> vect{64, 128, 256};
+//        this->ourSettings.useNoise = true;
+//        std::vector<int> vect{64, 128, 256, 512, 1024};
 //        this->ourSettings.listOfDimensions = vect;
-//        this->ourSettings.noiseSaltPepperPercentage = 0.005;
-//        this->ourSettings.noiseGaussPercentage = 0.035;
+//        this->ourSettings.noiseSaltPepperPercentage = 0.001;
+//        this->ourSettings.noiseGaussPercentage = 0.015;
 //        this->ourSettings.occlusionPercentage = 0.1;
-//        this->ourSettings.randomRotation = 120.0 / 180.0 * M_PI;
-//        this->ourSettings.randomShiftXY = 0;
-//        this->ourSettings.onlyOneRotationDirection = true;
+//        this->ourSettings.randomRotation = 10.0 / 180.0 * M_PI;
+//        this->ourSettings.randomShiftXY = 2;
+//        this->ourSettings.onlyOneRotationDirection = false;
 
 
 

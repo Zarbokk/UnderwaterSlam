@@ -1041,6 +1041,7 @@ bool slamToolsRos::calculateStartAndEndIndexForVoxelCreation(int indexMiddle, in
 
 bool slamToolsRos::calculateEndIndexForVoxelCreationByStartIndex(int indexStart, int &indexEnd,
                                                                  graphSlamSaveStructure &usedGraph) {
+    //index start is stiff, and index end is searched
     indexEnd = indexStart - 1;
     double currentAngleOfScan;
     do {
@@ -1258,7 +1259,7 @@ Eigen::Matrix4d slamToolsRos::registrationOfTwoVoxelsFast(double voxelData1Input
 
     Eigen::Matrix4d returnMatrix = scanRegistrationObject.registrationOfTwoVoxelsSOFFTFast(voxelData1Input,
             voxelData2Input,
-            initialGuess,useInitialAngle,useInitialTranslation,cellSize,useGauss,debug);
+            initialGuess,covarianceMatrix,useInitialAngle,useInitialTranslation,cellSize,useGauss,debug);
 
 
     return returnMatrix;
@@ -1407,7 +1408,7 @@ slamToolsRos::loopDetectionByClosestPath(graphSlamSaveStructure &graphSaved,
                 (graphSaved.getVertexList()->at(indexStart1).getTransformation().inverse() *
                  graphSaved.getVertexList()->at(indexStart2).getTransformation()).inverse();
         Eigen::Matrix3d covarianceEstimation = Eigen::Matrix3d::Zero();
-        Eigen::Matrix4d currentTransformation = slamToolsRos::registrationOfTwoVoxels(voxelData1,
+        Eigen::Matrix4d currentTransformation = slamToolsRos::registrationOfTwoVoxelsFast(voxelData1,
                                                                                       voxelData2,
                                                                                       initialGuessTransformation,
                                                                                       covarianceEstimation,
@@ -1609,7 +1610,18 @@ bool slamToolsRos::simpleLoopDetectionByKeyFrames(graphSlamSaveStructure &graphS
 //                                                                                                true,
 //                                                                                                debugRegistration);
     Eigen::Matrix3d covarianceEstimation = Eigen::Matrix3d::Zero();
-    Eigen::Matrix4d currentTransformation = slamToolsRos::registrationOfTwoVoxels(voxelData1,
+
+//    Eigen::Matrix4d currentTransformation = slamToolsRos::registrationOfTwoVoxels(voxelData1,
+//                                                                                      voxelData2,
+//                                                                                      initialGuessTransformation,
+//                                                                                      covarianceEstimation,
+//                                                                                      true, true,
+//                                                                                      (double) distanceOfVoxelDataLengthSI /
+//                                                                                      (double) dimensionOfVoxelData,
+//                                                                                      true, scanRegistrationObject,
+//                                                                                      debugRegistration);
+//    std::cout << currentTransformation << std::endl;
+    Eigen::Matrix4d  currentTransformation = slamToolsRos::registrationOfTwoVoxelsFast(voxelData1,
                                                                                   voxelData2,
                                                                                   initialGuessTransformation,
                                                                                   covarianceEstimation,
@@ -1618,6 +1630,7 @@ bool slamToolsRos::simpleLoopDetectionByKeyFrames(graphSlamSaveStructure &graphS
                                                                                   (double) dimensionOfVoxelData,
                                                                                   true, scanRegistrationObject,
                                                                                   debugRegistration);
+//    std::cout << currentTransformation << std::endl;
 
 //            std::cout << "Found Loop Closure with fitnessScore: " << fitnessScore << std::endl;
 
@@ -1727,15 +1740,29 @@ Eigen::Matrix4d slamToolsRos::registrationOfDesiredMethod(pcl::PointCloud<pcl::P
         case 6:
 
             covarianceEstimation = Eigen::Matrix3d::Zero();
-            // THRESHOLD_FOR_TRANSLATION_MATCHING 0.05 // standard is 0.1, 0.05 und 0.01  // 0.05 for valentin Oben
-            returnMatrix = slamToolsRos::registrationOfTwoVoxels(voxelData, voxelDataShifted,
-                                                                 initialGuess,
-                                                                 covarianceEstimation, useInitialGuess,
-                                                                 useInitialGuess,
-                                                                 currentCellSize,
-                                                                 false, scanRegistrationObject,
-                                                                 false,
-                                                                 0.05);
+
+
+            if(useInitialGuess){
+                returnMatrix = slamToolsRos::registrationOfTwoVoxelsFast(voxelData, voxelDataShifted,
+                                                                     initialGuess,
+                                                                     covarianceEstimation, useInitialGuess,
+                                                                     useInitialGuess,
+                                                                     currentCellSize,
+                                                                     false, scanRegistrationObject,
+                                                                     false,
+                                                                     0.05);
+            }else{
+                // THRESHOLD_FOR_TRANSLATION_MATCHING 0.05 // standard is 0.1, 0.05 und 0.01  // 0.05 for valentin Oben
+                returnMatrix = slamToolsRos::registrationOfTwoVoxels(voxelData, voxelDataShifted,
+                                                                     initialGuess,
+                                                                     covarianceEstimation, useInitialGuess,
+                                                                     useInitialGuess,
+                                                                     currentCellSize,
+                                                                     false, scanRegistrationObject,
+                                                                     false,
+                                                                     0.05);
+            }
+
             break;
         case 7:
             covarianceEstimation = Eigen::Matrix3d::Zero();

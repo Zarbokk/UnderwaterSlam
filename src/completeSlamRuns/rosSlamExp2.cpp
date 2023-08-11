@@ -38,11 +38,12 @@
 #define TUHH_SYSTEM true
 #define SIMULATION_SYSTEM false
 
-//#define NAME_OF_CURRENT_METHOD "_s_curve_classical_slam_"
+//#define NAME_OF_CURRENT_METHOD "_s_curve_classical_slam_"e
 //#define NAME_OF_CURRENT_METHOD "_valentinOben_classical_slam_"
 //#define NAME_OF_CURRENT_METHOD "_TEST1_classical_slam_"
 //#define NAME_OF_CURRENT_METHOD "_simulation_classical_slam_"
 #define NAME_OF_CURRENT_METHOD "_circle_classical_slam_"
+//#define NAME_OF_CURRENT_METHOD "randomTest"
 
 //occupancyMap(256, NUMBER_OF_POINTS_DIMENSION, 70, hilbertMap::HINGED_FEATURES)
 class rosClassEKF {
@@ -284,7 +285,17 @@ private:
             Eigen::Matrix3d covarianceEstimation = Eigen::Matrix3d::Zero();
             std::cout << "direct matching consecutive: " << std::endl;
             // result is matrix to transform scan 1 to scan 2 therefore later inversed + initial guess inversed
-            this->currentEstimatedTransformation = slamToolsRos::registrationOfTwoVoxels(voxelData1, voxelData2,
+//            this->currentEstimatedTransformation = slamToolsRos::registrationOfTwoVoxels(voxelData1, voxelData2,
+//                                                                                             this->initialGuessTransformation,
+//                                                                                             covarianceEstimation, true,
+//                                                                                             true,
+//                                                                                             (double) DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
+//                                                                                             (double) NUMBER_OF_POINTS_DIMENSION,
+//                                                                                             false, scanRegistrationObject,
+//                                                                                             DEBUG_REGISTRATION,
+//                                                                                             THRESHOLD_FOR_TRANSLATION_MATCHING);
+//            std::cout << this->currentEstimatedTransformation << std::endl;
+            this->currentEstimatedTransformation = slamToolsRos::registrationOfTwoVoxelsFast(voxelData1, voxelData2,
                                                                                          this->initialGuessTransformation,
                                                                                          covarianceEstimation, true,
                                                                                          true,
@@ -293,6 +304,7 @@ private:
                                                                                          false, scanRegistrationObject,
                                                                                          DEBUG_REGISTRATION,
                                                                                          THRESHOLD_FOR_TRANSLATION_MATCHING);
+//            std::cout << this->currentEstimatedTransformation << std::endl;
 
 //            slamToolsRos::saveResultingRegistrationTMPCOPY(indexStart1, indexEnd1, indexStart2, indexEnd2,
 //                                                           this->graphSaved, NUMBER_OF_POINTS_DIMENSION,

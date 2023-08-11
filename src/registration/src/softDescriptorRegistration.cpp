@@ -172,7 +172,7 @@ softDescriptorRegistration::getSpectrumFromVoxelData2DCorrelation(double voxelDa
 
 double
 softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[], double voxelData2Input[],
-                                                                 double goodGuessAlpha, bool debug) {
+                                                                 double goodGuessAlpha,double &covariance, bool debug) {
 
     std::vector<rotationPeak> allAnglesList = this->sofftRegistrationVoxel2DListOfPossibleRotations(voxelData1Input,
                                                                                                     voxelData2Input,
@@ -185,6 +185,7 @@ softDescriptorRegistration::sofftRegistrationVoxel2DRotationOnly(double voxelDat
             indexCorrectAngle = i;
         }
     }
+    covariance = allAnglesList[indexCorrectAngle].covariance;
     return allAnglesList[indexCorrectAngle].angle;//this angle is from Pos1 to Pos 2
 }
 
@@ -1141,12 +1142,16 @@ softDescriptorRegistration::sofftRegistrationVoxel2DTranslationAllPossibleSoluti
 Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoVoxelsSOFFTFast(double voxelData1Input[],
                                                                              double voxelData2Input[],
                                                                              Eigen::Matrix4d &initialGuess,
+                                                                             Eigen::Matrix3d &covarianceMatrix,
                                                                              bool useInitialAngle,
                                                                              bool useInitialTranslation,
                                                                              double cellSize,
                                                                              bool useGauss,
                                                                              bool debug,double potentialNecessaryForPeak) {
-
+    if(!useInitialAngle || !useInitialTranslation){
+        std::cout << "this function has to be used with initial guess = true" << std::endl;
+        exit(-1);
+    }
 
     double goodGuessAlpha = std::atan2(initialGuess(1, 0),
                                        initialGuess(0, 0));
@@ -1154,19 +1159,19 @@ Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoVoxelsSOFFTFast(dou
 
     std::vector<translationPeak> listOfTranslations;
     std::vector<Eigen::Matrix4d> listOfTransformations;
-//    std::vector<double> maximumHeightPeakList;
-    std::vector<rotationPeak> estimatedAngles;
-    if (useInitialAngle) {
-        double angleTMP = this->sofftRegistrationVoxel2DRotationOnly(voxelData1Input, voxelData2Input, goodGuessAlpha,
-                                                                     debug);
-        rotationPeak rotationPeakTMP;
-        rotationPeakTMP.angle = angleTMP;
-        estimatedAngles.push_back(rotationPeakTMP);
 
-    } else {
-        estimatedAngles = this->sofftRegistrationVoxel2DListOfPossibleRotations(voxelData1Input, voxelData2Input,
-                                                                                debug);
-    }
+//   std::vector<double> maximumHeightPeakList;
+    std::vector<rotationPeak> estimatedAngles;
+    double angleCovariance;
+    double angleTMP = this->sofftRegistrationVoxel2DRotationOnly(voxelData1Input, voxelData2Input, goodGuessAlpha,
+                                                                 angleCovariance,debug);
+
+    rotationPeak rotationPeakTMP;
+    rotationPeakTMP.angle = angleTMP;
+    rotationPeakTMP.covariance = angleCovariance;
+    estimatedAngles.push_back(rotationPeakTMP);
+
+
 
 //    std::cout << "number of possible solutions: " << estimatedAngles.size() << std::endl;
 
@@ -1212,6 +1217,8 @@ Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoVoxelsSOFFTFast(dou
                 if (distance > sqrt(diffX * diffX + diffY * diffY)) {
 
                     bestFitTranslation = potentialTranslation;
+                    distance = sqrt(diffX * diffX + diffY * diffY);
+
                 }
             }
         } else {
@@ -1246,6 +1253,9 @@ Eigen::Matrix4d softDescriptorRegistration::registrationOfTwoVoxelsSOFFTFast(dou
         }
     }
 
+    covarianceMatrix.block<2, 2>(0,
+                                 0) = listOfTranslations[indexHighestPeak].covariance;
+    covarianceMatrix(2, 2) = angleCovariance;
 
     return listOfTransformations[indexHighestPeak];//should be the transformation matrix from 1 to 2
 }

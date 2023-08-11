@@ -153,7 +153,7 @@ public:
 
 
     double
-    sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[], double voxelData2Input[], double goodGuessAlpha,
+    sofftRegistrationVoxel2DRotationOnly(double voxelData1Input[], double voxelData2Input[], double goodGuessAlpha,double &covariance,
                                          bool debug = false);
 
     std::vector<rotationPeak>
@@ -169,7 +169,7 @@ public:
 
     Eigen::Matrix4d registrationOfTwoVoxelsSOFFTFast(double voxelData1Input[],
                                                      double voxelData2Input[],
-                                                     Eigen::Matrix4d &initialGuess,
+                                                     Eigen::Matrix4d &initialGuess,Eigen::Matrix3d &covarianceMatrix,
                                                      bool useInitialAngle, bool useInitialTranslation,
                                                      double cellSize,
                                                      bool useGauss,

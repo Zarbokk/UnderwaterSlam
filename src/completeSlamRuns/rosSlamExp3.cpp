@@ -1,6 +1,7 @@
 //
 // Created by jurobotics on 13.09.21.
-//
+// This file is for trying out Motion Compensation vs Slam Compenstation
+
 
 
 #include "geometry_msgs/PoseStamped.h"
@@ -15,17 +16,17 @@
 #include <std_srvs/SetBool.h>
 #include "commonbluerovmsg/staterobotforevaluation.h"
 
-#define NUMBER_OF_POINTS_DIMENSION 128
+#define NUMBER_OF_POINTS_DIMENSION 512
 #define DIMENSION_OF_VOXEL_DATA_FOR_MATCHING 50 // was 50 //tuhh tank 6
 #define NUMBER_OF_POINTS_MAP 512//was 512
 // 80 simulation 300 valentin 45.0 for Keller 10.0 TUHH TANK
-#define DIMENSION_OF_MAP 80.0
+#define DIMENSION_OF_MAP 45.0
 
 #define IGNORE_DISTANCE_TO_ROBOT 1.0 // was 1.0 // TUHH 0.2
 #define DEBUG_REGISTRATION false
 
-#define ROTATION_SONAR 0 // sonar on robot M_PI // simulation 0
-#define SHOULD_USE_ROSBAG false
+#define ROTATION_SONAR M_PI // sonar on robot M_PI // simulation 0
+#define SHOULD_USE_ROSBAG true
 #define FACTOR_OF_MATCHING 1.0 //1.5
 #define THRESHOLD_FOR_TRANSLATION_MATCHING 0.1 // standard is 0.1, 0.05 und 0.01  // 0.05 for valentin Oben
 
@@ -36,10 +37,10 @@
 #define MAXIMUM_LOOP_CLOSURE_DISTANCE 2.0 // 0.2 TUHH 2.0 valentin Keller 4.0 Valentin Oben // 2.0 simulation
 
 #define TUHH_SYSTEM false
-#define SIMULATION_SYSTEM true
+#define SIMULATION_SYSTEM false
 
 
-#define NAME_OF_CURRENT_METHOD "randomTest"
+#define NAME_OF_CURRENT_METHOD "justATest"
 
 //#define NAME_OF_CURRENT_METHOD "_circle_dead_reckoning_"
 //#define NAME_OF_CURRENT_METHOD "_circle_dead_reckoning_wsm_"
@@ -67,7 +68,7 @@ public:
         this->subscriberPositionGT = n_.subscribe("positionGT", 100000, &rosClassEKF::groundTruthEvaluationCallback,
                                                   this);
         this->subscriberPositionGTGantry = n_.subscribe("gantry/path_follower/current_position", 100000, &rosClassEKF::groundTruthEvaluationTUHHCallback,
-                                                  this);
+                                                        this);
 
         publisherPathOverTime = n_.advertise<nav_msgs::Path>("positionOverTime", 10);
         publisherPathOverTimeGT = n_.advertise<nav_msgs::Path>("positionOverTimeGT", 10);
@@ -176,7 +177,6 @@ private:
 
         bool waitingForMessages = waitForEKFMessagesToArrive(msg->header.stamp.toSec());
         if(!waitingForMessages){
-            std::cout << "return no message found: " << msg->header.stamp.toSec() << "    " << ros::Time::now().toSec()<< std::endl;
             return;
         }
         edge differenceOfEdge = slamToolsRos::calculatePoseDiffByTimeDepOnEKF(
@@ -217,7 +217,7 @@ private:
 
         int indexOfLastKeyframe;
         double angleDiff = slamToolsRos::angleBetweenLastKeyframeAndNow(this->graphSaved);// i think this is always true
-//        std::cout << angleDiff << std::endl;
+
         // best would be scan matching between this angle and transformation based last angle( i think this is currently done)
         if (abs(angleDiff) > 2 * M_PI / FACTOR_OF_MATCHING) {
 
@@ -228,6 +228,20 @@ private:
                 if (numberOfTimesFirstScan > 2 * FACTOR_OF_MATCHING - 1) {
                     firstCompleteSonarScan = false;
                 }
+                double *voxelData1;
+                voxelData1 = (double *) malloc(
+                        sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
+                double maximumVoxel1 = slamToolsRos::createVoxelOfGraphStartEndPoint(voxelData1,
+                                                                                     this->graphSaved.getVertexList()->back().getKey(),
+                                                                                     0,
+                                                                                     NUMBER_OF_POINTS_DIMENSION,
+                                                                                     this->graphSaved,
+                                                                                     IGNORE_DISTANCE_TO_ROBOT,
+                                                                                     DIMENSION_OF_VOXEL_DATA_FOR_MATCHING,
+                                                                                     Eigen::Matrix4d::Identity());//get voxel
+                this->graphSaved.getVertexList()->back().setIntensityScan(voxelData1, NUMBER_OF_POINTS_DIMENSION);
+                free(voxelData1);
+
                 return;
             }
 
@@ -277,7 +291,7 @@ private:
                                                                                  IGNORE_DISTANCE_TO_ROBOT,
                                                                                  DIMENSION_OF_VOXEL_DATA_FOR_MATCHING,
                                                                                  Eigen::Matrix4d::Identity());//get voxel
-
+            this->graphSaved.getVertexList()->back().setIntensityScan(voxelData1, NUMBER_OF_POINTS_DIMENSION);
 
             double maximumVoxel2 = slamToolsRos::createVoxelOfGraphStartEndPoint(voxelData2, indexStart2, indexEnd2,
                                                                                  NUMBER_OF_POINTS_DIMENSION,
@@ -291,7 +305,7 @@ private:
             // result is matrix to transform scan 1 to scan 2 therefore later inversed + initial guess inversed
 
 
-            this->currentEstimatedTransformation = slamToolsRos::registrationOfTwoVoxels(voxelData1, voxelData2,
+            this->currentEstimatedTransformation = slamToolsRos::registrationOfTwoVoxelsFast(voxelData1, voxelData2,
                                                                                          this->initialGuessTransformation,
                                                                                          covarianceEstimation, true,
                                                                                          true,
@@ -418,12 +432,91 @@ private:
 
     bool saveGraph(commonbluerovmsg::saveGraph::Request &req, commonbluerovmsg::saveGraph::Response &res) {
         this->createMapAndSaveToFile();
-        //create image without motion compensation
-        //create image with motion compensation(saved images)
-        //create image with SLAM compensation
+
         std::cout << "test for saving1" << std::endl;
         std::lock_guard<std::mutex> lock(this->graphSlamMutex);
         std::cout << "test for saving2" << std::endl;
+        int indexImage = 0;
+        //create image without motion compensation
+        for(int i = 0 ; i<this->graphSaved.getVertexList()->size();i++){
+            if(this->graphSaved.getVertexList()->at(i).getTypeOfVertex() == INTENSITY_SAVED_AND_KEYFRAME) {
+
+
+
+            }
+        }
+
+        indexImage = 0;
+        //create image with motion compensation(saved images)
+        for(int i = 0 ; i<this->graphSaved.getVertexList()->size();i++){
+            if(this->graphSaved.getVertexList()->at(i).getTypeOfVertex() == INTENSITY_SAVED_AND_KEYFRAME){
+
+                double *voxelData1;
+                voxelData1 = (double *) malloc(
+                        sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
+
+                this->graphSaved.getVertexList()->at(i).getIntensityScan(voxelData1, NUMBER_OF_POINTS_DIMENSION);
+                //save this scan voxelData1
+                std::ofstream myFile1;
+                myFile1.open(
+                        "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/IROSResults/imagesComparison/motionCompensation" + std::to_string(indexImage)+ ".csv");
+
+                for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
+                    for (int k = 0; k < NUMBER_OF_POINTS_DIMENSION; k++) {
+                        myFile1 << voxelData1[j + NUMBER_OF_POINTS_DIMENSION * k]; // real part
+                        myFile1 << "\n";
+
+                    }
+                }
+
+                myFile1.close();
+                indexImage++;
+                free(voxelData1);
+            }
+        }
+        indexImage = 0;
+        //create image with SLAM compensation
+        for(int i = 0 ; i<this->graphSaved.getVertexList()->size();i++){
+            if(this->graphSaved.getVertexList()->at(i).getTypeOfVertex() == INTENSITY_SAVED_AND_KEYFRAME){
+                int indexEnd;
+                //create SCAN by current slam estimation:
+                slamToolsRos::calculateEndIndexForVoxelCreationByStartIndex(i, indexEnd, this->graphSaved);
+
+
+                double *voxelData1;
+                voxelData1 = (double *) malloc(
+                        sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
+
+                double maximumVoxel2 = slamToolsRos::createVoxelOfGraphStartEndPoint(voxelData1, i, indexEnd,
+                                                                                     NUMBER_OF_POINTS_DIMENSION,
+                                                                                     this->graphSaved,
+                                                                                     IGNORE_DISTANCE_TO_ROBOT,
+                                                                                     DIMENSION_OF_VOXEL_DATA_FOR_MATCHING,
+                                                                                     Eigen::Matrix4d::Identity());//get voxel
+
+                //save voxel here voxelData1
+
+                std::ofstream myFile1;
+                myFile1.open(
+                        "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/IROSResults/imagesComparison/slamCompensation" + std::to_string(indexImage)+ ".csv");
+
+                for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
+                    for (int k = 0; k < NUMBER_OF_POINTS_DIMENSION; k++) {
+                        myFile1 << voxelData1[j + NUMBER_OF_POINTS_DIMENSION * k]; // real part
+                        myFile1 << "\n";
+
+                    }
+                }
+                myFile1.close();
+
+
+
+                indexImage++;
+                free(voxelData1);
+            }
+        }
+
+
 
         std::ofstream myFile1, myFile2;
         myFile1.open(
@@ -481,11 +574,7 @@ private:
             end = std::chrono::steady_clock::now();
             timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 //            std::cout << timeToCalculate << std::endl;
-            double timeToWait = 10;
-            if(SIMULATION_SYSTEM){
-                timeToWait = 20;
-            }
-            if(timeToCalculate>timeToWait){
+            if(timeToCalculate>10){
                 break;
             }
         }
@@ -495,12 +584,7 @@ private:
 //        std::cout << "tmp4" << std::endl;
         end = std::chrono::steady_clock::now();
         timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-//        std::cout << timeToCalculate << std::endl;
-        double timeToWait = 8;
-        if(SIMULATION_SYSTEM){
-            timeToWait = 40;
-        }
-        if(timeToCalculate>timeToWait){
+        if(timeToCalculate>8){
             return false;
         }else{
             return true;
@@ -550,7 +634,7 @@ private:
         std::lock_guard<std::mutex> lock(this->groundTruthMutex);
         while (!this->currentPositionGTDeque.empty()) {
             double currentTimeStampOfInterest = this->currentPositionGTDeque[0].timeStamp;
-//            std::cout << currentTimeStampOfInterest << std::endl;
+            std::cout << currentTimeStampOfInterest << std::endl;
             int i = this->graphSaved.getVertexList()->size() - 1;
             while (this->graphSaved.getVertexList()->at(i).getTimeStamp() >= currentTimeStampOfInterest) {
                 i--;
