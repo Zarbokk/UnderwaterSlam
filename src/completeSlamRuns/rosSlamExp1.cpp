@@ -16,15 +16,15 @@
 #include "commonbluerovmsg/staterobotforevaluation.h"
 
 #define NUMBER_OF_POINTS_DIMENSION 128
-#define DIMENSION_OF_VOXEL_DATA_FOR_MATCHING 50 // was 50 //tuhh tank 6
+#define DIMENSION_OF_VOXEL_DATA_FOR_MATCHING 10 // was 50 //tuhh tank 6
 #define NUMBER_OF_POINTS_MAP 512//was 512
-// 80 simulation 300 valentin 45.0 for Keller 10.0 TUHH TANK
-#define DIMENSION_OF_MAP 80.0
+// 80 simulation 300 valentin 45.0 for Keller 10.0 TUHH TANK 15.0 Ocean
+#define DIMENSION_OF_MAP 15.0
 
-#define IGNORE_DISTANCE_TO_ROBOT 1.0 // was 1.0 // TUHH 0.2
+#define IGNORE_DISTANCE_TO_ROBOT 0.3 // was 1.0 // TUHH 0.2
 #define DEBUG_REGISTRATION false
 
-#define ROTATION_SONAR 0 // sonar on robot M_PI // simulation 0
+#define ROTATION_SONAR M_PI // sonar on robot M_PI // simulation 0
 #define SHOULD_USE_ROSBAG false
 #define FACTOR_OF_MATCHING 1.0 //1.5
 #define THRESHOLD_FOR_TRANSLATION_MATCHING 0.1 // standard is 0.1, 0.05 und 0.01  // 0.05 for valentin Oben
@@ -33,7 +33,7 @@
 #define INTEGRATED_NOISE_YAW 0.03 // was 0.03 // TUHH 0.005
 
 #define USE_INITIAL_TRANSLATION_LOOP_CLOSURE true
-#define MAXIMUM_LOOP_CLOSURE_DISTANCE 2.0 // 0.2 TUHH 2.0 valentin Keller 4.0 Valentin Oben // 2.0 simulation
+#define MAXIMUM_LOOP_CLOSURE_DISTANCE 0.2 // 0.2 TUHH 2.0 valentin Keller 4.0 Valentin Oben // 2.0 simulation
 
 #define TUHH_SYSTEM false
 #define SIMULATION_SYSTEM true
@@ -291,7 +291,7 @@ private:
             // result is matrix to transform scan 1 to scan 2 therefore later inversed + initial guess inversed
 
 
-            this->currentEstimatedTransformation = slamToolsRos::registrationOfTwoVoxels(voxelData1, voxelData2,
+            this->currentEstimatedTransformation = slamToolsRos::registrationOfTwoVoxelsFast(voxelData1, voxelData2,
                                                                                          this->initialGuessTransformation,
                                                                                          covarianceEstimation, true,
                                                                                          true,
