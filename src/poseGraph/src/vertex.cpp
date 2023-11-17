@@ -102,5 +102,11 @@ void vertex::getIntensityScan(double *outputVoxelData, int sizeVoxelData) {
 
 }
 
+void vertex::setNumberOfMarkersSeen(double numberOfMarkers){
+    this->numberOfMarkersSeen = numberOfMarkers;
+}
 
+double vertex::getNumberOfMarkersSeen() const{
 
+    return this->numberOfMarkersSeen;
+}

@@ -7,6 +7,7 @@
 
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
+
 #include <Eigen/Geometry>
 #include <Eigen/StdVector>
 #include <iostream>
@@ -36,6 +37,12 @@ public:
     static double normalizeAngle(double inputAngle);
 
     static std::vector<std::string> getNextLineAndSplitIntoTokens(std::istream &str);
+
+    static void splitTransformationMatrixToQuadAndTrans(Eigen::Vector3d &translation, Eigen::Quaterniond &rotation,
+                                                        Eigen::Matrix4d &transformationMatrix);
+
+    static Eigen::Matrix4d getTransformationMatrixTF2(tf2::Vector3 &translation, tf2::Quaternion &rotation);
+
 };
 
 

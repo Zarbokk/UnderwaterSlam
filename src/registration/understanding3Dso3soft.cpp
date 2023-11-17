@@ -13,7 +13,7 @@
 #include <opencv2/highgui.hpp>
 #include <filesystem>
 #include "scanRegistrationClass.h"
-#include "sofftCorrelationClass.h"
+
 
 //#include "soft20/s2_cospmls.h"
 //#include "soft20/s2_semi_memo.h"

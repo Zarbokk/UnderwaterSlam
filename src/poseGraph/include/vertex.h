@@ -7,10 +7,11 @@
 //#include <vector>
 #include "eigen3/Eigen/Geometry"
 //#include <Eigen3/Geometry>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
+//#include <pcl/point_cloud.h>
+//#include <pcl/point_types.h>
 //#include <pcl_conversions/pcl_conversions.h>
 #include "generalStructs.h"
+#include <iostream>
 
 class vertex {
 
@@ -35,25 +36,25 @@ public:
     }
 
     // point cloud and no intensities
-    vertex(int vertexNumber, const Eigen::Vector3d &positionVertex, const Eigen::Quaterniond &rotationVertex,
-           int degreeOfFreedom, const pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloudRaw1,
-           const Eigen::Matrix3d &covariance, double timeStamp, int typeOfVertex) {
-        if (degreeOfFreedom == 3) {
-            this->keyNumber = vertexNumber;
-            this->positionVertex = positionVertex;
-            this->rotationVertex = rotationVertex;
-            this->rotationVertex.normalize();
-            this->covariance = covariance;
-            setPointCloudRawPTRCP(pointCloudRaw1);
-            this->typeOfVertex = typeOfVertex;
-            this->timeStamp = timeStamp;
-            this->groundTruthTransformation = Eigen::Matrix4d::Zero();
-            this->voxelData = NULL;
-        } else {
-            std::cout << "not yet implemented DOF 6" << std::endl;
-            std::exit(-1);
-        }
-    }
+//    vertex(int vertexNumber, const Eigen::Vector3d &positionVertex, const Eigen::Quaterniond &rotationVertex,
+//           int degreeOfFreedom, const pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloudRaw1,
+//           const Eigen::Matrix3d &covariance, double timeStamp, int typeOfVertex) {
+//        if (degreeOfFreedom == 3) {
+//            this->keyNumber = vertexNumber;
+//            this->positionVertex = positionVertex;
+//            this->rotationVertex = rotationVertex;
+//            this->rotationVertex.normalize();
+//            this->covariance = covariance;
+//            setPointCloudRawPTRCP(pointCloudRaw1);
+//            this->typeOfVertex = typeOfVertex;
+//            this->timeStamp = timeStamp;
+//            this->groundTruthTransformation = Eigen::Matrix4d::Zero();
+//            this->voxelData = NULL;
+//        } else {
+//            std::cout << "not yet implemented DOF 6" << std::endl;
+//            std::exit(-1);
+//        }
+//    }
 
     // only intensities
     vertex(int vertexNumber, const Eigen::Vector3d &positionVertex, const Eigen::Quaterniond &rotationVertex,
@@ -87,13 +88,13 @@ public:
 
     void setRotationVertex(const Eigen::Quaterniond &rotationVertexInput);
 
-    [[nodiscard]] pcl::PointCloud<pcl::PointXYZ>::Ptr getPointCloudCorrected() const;
-
-    void setPointCloudCorrected(const pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloud);
-
-    [[nodiscard]] pcl::PointCloud<pcl::PointXYZ>::Ptr getPointCloudRaw() const;
-
-    void setPointCloudRawPTRCP(const pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloud);
+//    [[nodiscard]] pcl::PointCloud<pcl::PointXYZ>::Ptr getPointCloudCorrected() const;
+//
+//    void setPointCloudCorrected(const pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloud);
+//
+//    [[nodiscard]] pcl::PointCloud<pcl::PointXYZ>::Ptr getPointCloudRaw() const;
+//
+//    void setPointCloudRawPTRCP(const pcl::PointCloud<pcl::PointXYZ>::Ptr &pointCloud);
 
     const Eigen::Matrix3d getCovarianceMatrix() const;
 
@@ -110,7 +111,7 @@ public:
 
     void setTimeStamp(double timeStampInput);
 
-    [[nodiscard]] intensityMeasurement getIntensities() const;
+    intensityMeasurement getIntensities() const;
 
     void setIntensities(const intensityMeasurement &intensitiesInput);
 
@@ -122,6 +123,10 @@ public:
 
     void getIntensityScan(double *outputVoxelData, int sizeVoxelData);
 
+    void setNumberOfMarkersSeen(double numberOfMarkers);
+
+    double getNumberOfMarkersSeen() const;
+
 private:
     int keyNumber;
     Eigen::Vector3d positionVertex;// position w.r.t. Initiial Starting Position
@@ -129,6 +134,7 @@ private:
     Eigen::Matrix3d covariance;
     intensityMeasurement intensities;
     Eigen::Matrix4d groundTruthTransformation;
+    double numberOfMarkersSeen;
     double *voxelData;
     int typeOfVertex;
     double timeStamp;

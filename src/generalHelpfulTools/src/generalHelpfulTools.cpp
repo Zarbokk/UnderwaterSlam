@@ -45,6 +45,7 @@ double generalHelpfulTools::angleDiff(double first, double second) {//first-seco
 
 Eigen::Matrix4d generalHelpfulTools::interpolationTwo4DTransformations(Eigen::Matrix4d &transformation1,
                                                                        Eigen::Matrix4d &transformation2, double &t) {
+    //computes the transofrmation matrix at time point t between 2 and 1
     if (t < 0 || t > 1) {
         std::cout << "t value not between 0 and 1: " << t << std::endl;
         exit(-1);
@@ -161,4 +162,18 @@ std::vector<std::string> generalHelpfulTools::getNextLineAndSplitIntoTokens(std:
     return result;
 }
 
+void generalHelpfulTools::splitTransformationMatrixToQuadAndTrans(Eigen::Vector3d &translation, Eigen::Quaterniond &rotation,
+                                                                  Eigen::Matrix4d &transformationMatrix) {
 
+    rotation = Eigen::Quaterniond(transformationMatrix.block<3, 3>(0, 0));
+    translation = transformationMatrix.block<3, 1>(0, 3);
+
+
+}
+
+Eigen::Matrix4d
+generalHelpfulTools::getTransformationMatrixTF2(tf2::Vector3 &translation, tf2::Quaternion &rotation) {
+    Eigen::Vector3d translationEigen(translation.x(), translation.y(), translation.z());
+    Eigen::Quaterniond rotationEigen(rotation.w(), rotation.x(), rotation.y(), rotation.z());
+    return generalHelpfulTools::getTransformationMatrix(translationEigen, rotationEigen);
+}

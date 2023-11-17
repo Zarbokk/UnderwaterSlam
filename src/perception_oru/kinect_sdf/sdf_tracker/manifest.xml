@@ -1,0 +1,23 @@
+<package>
+  <description brief="sdf_tracker">
+
+     sdf_tracker
+
+  </description>
+  <author>danielcanelhas</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/sdf_tracker</url>
+  <depend package="roscpp"/>
+  <depend package="std_msgs"/>
+  <depend package="cv_bridge"/>
+  <depend package="opencv2"/>
+  <rosdep name="eigen"/>
+
+  <export>
+    <cpp cflags="-I${prefix}/include" lflags="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -lsdf_tracker" />
+  </export>
+
+</package>
+
+
