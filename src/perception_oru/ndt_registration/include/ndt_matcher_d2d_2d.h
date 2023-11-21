@@ -42,6 +42,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include "oc_tree.h"
+#include "ndt_cell.h"
+#include "lazy_grid.h"
+#include "pointcloud_utils.h"
+#include "Eigen/Eigen"
+#include <fstream>
+#include <omp.h>
+#include <sys/time.h>
 
 namespace lslgeneric
 {

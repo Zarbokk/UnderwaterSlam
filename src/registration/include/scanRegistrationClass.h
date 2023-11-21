@@ -49,8 +49,9 @@
 #include <Eigen/Dense>
 
 
-//#include <ndt_matcher_p2d.h>
-//#include <ndt_matcher_d2d_2d.h>
+
+#include <ndt_matcher_p2d.h>
+#include <ndt_matcher_d2d_2d.h>
 
 //#include ""
 
@@ -60,11 +61,11 @@
 #include "opencv2/xfeatures2d.hpp"
 #include "opencv2/features2d.hpp"
 
-//#include <gmm_registration/front_end/GaussianMixturesModel.h>
-//#include <gmm_registration/front_end/GmmFrontEnd.hpp>
-//#include <gmm_registration/method/DistributionToDistribution2D.h>
-//#include <gmm_registration/solver/CholeskyLineSearchNewtonMethod.h>
-//#include <gmm_registration/method/PointsToDistribution2D.h>
+#include <gmm_registration/front_end/GaussianMixturesModel.h>
+#include <gmm_registration/front_end/GmmFrontEnd.hpp>
+#include <gmm_registration/method/DistributionToDistribution2D.h>
+#include <gmm_registration/solver/CholeskyLineSearchNewtonMethod.h>
+#include <gmm_registration/method/PointsToDistribution2D.h>
 
 
 
@@ -164,14 +165,14 @@ public:
 //    Eigen::Matrix4d super4PCSRegistration(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
 //                                          pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
 //                                          Eigen::Matrix4d initialGuess, bool useInitialGuess, bool debug = false);
-//
-//    Eigen::Matrix4d ndt_d2d_2d(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
-//                               pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan, Eigen::Matrix4d initialGuess,
-//                               bool useInitialGuess);
-//
-//    Eigen::Matrix4d ndt_p2d(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
-//                            pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan, Eigen::Matrix4d initialGuess,
-//                            bool useInitialGuess);
+
+    Eigen::Matrix4d ndt_d2d_2d(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                               pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan, Eigen::Matrix4d initialGuess,
+                               bool useInitialGuess);
+
+    Eigen::Matrix4d ndt_p2d(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                            pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan, Eigen::Matrix4d initialGuess,
+                            bool useInitialGuess);
 
     Eigen::Matrix4d registrationOfTwoVoxelsSOFFTFast(double voxelData1Input[],double maximumVoxel1,
                                                      double voxelData2Input[],double maximumVoxel2,
@@ -199,13 +200,13 @@ public:
                                              double cellSize,int methodType,
                                              bool debug = false);
 
-//    Eigen::Matrix4d gmmRegistrationD2D(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
-//                                       pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
-//                                       Eigen::Matrix4d initialGuess, bool useInitialGuess, bool debug = false);
-//
-//    Eigen::Matrix4d gmmRegistrationP2D(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
-//                                       pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
-//                                       Eigen::Matrix4d initialGuess, bool useInitialGuess, bool debug = false);
+    Eigen::Matrix4d gmmRegistrationD2D(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                                       pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
+                                       Eigen::Matrix4d initialGuess, bool useInitialGuess, bool debug = false);
+
+    Eigen::Matrix4d gmmRegistrationP2D(pcl::PointCloud<pcl::PointXYZ> &cloudFirstScan,
+                                       pcl::PointCloud<pcl::PointXYZ> &cloudSecondScan,
+                                       Eigen::Matrix4d initialGuess, bool useInitialGuess, bool debug = false);
 
 
 

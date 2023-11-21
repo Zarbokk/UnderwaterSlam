@@ -46,7 +46,8 @@
 #define USES_GROUND_TRUTH true
 #define PATH_TO_MATLAB_FOLDER "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/datasetReleaseJournal/csvFiles/"
 
-#define NAME_OF_CURRENT_METHOD "randomTest"
+#define NAME_OF_CURRENT_METHOD "tracking7m2step"
+
 
 class rosClassSlam : public rclcpp::Node {
 public:

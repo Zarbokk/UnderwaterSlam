@@ -224,8 +224,9 @@ private:
 
     //EKF savings
     std::deque<edge> posDiffOverTimeEdges;
-    std::deque<double> xPositionVector, yPositionVector, zPositionVector, timeVector;//,yawAngleVector,pitchAngleVector,rollAngleVector;
-    std::deque<Eigen::Quaterniond> rotationVector;
+//    std::deque<double> xPositionVector, yPositionVector, zPositionVector, timeVector;//,yawAngleVector,pitchAngleVector,rollAngleVector;
+    std::deque<transformationStamped> ekfTransformationList;
+//    std::deque<Eigen::Quaterniond> rotationVector;
 
     // GT savings
     std::deque<transformationStamped> currentPositionGTDeque;
@@ -294,12 +295,10 @@ private:
         }
         edge differenceOfEdge = slamToolsRos::calculatePoseDiffByTimeDepOnEKF(
                 this->graphSaved.getVertexList()->back().getTimeStamp(), rclcpp::Time(msg->header.stamp).seconds(),
-                this->timeVector,
-                this->xPositionVector, this->yPositionVector,
-                this->zPositionVector, this->rotationVector, this->stateEstimationMutex);
-        slamToolsRos::clearSavingsOfPoses(this->graphSaved.getVertexList()->back().getTimeStamp() - 2, this->timeVector,
-                                          this->xPositionVector, this->yPositionVector,
-                                          this->zPositionVector, this->rotationVector, this->stateEstimationMutex);
+                this->ekfTransformationList, this->stateEstimationMutex);
+        slamToolsRos::clearSavingsOfPoses(this->graphSaved.getVertexList()->back().getTimeStamp() - 2.0,
+                                          this->ekfTransformationList, this->currentPositionGTDeque,
+                                          this->stateEstimationMutex);
 
         Eigen::Matrix4d tmpTransformation = this->graphSaved.getVertexList()->back().getTransformation();
         tmpTransformation = tmpTransformation * differenceOfEdge.getTransformation();
@@ -464,7 +463,7 @@ private:
 
             slamToolsRos::visualizeCurrentPoseGraph(this->graphSaved, this->publisherPathOverTime,
                                                     this->publisherMarkerArray, this->sigmaScaling,
-                                                    this->publisherPoseSLAM, this->publisherMarkerArrayLoopClosures);
+                                                    this->publisherPoseSLAM, this->publisherMarkerArrayLoopClosures,this->publisherPathOverTimeGT);
             //            this->graphSaved.classicalOptimizeGraph(true);
             std::cout << "next: " << std::endl;
 
@@ -478,7 +477,7 @@ private:
 //        this->graphSaved.isam2OptimizeGraph(true,1);
         slamToolsRos::visualizeCurrentPoseGraph(this->graphSaved, this->publisherPathOverTime,
                                                 this->publisherMarkerArray, this->sigmaScaling,
-                                                this->publisherPoseSLAM, this->publisherMarkerArrayLoopClosures);
+                                                this->publisherPoseSLAM, this->publisherMarkerArrayLoopClosures,this->publisherPathOverTimeGT);
 //        std::cout << "huhu3" << std::endl;
     }
 
@@ -491,21 +490,28 @@ private:
 
         // calculate where to put the current new message
         int i = 0;
-        if (!this->timeVector.empty()) {
-            i = this->timeVector.size();
-            while (this->timeVector[i - 1] > currentTimeStamp) {
+        if (!this->ekfTransformationList.empty()) {
+            i = this->ekfTransformationList.size();
+            while (this->ekfTransformationList[i - 1].timeStamp > currentTimeStamp) {
                 i--;
             }
         }
 
-        if (i == this->timeVector.size() || i == 0) {
+        if (i == this->ekfTransformationList.size() || i == 0) {
             Eigen::Quaterniond tmpQuad(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x,
                                        msg->pose.pose.orientation.y, msg->pose.pose.orientation.z);
-            this->rotationVector.push_back(tmpQuad);
-            this->timeVector.push_back(rclcpp::Time(msg->header.stamp).seconds());
-            this->xPositionVector.push_back(msg->pose.pose.position.x);
-            this->yPositionVector.push_back(msg->pose.pose.position.y);
-            this->zPositionVector.push_back(msg->pose.pose.position.z);
+            Eigen::Vector3d tmpVec(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z);
+            Eigen::Matrix4d transformationMatrix = generalHelpfulTools::getTransformationMatrix(tmpVec, tmpQuad);
+
+            transformationStamped tmpTransformationStamped;
+            tmpTransformationStamped.timeStamp = rclcpp::Time(msg->header.stamp).seconds();
+            tmpTransformationStamped.transformation = transformationMatrix;
+//            this->rotationVector.push_back(tmpQuad);
+
+            this->ekfTransformationList.push_back(tmpTransformationStamped);
+//            this->xPositionVector.push_back(msg->pose.pose.position.x);
+//            this->yPositionVector.push_back(msg->pose.pose.position.y);
+//            this->zPositionVector.push_back(msg->pose.pose.position.z);
         } else {
             std::cout << "should mean an EKF message came in different order" << std::endl;
             exit(0);
@@ -567,13 +573,13 @@ private:
 
         double timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 //        std::cout << "tmp1" << std::endl;
-        while (this->timeVector.empty() && timeToCalculate < 2000) {
+        while (this->ekfTransformationList.empty() && timeToCalculate < 2000) {
             rclcpp::sleep_for(std::chrono::nanoseconds(2000000));
             end = std::chrono::steady_clock::now();
             timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
         }
 //        std::cout << "tmp2" << std::endl;
-        while (timeUntilWait > timeVector.back()) {
+        while (timeUntilWait > ekfTransformationList.back().timeStamp) {
 //            std::cout <<  std::setprecision(19);
 //            std::cout << "test1" << std::endl;
 //            std::cout <<  timeUntilWait << std::endl;
@@ -585,7 +591,7 @@ private:
             end = std::chrono::steady_clock::now();
             timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 //            std::cout << timeToCalculate << std::endl;
-            double timeToWait = 40;
+            double timeToWait = 4000;
 //            if (USES_GROUND_TRUTH) {
 //                timeToWait = 20;
 //            }
@@ -603,7 +609,7 @@ private:
 //        std::cout << timeToCalculate << std::endl;
         double timeToWait = 40;
         if (USES_GROUND_TRUTH) {
-            timeToWait = 40;
+            timeToWait = 4000;
         }
         if (timeToCalculate > timeToWait) {
             return false;

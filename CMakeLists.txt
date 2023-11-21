@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.10)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
@@ -33,6 +33,7 @@ find_package(cv_bridge REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(PythonLibs REQUIRED)
 find_package(mocap_msgs)
+find_package(gmm_registration)
 ################################################################################
 # 2D Peak Algorithm
 ################################################################################
@@ -88,7 +89,7 @@ target_link_libraries(posegraph PUBLIC generalinterface json generalhelpfullib g
 ################################################################################
 
 add_library(fmt_registration SHARED src/registration/src/image_registration.cpp src/registration/src/image_transforms.cpp src/registration/src/image_dft.cpp)
-ament_target_dependencies(fmt_registration PUBLIC Eigen3 )
+ament_target_dependencies(fmt_registration PUBLIC Eigen3)
 target_link_libraries(fmt_registration PUBLIC ${OpenCV_LIBS} fftw3)
 target_include_directories(fmt_registration PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/registration/include ${OpenCV_INCLUDE_DIRS}) # ${catkin_INCLUDE_DIRS}
 
@@ -116,11 +117,34 @@ add_library(perception_oru SHARED
 
         src/perception_oru/pointcloud_vrml/include/impl/pointcloud_utils.cpp
 )
-target_include_directories(perception_oru PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/perception_oru/ndt_map/include ${CMAKE_CURRENT_SOURCE_DIR}/src/perception_oru/ndt_registration/include ${CMAKE_CURRENT_SOURCE_DIR}/src/perception_oru/pointcloud_vrml/include ${OpenCV_INCLUDE_DIRS})
-#target_link_libraries(perception_oru OpenMP::OpenMP_CXX)
-ament_target_dependencies(perception_oru PCL)
+
+target_include_directories(perception_oru PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/perception_oru/ndt_map/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/perception_oru/ndt_registration/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/perception_oru/pointcloud_vrml/include
+        ${OpenCV_INCLUDE_DIRS})
+
 set_target_properties(perception_oru PROPERTIES LINKER_LANGUAGE CXX)
 
+target_link_libraries(perception_oru OpenMP::OpenMP_CXX )
+
+ament_target_dependencies(perception_oru PCL)
+
+#install(DIRECTORY src/perception_oru/ndt_map/include  src/perception_oru/ndt_registration/include src/perception_oru/pointcloud_vrml/include
+#        DESTINATION include)
+
+#install(
+#        TARGETS perception_oru
+#        EXPORT ${PROJECT_NAME}
+#        LIBRARY DESTINATION lib
+#        ARCHIVE DESTINATION lib
+#        RUNTIME DESTINATION bin
+#        INCLUDES DESTINATION include
+#)
+
+
+
+
+#ament_export_targets(perception_oru HAS_LIBRARY_TARGET)
 
 ################################################################################
 # scan Registration
@@ -128,8 +152,9 @@ set_target_properties(perception_oru PROPERTIES LINKER_LANGUAGE CXX)
 
 add_library(registrationlib SHARED src/registration/src/scanRegistrationClass.cpp)
 ament_target_dependencies(registrationlib Eigen3 rclcpp fs2d cv_bridge tf2 tf2_geometry_msgs GTSAM PCL PythonLibs)
-target_include_directories(registrationlib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/registration/include ${OpenCV_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIRS}) #${PCL_INCLUDE_DIRS}
-target_link_libraries(registrationlib generalhelpfullib perception_oru fmt_registration ${OpenCV_LIBS} ${PCL_LIBRARIES})# ${PYTHON_LIBRARIES}
+target_include_directories(registrationlib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/registration/include ${OpenCV_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIRS} perception_oru) #${PCL_INCLUDE_DIRS}
+target_link_libraries(registrationlib generalhelpfullib fmt_registration ${OpenCV_LIBS} ${PCL_LIBRARIES} gmm_registration perception_oru)# ${PYTHON_LIBRARIES}
+
 
 ################################################################################
 # slamtools
@@ -184,14 +209,16 @@ target_link_libraries(slamtools posegraph registrationlib)
 
 #target_include_directories(gtsamExample PUBLIC ${EIGEN3_INCLUDE_DIR} ${GTSAM_INCLUDE_DIR})
 
+
 add_executable(rosSlamTest src/completeSlamRuns/rosSlamExp1.cpp)
-ament_target_dependencies(rosSlamTest GTSAM geometry_msgs ping360_sonar_msgs nav_msgs commonbluerovmsg)
-target_link_libraries(rosSlamTest ${OpenCV_LIBS} posegraph slamtools generalhelpfullib registrationlib perception_oru)
+ament_target_dependencies(rosSlamTest GTSAM geometry_msgs ping360_sonar_msgs nav_msgs commonbluerovmsg )
+target_link_libraries(rosSlamTest ${OpenCV_LIBS} posegraph slamtools generalhelpfullib registrationlib)
+
 
 
 add_executable(extractingGroundTruthGraphData src/evaluation/extractingGraphDataForPlotting.cpp)
 ament_target_dependencies(extractingGroundTruthGraphData GTSAM geometry_msgs ping360_sonar_msgs nav_msgs commonbluerovmsg mocap_msgs)
-target_link_libraries(extractingGroundTruthGraphData ${OpenCV_LIBS} posegraph slamtools generalhelpfullib perception_oru )
+target_link_libraries(extractingGroundTruthGraphData ${OpenCV_LIBS} posegraph slamtools generalhelpfullib)
 
 #add_executable(testSLAM src/completeSlamRuns/testSLAMRUNS.cpp)
 #target_link_libraries(testSLAM gtsam posegraph slamtools registrationlib OpenMP::OpenMP_CXX fftw3 ${catkin_LIBRARIES} ${OpenCV_LIBS})
