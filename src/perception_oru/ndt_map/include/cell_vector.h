@@ -100,6 +100,6 @@ public:
 
 
 }; //end namespace
-//#include <impl/cell_vector.cpp>
+#include <impl/cell_vector.hpp>
 
 #endif

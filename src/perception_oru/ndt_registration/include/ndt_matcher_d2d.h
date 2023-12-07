@@ -38,11 +38,10 @@
 #include "ndt_map.h"
 #include "pcl/point_cloud.h"
 #include "Eigen/Core"
-#include "boost/bind.hpp"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <sys/time.h>
 
 namespace lslgeneric
 {
@@ -265,5 +264,5 @@ public:
 
 } // end namespace
 
-//#include <impl/ndt_matcher_d2d.cpp>
+#include <impl/ndt_matcher_d2d.hpp>
 #endif

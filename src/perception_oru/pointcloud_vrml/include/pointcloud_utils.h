@@ -82,7 +82,7 @@ template< typename PointT>
 double geomDist(PointT p1, PointT p2);
 
 };
-//#include<impl/pointcloud_utils.cpp>
+#include<impl/pointcloud_utils.hpp>
 
 #endif
 

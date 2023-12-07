@@ -107,5 +107,5 @@ public:
 
 };
 
-//#include <impl/ndt_histogram.cpp>
+#include <impl/ndt_histogram.hpp>
 #endif

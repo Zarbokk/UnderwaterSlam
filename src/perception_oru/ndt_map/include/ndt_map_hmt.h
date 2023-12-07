@@ -42,7 +42,7 @@
 
 #include <cstdlib>
 #include <lazy_grid.h>
-//#include <cv.h>
+#include <cv.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <sys/stat.h>
@@ -295,6 +295,6 @@ public:
 
 } // end namespace
 
-//#include <impl/ndt_map_hmt.cpp>
+#include <impl/ndt_map_hmt.hpp>
 
 #endif

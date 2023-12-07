@@ -37,7 +37,7 @@
 
 #include <spatial_index.h>
 #include <cell.h>
-#include<impl/EventCounterData.cpp>
+#include<impl/EventCounterData.hpp>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <vector>
@@ -409,6 +409,6 @@ public:
 };
 };
 
-//#include<impl/ndt_cell.cpp>
+#include<impl/ndt_cell.hpp>
 
 #endif

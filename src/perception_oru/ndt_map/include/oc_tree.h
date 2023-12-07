@@ -159,4 +159,6 @@ public:
 
 } //end namespace
 
+#include<impl/oc_tree.hpp>
+
 #endif

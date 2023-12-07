@@ -2,20 +2,14 @@
 // Created by tim-external on 27.07.22.
 //
 
-#include "geometry_msgs/PoseStamped.h"
-#include "sensor_msgs/Imu.h"
-#include "mavros_msgs/Altitude.h"
-#include "geometry_msgs/TwistStamped.h"
-//#include "ping360_sonar/SonarEcho.h"
-#include "commonbluerovmsg/SonarEcho2.h"
-#include "commonbluerovmsg/staterobotforevaluation.h"
+
 #include "generalHelpfulTools.h"
-#include "slamToolsRos.h"
-#include "commonbluerovmsg/saveGraph.h"
+
 #include <opencv2/imgcodecs.hpp>
-#include "std_srvs/SetBool.h"
+
 #include <filesystem>
 #include "future"
+#include "scanRegistrationClass.h"
 
 //#define HOME_LOCATION "/home/tim-external/dataFolder/ValentinBunkerData/"
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "4_7_Bunker_range_30_5_RandomShifts1510/"
@@ -35,7 +29,7 @@
 //#define HOME_LOCATION "/home/tim-external/dataFolder/StPereDataset/"
 //#define WHICH_FOLDER_SHOULD_BE_SAVED "randomShifts105/"
 
-
+// /home/tim-external/dataFolder/journalPaperDatasets/newDatasetsCreation/ speedTestsValentin/ 10
 
 
 //1: GICP, 2: SUPER4PCS, 3: NDT D2D 2D, 4: NDT P2D, 5: FourierMellinTransform, 6: Our FMS 2D 7: initial guess
@@ -61,7 +55,7 @@ struct measurementResults {
 
 
 // GLOBAL
-std::vector<scanRegistrationClass> scanRegistrationList;
+std::vector<scanRegistrationClass *> scanRegistrationList;
 std::vector<settingsMethodUsed> settingsMethodUsedList;
 
 
@@ -98,8 +92,9 @@ Eigen::Matrix4d registrationOfDesiredMethod(pcl::PointCloud<pcl::PointXYZ> pclNo
                                             double voxelDataShifted[],
                                             Eigen::Matrix4d initialGuess, double currentCellSize,
                                             int whichMethod, bool useInitialGuess,
-                                            scanRegistrationClass &scanRegistrationObject) {
-
+                                            scanRegistrationClass *scanRegistrationObject,double &timeToCalculate) {
+    std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point end;
     //1: GICP, 2: SUPER4PCS, 3: NDT D2D 2D, 4: NDT P2D, 5: FourierMellinTransform,
     //6: Our FMS 2D 7: FMS hamming 8: FMS none
     //9: Feature0 10: Feature1  11: Feature2 12: Feature3 13: Feature4 14: Feature5
@@ -109,112 +104,173 @@ Eigen::Matrix4d registrationOfDesiredMethod(pcl::PointCloud<pcl::PointXYZ> pclNo
     switch (whichMethod) {
         case 1:
             double fitnessScore;
-            returnMatrix = scanRegistrationObject.generalizedIcpRegistration(pclNotShifted, pclShifted, final,
-                                                                             fitnessScore, initialGuess).inverse();
+            returnMatrix = scanRegistrationObject->generalizedIcpRegistration(pclNotShifted, pclShifted, final,
+                                                                              fitnessScore, initialGuess).inverse();
+            end = std::chrono::steady_clock::now();
+            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
             break;
         case 2:
-            returnMatrix = scanRegistrationObject.super4PCSRegistration(pclNotShifted, pclShifted, initialGuess,
-                                                                        useInitialGuess);
+//            returnMatrix = scanRegistrationObject.super4PCSRegistration(pclNotShifted, pclShifted, initialGuess,
+//                                                                        useInitialGuess);
+            std::cout << "super 4PCS not implemented anymore" << std::endl;
+            end = std::chrono::steady_clock::now();
+            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
             break;
         case 3:
-            returnMatrix = scanRegistrationObject.ndt_d2d_2d(pclNotShifted, pclShifted, initialGuess,
-                                                             useInitialGuess).inverse();
+            returnMatrix = scanRegistrationObject->ndt_d2d_2d(pclNotShifted, pclShifted, initialGuess,
+                                                              useInitialGuess).inverse();
+            end = std::chrono::steady_clock::now();
+            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
             break;
         case 4:
-            returnMatrix = scanRegistrationObject.ndt_p2d(pclNotShifted, pclShifted, initialGuess,
-                                                          useInitialGuess).inverse();
+            returnMatrix = scanRegistrationObject->ndt_p2d(pclNotShifted, pclShifted, initialGuess,
+                                                           useInitialGuess).inverse();
+            end = std::chrono::steady_clock::now();
+            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
             break;
         case 5:
-            returnMatrix = scanRegistrationObject.registrationFourerMellin(voxelData, voxelDataShifted, currentCellSize,
-                                                                           false);
+            returnMatrix = scanRegistrationObject->registrationFourerMellin(voxelData, voxelDataShifted,
+                                                                            currentCellSize,
+                                                                            false);
+            end = std::chrono::steady_clock::now();
+            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
             break;
         case 6:
 
             covarianceEstimation = Eigen::Matrix3d::Zero();
             // THRESHOLD_FOR_TRANSLATION_MATCHING 0.05 // standard is 0.1, 0.05 und 0.01  // 0.05 for valentin Oben
-            returnMatrix = slamToolsRos::registrationOfTwoVoxels(voxelData, voxelDataShifted,
-                                                                 initialGuess,
-                                                                 covarianceEstimation, useInitialGuess,
-                                                                 useInitialGuess,
-                                                                 currentCellSize,
-                                                                 false, scanRegistrationObject,
-                                                                 false,
-                                                                 0.05);
+            if (useInitialGuess) {
+                returnMatrix = scanRegistrationObject->registrationOfTwoVoxelsSOFFTFast(voxelData, 1,
+                                                                                        voxelDataShifted, 1,
+                                                                                        initialGuess,
+                                                                                        covarianceEstimation,
+                                                                                        currentCellSize,timeToCalculate);
+
+            } else {
+                scanRegistrationObject->registrationOfTwoVoxelsSOFFTAllSoluations(voxelData, 1,
+                                                                                  voxelDataShifted, 1,
+                                                                                  initialGuess,
+                                                                                  covarianceEstimation,
+                                                                                  currentCellSize,timeToCalculate);
+            }
+//            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+//            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
             break;
         case 7:
             covarianceEstimation = Eigen::Matrix3d::Zero();
             // THRESHOLD_FOR_TRANSLATION_MATCHING 0.05 // standard is 0.1, 0.05 und 0.01  // 0.05 for valentin Oben
-            returnMatrix = slamToolsRos::registrationOfTwoVoxels(voxelData, voxelDataShifted,
-                                                                 initialGuess,
-                                                                 covarianceEstimation, useInitialGuess,
-                                                                 useInitialGuess,
-                                                                 currentCellSize,
-                                                                 false, scanRegistrationObject,
-                                                                 false,
-                                                                 0.05, false, false, true);
+
+            if (useInitialGuess) {
+                returnMatrix = scanRegistrationObject->registrationOfTwoVoxelsSOFFTFast(voxelData, 1,
+                                                                                        voxelDataShifted, 1,
+                                                                                        initialGuess,
+                                                                                        covarianceEstimation,
+                                                                                        currentCellSize,timeToCalculate);
+
+            } else {
+                scanRegistrationObject->registrationOfTwoVoxelsSOFFTAllSoluations(voxelData, 1,
+                                                                                  voxelDataShifted, 1,
+                                                                                  initialGuess,
+                                                                                  covarianceEstimation,
+                                                                                  currentCellSize,timeToCalculate);
+            }
+//            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+//            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
             break;
         case 8:
             covarianceEstimation = Eigen::Matrix3d::Zero();
             // THRESHOLD_FOR_TRANSLATION_MATCHING 0.05 // standard is 0.1, 0.05 und 0.01  // 0.05 for valentin Oben
-            returnMatrix = slamToolsRos::registrationOfTwoVoxels(voxelData, voxelDataShifted,
-                                                                 initialGuess,
-                                                                 covarianceEstimation, useInitialGuess,
-                                                                 useInitialGuess,
-                                                                 currentCellSize,
-                                                                 false, scanRegistrationObject,
-                                                                 false,
-                                                                 0.05, false, false, false);
+            if (useInitialGuess) {
+                returnMatrix = scanRegistrationObject->registrationOfTwoVoxelsSOFFTFast(voxelData, 1,
+                                                                                        voxelDataShifted, 1,
+                                                                                        initialGuess,
+                                                                                        covarianceEstimation,
+                                                                                        currentCellSize,timeToCalculate);
+
+            } else {
+                scanRegistrationObject->registrationOfTwoVoxelsSOFFTAllSoluations(voxelData, 1,
+                                                                                  voxelDataShifted, 1,
+                                                                                  initialGuess,
+                                                                                  covarianceEstimation,
+                                                                                  currentCellSize,timeToCalculate);
+            }
+//           std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+//            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
             break;
         case 9:
-            returnMatrix = scanRegistrationObject.registrationFeatureBased(voxelData, voxelDataShifted, currentCellSize,
-                                                                           0, false);
+            returnMatrix = scanRegistrationObject->registrationFeatureBased(voxelData, voxelDataShifted,
+                                                                            currentCellSize,
+                                                                            0, false);
+            end = std::chrono::steady_clock::now();
+            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
 //            std::cout << returnMatrix << std::endl;
 //            std::cout << "test" << std::endl;
             break;
         case 10:
-            returnMatrix = scanRegistrationObject.registrationFeatureBased(voxelData, voxelDataShifted, currentCellSize,
-                                                                           1, false);
+            returnMatrix = scanRegistrationObject->registrationFeatureBased(voxelData, voxelDataShifted,
+                                                                            currentCellSize,
+                                                                            1, false);
+            end = std::chrono::steady_clock::now();
+            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
 
 //            std::cout << returnMatrix << std::endl;
 //            std::cout << "test" << std::endl;
             break;
         case 11:
-            returnMatrix = scanRegistrationObject.registrationFeatureBased(voxelData, voxelDataShifted, currentCellSize,
-                                                                           2, false);
+            returnMatrix = scanRegistrationObject->registrationFeatureBased(voxelData, voxelDataShifted,
+                                                                            currentCellSize,
+                                                                            2, false);
+            end = std::chrono::steady_clock::now();
+            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
 //            std::cout << returnMatrix << std::endl;
 //            std::cout << "test" << std::endl;
             break;
         case 12:
-            returnMatrix = scanRegistrationObject.registrationFeatureBased(voxelData, voxelDataShifted, currentCellSize,
-                                                                           3, false);
+            returnMatrix = scanRegistrationObject->registrationFeatureBased(voxelData, voxelDataShifted,
+                                                                            currentCellSize,
+                                                                            3, false);
+            end = std::chrono::steady_clock::now();
+            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
 //            std::cout << returnMatrix << std::endl;
 //            std::cout << "test" << std::endl;
             break;
         case 13:
-            returnMatrix = scanRegistrationObject.registrationFeatureBased(voxelData, voxelDataShifted, currentCellSize,
-                                                                           4, false);
+            returnMatrix = scanRegistrationObject->registrationFeatureBased(voxelData, voxelDataShifted,
+                                                                            currentCellSize,
+                                                                            4, false);
+            end = std::chrono::steady_clock::now();
+            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
 //            std::cout << returnMatrix << std::endl;
 //            std::cout << "test" << std::endl;
             break;
         case 14:
-            returnMatrix = scanRegistrationObject.registrationFeatureBased(voxelData, voxelDataShifted, currentCellSize,
-                                                                           5, false);
+            returnMatrix = scanRegistrationObject->registrationFeatureBased(voxelData, voxelDataShifted,
+                                                                            currentCellSize,
+                                                                            5, false);
+            end = std::chrono::steady_clock::now();
+            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
 //            std::cout << returnMatrix << std::endl;
 //            std::cout << "test" << std::endl;
             break;
         case 15:
-            returnMatrix = scanRegistrationObject.gmmRegistrationD2D(pclNotShifted, pclShifted, initialGuess,
-                                                                     useInitialGuess,true);
+            returnMatrix = scanRegistrationObject->gmmRegistrationD2D(pclNotShifted, pclShifted, initialGuess,
+                                                                      useInitialGuess, true);
+            end = std::chrono::steady_clock::now();
+            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
 //            std::cout << returnMatrix << std::endl;
 //            std::cout << "test" << std::endl;
             break;
         case 16:
-            returnMatrix = scanRegistrationObject.gmmRegistrationP2D(pclNotShifted, pclShifted, initialGuess,
-                                                                     useInitialGuess,true);
+            returnMatrix = scanRegistrationObject->gmmRegistrationP2D(pclNotShifted, pclShifted, initialGuess,
+                                                                      useInitialGuess, true);
+            end = std::chrono::steady_clock::now();
+            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
 //            std::cout << returnMatrix << std::endl;
 //            std::cout << "test" << std::endl;
             break;
     }
+
+
 
     return returnMatrix;
 
@@ -255,17 +311,22 @@ handleRegistrationsOfDirectory(const std::string &s) {
                 gtTransformation(i, j) = std::stod(transformationMatrixList[j]);
             }
         }
-        for (int currentVoxelSize = 0;
-             currentVoxelSize < sizeOfVoxelGridList.size() - 1; currentVoxelSize++) {
+//        for (int currentVoxelSize = 0;currentVoxelSize < sizeOfVoxelGridList.size() - 1; currentVoxelSize++) {//this is size()-1 but for now size()-2
+        for (int currentVoxelSize = 0;currentVoxelSize < sizeOfVoxelGridList.size() - 2; currentVoxelSize++) {//this is size()-1 but for now size()-2
+
             int ourN = std::stoi(sizeOfVoxelGridList[currentVoxelSize]);
+//            std::cout << "ourN"<< std::endl;
+//            std::cout << ourN<< std::endl;
+
             for (auto currentSettings: settingsMethodUsedList) {
                 measurementResults tmpMeasurements;
                 tmpMeasurements.initialGuess = currentSettings.initialGuess;
                 tmpMeasurements.whichMethod = currentSettings.whichMethod;
                 tmpMeasurements.voxelSize = std::stoi(sizeOfVoxelGridList[currentVoxelSize]);
                 tmpMeasurements.overlapValue = overlapValue;
+                std::cout << "currentMethod:" << std::endl;
+                std::cout << tmpMeasurements.whichMethod << std::endl;
 
-                //        std::cout << gtTransformation << std::endl;
                 pcl::PointCloud<pcl::PointXYZ> final;
 
                 pcl::PointCloud<pcl::PointXYZ> pclNotShifted;
@@ -324,8 +385,8 @@ handleRegistrationsOfDirectory(const std::string &s) {
                 Eigen::Matrix4d estimatedTransformation;
 
                 // for each test do X
-                std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
+                double timeToCalculate;
                 estimatedTransformation = registrationOfDesiredMethod(pclNotShifted,
                                                                       pclShifted, final, voxelData, voxelDataShifted,
                                                                       initialGuess,
@@ -333,7 +394,7 @@ handleRegistrationsOfDirectory(const std::string &s) {
                                                                       std::stod(sizeOfVoxelGridList[currentVoxelSize]),
                                                                       currentSettings.whichMethod,
                                                                       currentSettings.initialGuess,
-                                                                      scanRegistrationList[currentVoxelSize]);
+                                                                      scanRegistrationList[currentVoxelSize],timeToCalculate);
 
 
 //                estimatedTransformation = scanRegistrationList[currentVoxelSize].generalizedIcpRegistration(pclNotShifted,
@@ -341,8 +402,7 @@ handleRegistrationsOfDirectory(const std::string &s) {
 //                                                                                                            final,
 //                                                                                                            fitnessScoreX,
 //                                                                                                            initialGuess);
-                std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-                double timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+
                 tmpMeasurements.calculationTime = timeToCalculate;
 
                 //calculate the angle
@@ -401,6 +461,7 @@ handleRegistrationsOfDirectory(const std::string &s) {
 
 // HOME_LOCATION WHICH_FOLDER_SHOULD_BE_SAVED numberOfScans
 int main(int argc, char **argv) {
+    rclcpp::init(argc, argv);
 
     //1: GICP, 2: SUPER4PCS, 3: NDT D2D 2D, 4: NDT P2D, 5: FourierMellinTransform, 6: Our FMS 2D 7: initial guess
 //    std::vector<settingsMethodUsed> settingsMethodUsedList;
@@ -491,9 +552,14 @@ int main(int argc, char **argv) {
 //    std::vector<scanRegistrationClass> scanRegistrationList;
     for (int i = 0; i < sizeOfVoxelGridList.size() - 1; i++) {
 //    for (int i = 0; i < 1; i++) {
+        std::string nameOfTheNode = "registrationObject" +
+                                    to_string(i);
         int sizeVoxel = std::stoi(sizeOfVoxelGridList[i]);
-        scanRegistrationClass scanRegistrationObject(sizeVoxel, sizeVoxel / 2, sizeVoxel / 2, sizeVoxel / 2 - 1);
-        scanRegistrationList.push_back(scanRegistrationObject);
+//        scanRegistrationClass scanRegistrationObject(sizeVoxel, sizeVoxel / 2, sizeVoxel / 2, sizeVoxel / 2 - 1,
+//                                                     nameOfTheNode);
+        scanRegistrationList.push_back(
+                new scanRegistrationClass(sizeVoxel, sizeVoxel / 2, sizeVoxel / 2, sizeVoxel / 2 - 1,
+                                          nameOfTheNode));
     }
 
 
@@ -505,8 +571,10 @@ int main(int argc, char **argv) {
 
     for (int i = 0; i < listOfDirectories.size(); i++) {
 //    for (int i = 0; i < 1; i++) {
-        resultsVectors.push_back(std::async(std::launch::async, handleRegistrationsOfDirectory, listOfDirectories[i]));
-        sleep(10);
+        resultsVectors.push_back(std::async(std::launch::deferred, handleRegistrationsOfDirectory, listOfDirectories[i]));
+//        resultsVectors.push_back(std::async(std::launch::deferred, handleRegistrationsOfDirectory, listOfDirectories[i]));
+
+        sleep(1);
 //        std::vector<measurementResults> tmpVector = resultsVectors.back().get();
 //        resultVector.insert(std::end(resultVector), std::begin(tmpVector), std::end(tmpVector));
     }

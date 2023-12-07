@@ -161,6 +161,6 @@ protected:
 
 
 }; //end namespace
-//#include<impl/lazy_grid.cpp>
+#include<impl/lazy_grid.hpp>
 
 #endif

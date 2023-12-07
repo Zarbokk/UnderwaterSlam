@@ -47,7 +47,7 @@
 
 #include <cstdlib>
 
-//#include <cv.h>
+#include <cv.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
@@ -124,7 +124,7 @@ public:
             size_t &supportSize, double maxVar, DepthCamera<PointT> &cameraParams, bool estimateParamsDI=false, bool nonMean = false);
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    void computeNDTCells(int cellupdatemode = CELL_UPDATE_MODE_SAMPLE_VARIANCE);//CELL_UPDATE_MODE_SAMPLE_VARIANCE_WITH_RESET
+    void computeNDTCells(int cellupdatemode = CELL_UPDATE_MODE_SAMPLE_VARIANCE_WITH_RESET);
 
     void writeToVRML(const char* filename);
     virtual void writeToVRML(FILE* fout);
@@ -177,6 +177,6 @@ public:
 
 } // end namespace
 
-//#include <impl/ndt_occupancy_map.cpp>
+#include <impl/ndt_occupancy_map.hpp>
 
 #endif

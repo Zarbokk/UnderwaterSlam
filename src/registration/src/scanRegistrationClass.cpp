@@ -311,6 +311,7 @@ Eigen::Matrix4d scanRegistrationClass::ndt_d2d_2d(pcl::PointCloud<pcl::PointXYZ>
 
 
 //    std::cout<<"Transform Before: \n"<<Tout.matrix()<<std::endl;
+
     lslgeneric::NDTMatcherD2D_2D<pcl::PointXYZ, pcl::PointXYZ> matcherD2D(false, false, resolutions);
 
     bool ret = matcherD2D.match(cloudFirstScan, cloudSecondScan, Tout, useInitialGuess);
@@ -376,7 +377,7 @@ Eigen::Matrix4d scanRegistrationClass::registrationOfTwoVoxelsSOFFTFast(double v
                                                                         double voxelData2Input[],double maximumVoxel2,
                                                                         Eigen::Matrix4d initialGuess,
                                                                         Eigen::Matrix3d &covarianceMatrix,
-                                                                        double cellSize) {
+                                                                        double cellSize,double &timeToCalculate) {
 
 
 
@@ -426,7 +427,7 @@ Eigen::Matrix4d scanRegistrationClass::registrationOfTwoVoxelsSOFFTFast(double v
     request->size_of_pixel = cellSize;
     request->potential_for_necessary_peak = 0.1;
     request->initial_guess = poseMsg;
-
+    request->size_image = this->sizeVoxelData;
 
 
 
@@ -458,6 +459,7 @@ Eigen::Matrix4d scanRegistrationClass::registrationOfTwoVoxelsSOFFTFast(double v
 
             resultingTransformation = generalHelpfulTools::getTransformationMatrixTF2(position,
                                                                                                       orientation);
+            timeToCalculate =response->potential_solution.time_to_calculate;
 //            std::cout << resultingTransformation << std::endl;
 
         }
@@ -472,29 +474,111 @@ Eigen::Matrix4d scanRegistrationClass::registrationOfTwoVoxelsSOFFTFast(double v
     return resultingTransformation;
 }
 
-std::vector<transformationPeakSLAM>
-scanRegistrationClass::registrationOfTwoVoxelsSOFFTAllSoluations(double voxelData1Input[],
-                                                                 double voxelData2Input[],
-                                                                 double cellSize,
-                                                                 bool useGauss,
-                                                                 bool debug, double potentialNecessaryForPeak,
-                                                                 bool multipleRadii,
-                                                                 bool useClahe,
-                                                                 bool useHamming) {
+std::vector<fs2d::msg::PotentialSolution>
+scanRegistrationClass::registrationOfTwoVoxelsSOFFTAllSoluations(double voxelData1Input[],double maximumVoxel1,
+                                                                 double voxelData2Input[],double maximumVoxel2,
+                                                                 Eigen::Matrix4d initialGuess,
+                                                                 Eigen::Matrix3d &covarianceMatrix,
+                                                                 double cellSize,double &timeToCalculate) {
 
 
 
-//    std::lock_guard<std::mutex> guard(*this->oursMutex);
-//    std::cout << "Starting soft: " <<this->sizeVoxelData << std::endl;
-//    //changing voxel 1 and 2 because we want to have the transformation from 1 to 2 and not from 2 to 1(which is the registration)@TODO
-//    return mySofftRegistrationClass.registrationOfTwoVoxelsSOFFTAllSoluations(voxelData1Input,
-//                                                                              voxelData2Input,
-//                                                                              cellSize,
-//                                                                              useGauss,
-//                                                                              debug, potentialNecessaryForPeak,
-//                                                                              multipleRadii,
-//                                                                              useClahe,
-//                                                                              useHamming);
+
+    auto request = std::make_shared<fs2d::srv::RequestListPotentialSolution::Request>();
+    double overallMax = std::max(maximumVoxel1,maximumVoxel2);
+//    fs2d::srv::RequestOnePotentialSolution::Request request;
+    for(int i = 0 ; i< this->sizeVoxelData*this->sizeVoxelData ; i++){
+        request->sonar_scan_1.push_back(voxelData1Input[i]/overallMax);
+        request->sonar_scan_2.push_back(voxelData2Input[i]/overallMax);
+    }
+
+//    request->sonar_scan_1 =
+//            *cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", magTMP1)
+//                    .toImageMsg();
+//    request->sonar_scan_2 =
+//            *cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", magTMP2)
+//                    .toImageMsg();
+
+    geometry_msgs::msg::Pose poseMsg;
+
+    Eigen::Quaterniond quaternionInitGuess;
+    Eigen::Vector3d translationInitGuess;
+    generalHelpfulTools::splitTransformationMatrixToQuadAndTrans(translationInitGuess, quaternionInitGuess,
+                                                                 initialGuess);
+
+    poseMsg.position.x = translationInitGuess.x();
+    poseMsg.position.y = translationInitGuess.y();
+    poseMsg.position.z = translationInitGuess.z();
+
+    poseMsg.orientation.x = quaternionInitGuess.x();
+    poseMsg.orientation.y = quaternionInitGuess.y();
+    poseMsg.orientation.z = quaternionInitGuess.z();
+    poseMsg.orientation.w = quaternionInitGuess.w();
+
+
+
+    request->size_of_pixel = cellSize;
+    request->potential_for_necessary_peak = 0.1;
+    request->size_image = this->sizeVoxelData;
+
+    std::vector<fs2d::msg::PotentialSolution> ourListOfResults;
+
+    auto future2 = this->listPotentialClient->async_send_request(request);
+    Eigen::Matrix4d resultingTransformation;
+    if (rclcpp::spin_until_future_complete(this->get_node_base_interface(), future2) ==
+        rclcpp::FutureReturnCode::SUCCESS) {
+        // Wait for the result.
+        try {
+            auto response = future2.get();
+            timeToCalculate =response->list_potential_solutions[0].time_to_calculate;
+            for(int i = 0 ; i<response->list_potential_solutions.size();i++){
+
+//                tf2::Quaternion orientation;
+//                tf2::Vector3 position;
+//                tf2::convert(response->list_potential_solutions[i].resulting_transformation.orientation, orientation);
+//                tf2::convert(response->list_potential_solutions[i].resulting_transformation.position, position);
+//
+//
+//                Eigen::Matrix2d covarianceTranslationEigen = Eigen::Matrix2d::Zero();
+//                //tf2::convert(position, resultingPose.position);
+//
+//
+//                covarianceTranslationEigen(0) = response->list_potential_solutions[i].translation_covariance[0];
+//                covarianceTranslationEigen(1) = response->list_potential_solutions[i].translation_covariance[1];
+//                covarianceTranslationEigen(2) = response->list_potential_solutions[i].translation_covariance[2];
+//                covarianceTranslationEigen(3) = response->list_potential_solutions[i].translation_covariance[3];
+//                covarianceMatrix.block<2, 2>(0,
+//                                             0) = covarianceTranslationEigen.block<2,2>(0,0);
+//                covarianceMatrix(2, 2) = response->list_potential_solutions[i].rotation_covariance;
+//
+//
+//                resultingTransformation = generalHelpfulTools::getTransformationMatrixTF2(position,
+//                                                                                          orientation);
+//                transformationPeakSLAM tmpMeasurement;
+//                tmpMeasurement.potentialRotation.angle = ;
+//                tmpMeasurement.potentialRotation.covariance = ;
+//                tmpMeasurement.potentialRotation.peakCorrelation = ;
+//                for(int i = 0 ; i <)
+//                tmpMeasurement.potentialTranslations.push_back()
+//
+//                ourListOfResults.push_back();
+
+                ourListOfResults.push_back(response->list_potential_solutions[i]);
+            }
+
+//            std::cout << resultingTransformation << std::endl;
+
+        }
+        catch (const std::exception &e) {
+            RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Service call failed.");
+        }
+    }
+
+
+
+
+    return ourListOfResults;
+
 }
 
 
@@ -634,8 +718,11 @@ Eigen::Matrix4d scanRegistrationClass::registrationFeatureBased(double voxelData
             M = cv::BFMatcher(cv::NORM_HAMMING);
             break;
         case 4:
+//            std::cout << "testingIfItComesUp" << std::endl;
+//            printf("OpenCV: %s", cv::getBuildInformation().c_str());
             D = cv::xfeatures2d::SURF::create();
             M = cv::BFMatcher(cv::NORM_L2);
+//            std::cout << "afterwards" << std::endl;
             break;
         case 5:
             D = cv::SIFT::create();

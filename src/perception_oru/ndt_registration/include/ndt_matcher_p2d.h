@@ -202,6 +202,6 @@ public:
 
 } // end namespace
 
-//#include <impl/ndt_matcher_p2d.cpp>
+#include <impl/ndt_matcher_p2d.hpp>
 
 #endif

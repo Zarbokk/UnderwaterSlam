@@ -114,6 +114,6 @@ protected:
 };
 } // namespace
 
-//#include <impl/ndt_matcher_d2d_feature.cpp>
+#include <impl/ndt_matcher_d2d_feature.hpp>
 
 #endif

@@ -46,7 +46,7 @@
 #include <opencv4/opencv2/opencv.hpp>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include "pointcloud_utils.h"
+
 
 namespace lslgeneric
 {
@@ -476,6 +476,6 @@ public:
 
 } // end namespace
 
-//#include <impl/ndt_map.cpp>
+#include <impl/ndt_map.hpp>
 
 #endif

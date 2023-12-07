@@ -52,14 +52,22 @@
 
 #include <ndt_matcher_p2d.h>
 #include <ndt_matcher_d2d_2d.h>
+//#include "perception_oru/ndt_matcher_d2d_2d.h"
+//#include "include/ndt_matcher_d2d_2d.h"
+//#include "perception_oru/include/ndt_matcher_p2d.h"
+//#include "perception_oru/include/ndt_matcher_d2d_2d.h"
 
+//#include "percep"
 //#include ""
 
 
 
 #include <image_registration.h>
-#include "opencv2/xfeatures2d.hpp"
-#include "opencv2/features2d.hpp"
+#include "opencv4/opencv2/features2d.hpp"
+#include "opencv4/opencv2/xfeatures2d.hpp"
+#include "opencv4/opencv2/xfeatures2d/nonfree.hpp"
+
+
 
 #include <gmm_registration/front_end/GaussianMixturesModel.h>
 #include <gmm_registration/front_end/GmmFrontEnd.hpp>
@@ -89,14 +97,16 @@ struct transformationPeakSLAM {
     rotationPeakSLAM potentialRotation;
 };
 
+
+
 #ifndef SIMULATION_BLUEROV_SCANREGISTRATIONCLASS_H
 #define SIMULATION_BLUEROV_SCANREGISTRATIONCLASS_H
 
 
 class scanRegistrationClass : public rclcpp::Node {
 public:
-    scanRegistrationClass(int N = 64, int bwOut = 64 / 2, int bwIn = 64 / 2, int degLim = 64 / 2 - 1)
-            : Node("registrationnode") {
+    scanRegistrationClass(int N = 64, int bwOut = 64 / 2, int bwIn = 64 / 2, int degLim = 64 / 2 - 1,std::string nameOfNode = "registrationnode" )
+            : Node(nameOfNode) {
         sizeVoxelData = N;
         icpMutex = new std::mutex();
         ndtd2dMutex = new std::mutex();
@@ -178,17 +188,13 @@ public:
                                                      double voxelData2Input[],double maximumVoxel2,
                                                      Eigen::Matrix4d initialGuess,
                                                      Eigen::Matrix3d &covarianceMatrix,
-                                                     double cellSize);
+                                                     double cellSize,double &timeToCalculate);
 
-    std::vector<transformationPeakSLAM> registrationOfTwoVoxelsSOFFTAllSoluations(double voxelData1Input[],
-                                                                                  double voxelData2Input[],
-                                                                                  double cellSize,
-                                                                                  bool useGauss,
-                                                                                  bool debug = false,
-                                                                                  double potentialNecessaryForPeak = 0.1,
-                                                                                  bool multipleRadii = false,
-                                                                                  bool useClahe = true,
-                                                                                  bool useHamming = true);
+    std::vector<fs2d::msg::PotentialSolution> registrationOfTwoVoxelsSOFFTAllSoluations(double voxelData1Input[],double maximumVoxel1,
+                                                                                  double voxelData2Input[],double maximumVoxel2,
+                                                                                  Eigen::Matrix4d initialGuess,
+                                                                                  Eigen::Matrix3d &covarianceMatrix,
+                                                                                  double cellSize,double &timeToCalculate);
 
     Eigen::Matrix4d registrationFourerMellin(double voxelData1Input[],
                                              double voxelData2Input[],

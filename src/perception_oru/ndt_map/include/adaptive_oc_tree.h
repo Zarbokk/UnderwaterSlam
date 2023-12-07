@@ -94,5 +94,5 @@ public:
 
 } //end namespace
 
-//#include<impl/adaptive_oc_tree.cpp>
+#include<impl/adaptive_oc_tree.hpp>
 #endif
