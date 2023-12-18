@@ -58,6 +58,11 @@ struct transformationStamped {
     double timeStamp;
 };
 
+struct settingsMethodUsed {
+    int whichMethod;
+    bool initialGuess;
+};
+
 class slamToolsRos {
 
 public:
@@ -183,17 +188,17 @@ public:
     static bool
     calculateEndIndexForVoxelCreationByStartIndex(int indexStart, int &indexEnd, graphSlamSaveStructure &usedGraph);
 
-//    static pcl::PointCloud <pcl::PointXYZ>
-//    convertVoxelToPointcloud(double voxelData[], double thresholdFactor, double maximumVoxelData, int dimensionVoxel,
-//                             double dimensionOfVoxelDataForMatching);
+    static pcl::PointCloud <pcl::PointXYZ>
+    convertVoxelToPointcloud(double voxelData[], double thresholdFactor, double maximumVoxelData, int dimensionVoxel,
+                             double dimensionOfVoxelDataForMatching);
 
-//    static Eigen::Matrix4d registrationOfDesiredMethod(pcl::PointCloud <pcl::PointXYZ> pclNotShifted,
-//                                                       pcl::PointCloud <pcl::PointXYZ> pclShifted,
-//                                                       pcl::PointCloud <pcl::PointXYZ> &final, double voxelData[],
-//                                                       double voxelDataShifted[],
-//                                                       Eigen::Matrix4d initialGuess, double currentCellSize,
-//                                                       int whichMethod, bool useInitialGuess,
-//                                                       scanRegistrationClass &scanRegistrationObject);
+    static Eigen::Matrix4d registrationOfDesiredMethod(pcl::PointCloud<pcl::PointXYZ> pclNotShifted,
+                                                              pcl::PointCloud<pcl::PointXYZ> pclShifted,
+                                                              pcl::PointCloud<pcl::PointXYZ> final, double voxelData[],
+                                                              double voxelDataShifted[],
+                                                              Eigen::Matrix4d initialGuess, double currentCellSize,
+                                                              int whichMethod, bool useInitialGuess,
+                                                              scanRegistrationClass *scanRegistrationObject,double &timeToCalculate);
 
 
 };

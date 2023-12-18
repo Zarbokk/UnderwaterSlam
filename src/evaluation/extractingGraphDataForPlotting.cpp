@@ -120,13 +120,13 @@ public:
 
 //        this->serviceSaveGraph = n_.advertiseService("saveGraphOfSLAM", &rosClassSlam::saveGraph, this);
 
-//        publisherPathOverTime = n_.advertise<nav_msgs::Path>("positionOverTime", 10);
-        this->publisherPathOverTime = this->create_publisher<nav_msgs::msg::Path>(
+//        publisherSonarEcho = n_.advertise<nav_msgs::Path>("positionOverTime", 10);
+        this->publisherSonarEcho = this->create_publisher<nav_msgs::msg::Path>(
                 "positionOverTime", qos);
 
 
-//        publisherPathOverTimeGT = n_.advertise<nav_msgs::Path>("positionOverTimeGT", 10);
-        this->publisherPathOverTimeGT = this->create_publisher<nav_msgs::msg::Path>(
+//        publisherEKF = n_.advertise<nav_msgs::Path>("positionOverTimeGT", 10);
+        this->publisherEKF = this->create_publisher<nav_msgs::msg::Path>(
                 "positionOverTimeGT", qos);
 
 
@@ -214,8 +214,8 @@ private:
     std::mutex groundTruthMutex;
     std::mutex graphSlamMutex;
     //GraphSlam things
-    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherPathOverTime;
-    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherPathOverTimeGT;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherSonarEcho;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherEKF;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisherMarkerArray;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisherMarkerArrayLoopClosures;
 
@@ -360,9 +360,9 @@ private:
         int indexOfLastKeyframe;
         double angleDiff = slamToolsRos::angleBetweenLastKeyframeAndNow(this->graphSaved);// i think this is always true
 
-        slamToolsRos::visualizeCurrentPoseGraph(this->graphSaved, this->publisherPathOverTime,
+        slamToolsRos::visualizeCurrentPoseGraph(this->graphSaved, this->publisherSonarEcho,
                                                 this->publisherMarkerArray, this->sigmaScaling,
-                                                this->publisherPoseSLAM, this->publisherMarkerArrayLoopClosures,this->publisherPathOverTimeGT);
+                                                this->publisherPoseSLAM, this->publisherMarkerArrayLoopClosures,this->publisherEKF);
 //        std::cout << "huhu3" << std::endl;
     }
 

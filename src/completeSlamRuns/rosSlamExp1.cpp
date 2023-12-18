@@ -3,23 +3,17 @@
 //
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
-//#include "sensor_msgs/Imu.h"
-//#include "mavros_msgs/Altitude.h"
-//#include "geometry_msgs/TwistStamped.h"
-//#include "ping360_sonar/SonarEcho.h"
+
 #include "ping360_sonar_msgs/msg/sonar_echo.hpp"
 #include "generalHelpfulTools.h"
 #include "slamToolsRos.h"
-//#include "scanRegistrationClass.h"
 
-//#include "commonbluerovmsg/saveGraph.h"
 #include "nav_msgs/msg/occupancy_grid.hpp"
-//#include "scanRegistrationClass.h"
+
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include "commonbluerovmsg/srv/save_graph.hpp"
 #include "commonbluerovmsg/msg/state_robot_for_evaluation.hpp"
-//#include "std_srvs/msg/set_bool_request.hpp"
-//#include <std_srvs/msg/set_bool.hpp>
+
 
 
 
@@ -120,13 +114,13 @@ public:
 
 //        this->serviceSaveGraph = n_.advertiseService("saveGraphOfSLAM", &rosClassSlam::saveGraph, this);
 
-//        publisherPathOverTime = n_.advertise<nav_msgs::Path>("positionOverTime", 10);
-        this->publisherPathOverTime = this->create_publisher<nav_msgs::msg::Path>(
+//        publisherSonarEcho = n_.advertise<nav_msgs::Path>("positionOverTime", 10);
+        this->publisherSonarEcho = this->create_publisher<nav_msgs::msg::Path>(
                 "positionOverTime", qos);
 
 
-//        publisherPathOverTimeGT = n_.advertise<nav_msgs::Path>("positionOverTimeGT", 10);
-        this->publisherPathOverTimeGT = this->create_publisher<nav_msgs::msg::Path>(
+//        publisherEKF = n_.advertise<nav_msgs::Path>("positionOverTimeGT", 10);
+        this->publisherEKF = this->create_publisher<nav_msgs::msg::Path>(
                 "positionOverTimeGT", qos);
 
 
@@ -209,8 +203,8 @@ private:
     std::mutex groundTruthMutex;
     std::mutex graphSlamMutex;
     //GraphSlam things
-    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherPathOverTime;
-    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherPathOverTimeGT;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherSonarEcho;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherEKF;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisherMarkerArray;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr publisherMarkerArrayLoopClosures;
 
@@ -461,9 +455,9 @@ private:
 
             this->graphSaved.isam2OptimizeGraph(true, 2);
 
-            slamToolsRos::visualizeCurrentPoseGraph(this->graphSaved, this->publisherPathOverTime,
+            slamToolsRos::visualizeCurrentPoseGraph(this->graphSaved, this->publisherSonarEcho,
                                                     this->publisherMarkerArray, this->sigmaScaling,
-                                                    this->publisherPoseSLAM, this->publisherMarkerArrayLoopClosures,this->publisherPathOverTimeGT);
+                                                    this->publisherPoseSLAM, this->publisherMarkerArrayLoopClosures,this->publisherEKF);
             //            this->graphSaved.classicalOptimizeGraph(true);
             std::cout << "next: " << std::endl;
 
@@ -475,9 +469,9 @@ private:
 
         }
 //        this->graphSaved.isam2OptimizeGraph(true,1);
-        slamToolsRos::visualizeCurrentPoseGraph(this->graphSaved, this->publisherPathOverTime,
+        slamToolsRos::visualizeCurrentPoseGraph(this->graphSaved, this->publisherSonarEcho,
                                                 this->publisherMarkerArray, this->sigmaScaling,
-                                                this->publisherPoseSLAM, this->publisherMarkerArrayLoopClosures,this->publisherPathOverTimeGT);
+                                                this->publisherPoseSLAM, this->publisherMarkerArrayLoopClosures,this->publisherEKF);
 //        std::cout << "huhu3" << std::endl;
     }
 

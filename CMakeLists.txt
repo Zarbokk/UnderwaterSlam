@@ -175,7 +175,7 @@ target_link_libraries(registrationlib generalhelpfullib fmt_registration ${OpenC
 add_library(slamtools SHARED src/slamTools/src/slamToolsRos.cpp)
 ament_target_dependencies(slamtools Eigen3 rclcpp visualization_msgs nav_msgs GTSAM)
 target_include_directories(slamtools PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/slamTools/include)
-target_link_libraries(slamtools posegraph registrationlib)
+target_link_libraries(slamtools posegraph registrationlib gmm_registration)
 ################################################################################
 # hilbert Map
 ################################################################################
@@ -193,6 +193,9 @@ ament_target_dependencies(rosSlamTest GTSAM geometry_msgs ping360_sonar_msgs nav
 target_link_libraries(rosSlamTest ${OpenCV_LIBS} posegraph slamtools generalhelpfullib )
 #target_include_directories(rosSlamTest PUBLIC ${INCLUDE_DIRECTORIES_ORU})
 
+add_executable(consecutiveScanTests src/evaluation/consecutiveScansMatchingMethod.cpp )
+ament_target_dependencies(consecutiveScanTests GTSAM geometry_msgs ping360_sonar_msgs nav_msgs commonbluerovmsg )
+target_link_libraries(consecutiveScanTests ${OpenCV_LIBS} posegraph slamtools generalhelpfullib )
 
 add_executable(extractingGroundTruthGraphData src/evaluation/extractingGraphDataForPlotting.cpp)
 ament_target_dependencies(extractingGroundTruthGraphData GTSAM geometry_msgs ping360_sonar_msgs nav_msgs commonbluerovmsg mocap_msgs)
@@ -202,10 +205,13 @@ target_link_libraries(extractingGroundTruthGraphData ${OpenCV_LIBS} posegraph sl
 
 add_executable(speedComparisonMatchingMethods src/evaluation/compareEveryMatchingMethodBasedOnFolder.cpp )
 #ament_target_dependencies(speedComparisonMatchingMethods )
-target_link_libraries(speedComparisonMatchingMethods ${OpenCV_LIBS} registrationlib generalhelpfullib )
+target_link_libraries(speedComparisonMatchingMethods ${OpenCV_LIBS} registrationlib generalhelpfullib slamtools)
 
 add_executable(rosbagReading src/evaluation/testRosbagReading.cpp )
 #ament_target_dependencies(speedComparisonMatchingMethods )
 ament_target_dependencies(rosbagReading Eigen3 rclcpp cv_bridge tf2 rosbag2_cpp tf2_geometry_msgs ping360_sonar_msgs px4_msgs mocap_msgs micron_driver_ros waterlinked_a50)
+
+add_executable(readInCSV src/evaluation/readInCSVAndPublishToTopics.cpp )
+ament_target_dependencies(readInCSV Eigen3 rclcpp tf2 ping360_sonar_msgs )
 
 ament_package()
