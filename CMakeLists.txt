@@ -201,6 +201,15 @@ add_executable(extractingGroundTruthGraphData src/evaluation/extractingGraphData
 ament_target_dependencies(extractingGroundTruthGraphData GTSAM geometry_msgs ping360_sonar_msgs nav_msgs commonbluerovmsg mocap_msgs)
 target_link_libraries(extractingGroundTruthGraphData ${OpenCV_LIBS} posegraph slamtools generalhelpfullib)
 
+add_executable(extractingScanData src/evaluation/extractingScanDataForPlotting.cpp)
+ament_target_dependencies(extractingScanData GTSAM geometry_msgs ping360_sonar_msgs nav_msgs commonbluerovmsg mocap_msgs)
+target_link_libraries(extractingScanData ${OpenCV_LIBS} posegraph slamtools generalhelpfullib)
+
+add_executable(duoSonarSlam src/completeSlamRuns/duoSonarSLAM.cpp )
+ament_target_dependencies(duoSonarSlam GTSAM geometry_msgs ping360_sonar_msgs nav_msgs commonbluerovmsg micron_driver_ros)
+target_link_libraries(duoSonarSlam ${OpenCV_LIBS} posegraph slamtools generalhelpfullib )
+
+
 
 
 add_executable(speedComparisonMatchingMethods src/evaluation/compareEveryMatchingMethodBasedOnFolder.cpp )

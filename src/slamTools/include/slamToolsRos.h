@@ -122,6 +122,11 @@ public:
                                                   double ignoreDistanceToRobot, double dimensionOfVoxelData,
                                                   Eigen::Matrix4d transformationInTheEndOfCalculation);
 
+    static double createVoxelOfGraphStartEndPointUncorrected(double voxelData[], int indexStart, int indexEnd,
+                                                  int numberOfPoints, graphSlamSaveStructure &usedGraph,
+                                                  double ignoreDistanceToRobot, double dimensionOfVoxelData,
+                                                  Eigen::Matrix4d transformationInTheEndOfCalculation);
+
     static bool calculateStartAndEndIndexForVoxelCreation(int indexMiddle, int &indexStart, int &indexEnd,
                                                           graphSlamSaveStructure &usedGraph);
 

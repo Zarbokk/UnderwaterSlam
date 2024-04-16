@@ -1,20 +1,25 @@
 //
-// Created by jurobotics on 13.09.21.
+// Created by tim-external on 13.11.23.
 //
-
+#include "mocap_msgs/msg/rigid_bodies.hpp"
+#include "mocap_msgs/msg/markers.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
-
+//#include "sensor_msgs/Imu.h"
+//#include "mavros_msgs/Altitude.h"
+//#include "geometry_msgs/TwistStamped.h"
+//#include "ping360_sonar/SonarEcho.h"
 #include "ping360_sonar_msgs/msg/sonar_echo.hpp"
 #include "generalHelpfulTools.h"
 #include "slamToolsRos.h"
-
+//#include "commonbluerovmsg/saveGraph.h"
 #include "nav_msgs/msg/occupancy_grid.hpp"
-
+//#include "scanRegistrationClass.h"
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include "commonbluerovmsg/srv/save_graph.hpp"
 #include "commonbluerovmsg/msg/state_robot_for_evaluation.hpp"
-
-
+//#include "std_srvs/msg/set_bool_request.hpp"
+//#include <std_srvs/msg/set_bool.hpp>
+#include <iostream>
 
 
 #define NUMBER_OF_POINTS_DIMENSION 256
@@ -39,56 +44,46 @@
 
 #define SONAR_LOOKING_DOWN false
 #define USES_GROUND_TRUTH false
+#define PATH_TO_MATLAB_FOLDER "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/ICRA2024Scripts/dataFolder/"
+
+#define NAME_OF_CURRENT_METHOD "testFolder"
 
 
-#define NAME_OF_CURRENT_METHOD "randomTest"
-
-//#define NAME_OF_CURRENT_METHOD "_circle_dead_reckoning_"
-//#define NAME_OF_CURRENT_METHOD "_circle_dead_reckoning_wsm_"
-//#define NAME_OF_CURRENT_METHOD "_circle_dynamic_slam_1_0_"
-//#define NAME_OF_CURRENT_METHOD "_circle_dynamic_slam_4_0_"
-//#define NAME_OF_CURRENT_METHOD "_video_4_0_"
-
-//#define NAME_OF_CURRENT_METHOD "_TEST2_classical_slam_"
-
-//occupancyMap(256, NUMBER_OF_POINTS_DIMENSION, 70, hilbertMap::HINGED_FEATURES)
 class rosClassSlam : public rclcpp::Node {
 public:
     rosClassSlam() : Node("ourgraphslam"), graphSaved(3, INTENSITY_BASED_GRAPH),
                      scanRegistrationObject(NUMBER_OF_POINTS_DIMENSION) {
         //we have to make sure, to get ALLL the data. Therefor we have to change that in the future.
-        rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_system_default);
+        rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(10000), rmw_qos_profile_system_default);
         qos.history(rmw_qos_history_policy_e::RMW_QOS_POLICY_HISTORY_KEEP_ALL);
         qos.reliability(rmw_qos_reliability_policy_e::RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
-        qos.durability( rmw_qos_durability_policy_e::RMW_QOS_POLICY_DURABILITY_SYSTEM_DEFAULT);
-        qos.liveliness( rmw_qos_liveliness_policy_e::RMW_QOS_POLICY_LIVELINESS_SYSTEM_DEFAULT);
+        qos.durability(rmw_qos_durability_policy_e::RMW_QOS_POLICY_DURABILITY_SYSTEM_DEFAULT);
+        qos.liveliness(rmw_qos_liveliness_policy_e::RMW_QOS_POLICY_LIVELINESS_SYSTEM_DEFAULT);
         qos.deadline(rmw_time_t(RMW_DURATION_INFINITE));
-        qos.lifespan( rmw_time_t(RMW_DURATION_INFINITE));
-        qos.liveliness_lease_duration( rmw_time_t(RMW_DURATION_INFINITE));
+        qos.lifespan(rmw_time_t(RMW_DURATION_INFINITE));
+        qos.liveliness_lease_duration(rmw_time_t(RMW_DURATION_INFINITE));
         qos.avoid_ros_namespace_conventions(false);
 
-//        auto ourQOSSLAM = rmw_qos_profile_system_default;
-//        ourQOSSLAM.history = rmw_qos_history_policy_e::RMW_QOS_POLICY_HISTORY_KEEP_ALL;
-//        ourQOSSLAM.depth = ;
-
-
-
-
-
-
-
-
-
-//        auto qos = rclcpp::QoSInitialization::from_rmw(ourQOSSLAM);
 
         this->callback_group_subscriber1_ = this->create_callback_group(
                 rclcpp::CallbackGroupType::MutuallyExclusive);
         this->callback_group_subscriber2_ = this->create_callback_group(
                 rclcpp::CallbackGroupType::MutuallyExclusive);
+        this->callback_group_subscriber3_ = this->create_callback_group(
+                rclcpp::CallbackGroupType::MutuallyExclusive);
+        this->callback_group_subscriber4_ = this->create_callback_group(
+                rclcpp::CallbackGroupType::MutuallyExclusive);
+        this->callback_group_subscriber5_ = this->create_callback_group(
+                rclcpp::CallbackGroupType::MutuallyExclusive);
+
         auto sub1_opt = rclcpp::SubscriptionOptions();
-        sub1_opt.callback_group = callback_group_subscriber1_;
+        sub1_opt.callback_group = this->callback_group_subscriber1_;
         auto sub2_opt = rclcpp::SubscriptionOptions();
-        sub2_opt.callback_group = callback_group_subscriber2_;
+        sub2_opt.callback_group = this->callback_group_subscriber2_;
+        auto sub3_opt = rclcpp::SubscriptionOptions();
+        sub3_opt.callback_group = this->callback_group_subscriber3_;
+        auto sub5_opt = rclcpp::SubscriptionOptions();
+        sub5_opt.callback_group = this->callback_group_subscriber5_;
 
         this->subscriberEKF = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
                 "publisherPoseEkf", qos,
@@ -103,13 +98,24 @@ public:
                 std::bind(&rosClassSlam::ping360SonarCallback,
                           this, std::placeholders::_1), sub2_opt);
 
+        this->subscriberGroundTruth = this->create_subscription<mocap_msgs::msg::RigidBodies>(
+                "rigid_bodies", qos,
+                std::bind(&rosClassSlam::gtCallback,
+                          this, std::placeholders::_1), sub3_opt);
+        this->subscriberMarkersOfGroundTruth = this->create_subscription<mocap_msgs::msg::Markers>(
+                "markers", qos,
+                std::bind(&rosClassSlam::markersCallback,
+                          this, std::placeholders::_1), sub5_opt);
+
 //        this->subscriberPing360Sonar = n_.subscribe("sonar/intensity", 10000, &rosClassSlam::ping360SonarCallback, this);
         this->serviceSaveGraph = this->create_service<commonbluerovmsg::srv::SaveGraph>("saveGraphOfSLAM",
                                                                                         std::bind(
                                                                                                 &rosClassSlam::saveGraph,
                                                                                                 this,
                                                                                                 std::placeholders::_1,
-                                                                                                std::placeholders::_2));
+                                                                                                std::placeholders::_2),
+                                                                                        rmw_qos_profile_services_default,
+                                                                                        this->callback_group_subscriber4_);
 
 
 //        this->serviceSaveGraph = n_.advertiseService("saveGraphOfSLAM", &rosClassSlam::saveGraph, this);
@@ -178,16 +184,19 @@ public:
                 map.data.push_back(50);
             }
         }
+        this->numberOfMarkersSeen = 0;
+        this->numberOfScan = 0;
     }
 
 
 private:
     nav_msgs::msg::OccupancyGrid map;
 
-
+    int numberOfScan;
     rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr subscriberEKF;
     rclcpp::Subscription<ping360_sonar_msgs::msg::SonarEcho>::SharedPtr subscriberPing360Sonar;
-
+    rclcpp::Subscription<mocap_msgs::msg::RigidBodies>::SharedPtr subscriberGroundTruth;
+    rclcpp::Subscription<mocap_msgs::msg::Markers>::SharedPtr subscriberMarkersOfGroundTruth;
 
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr publisherPoseSLAM;
     rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr publisherOccupancyMap;
@@ -196,6 +205,9 @@ private:
 
     rclcpp::CallbackGroup::SharedPtr callback_group_subscriber1_;
     rclcpp::CallbackGroup::SharedPtr callback_group_subscriber2_;
+    rclcpp::CallbackGroup::SharedPtr callback_group_subscriber3_;
+    rclcpp::CallbackGroup::SharedPtr callback_group_subscriber4_;
+    rclcpp::CallbackGroup::SharedPtr callback_group_subscriber5_;
     rclcpp::TimerBase::SharedPtr timer_;
 
 
@@ -218,14 +230,14 @@ private:
 
     //EKF savings
     std::deque<edge> posDiffOverTimeEdges;
-//    std::deque<double> xPositionVector, yPositionVector, zPositionVector, timeVector;//,yawAngleVector,pitchAngleVector,rollAngleVector;
     std::deque<transformationStamped> ekfTransformationList;
+//    std::deque<double>  timeVector;//,yawAngleVector,pitchAngleVector,rollAngleVector; xPositionVector, yPositionVector, zPositionVector,
 //    std::deque<Eigen::Quaterniond> rotationVector;
 
     // GT savings
     std::deque<transformationStamped> currentPositionGTDeque;
     Eigen::Matrix4d currentGTPosition;
-
+    std::atomic<int> numberOfMarkersSeen;
 
     //int numberOfEdgesBetweenScans;
     int indexLastFullScan;
@@ -246,6 +258,10 @@ private:
 
 
     void ping360SonarCallback(const ping360_sonar_msgs::msg::SonarEcho::SharedPtr msg) {
+//        std::cout <<  std::setprecision(19);
+//        std::cout << "timeToAdd" << std::endl;
+//        std::cout << msg << std::endl;
+
 //        std::cout << "huhu1" << std::endl;
         std::lock_guard<std::mutex> lock(this->graphSlamMutex);
 //        std::cout << "huhu2" << std::endl;
@@ -258,7 +274,7 @@ private:
                                            M_PI * 2);// TEST TRYING OUT -
         }
 
-        intensityTMP.time = rclcpp::Time(msg->header.stamp).seconds();
+        intensityTMP.time = rclcpp::Time(msg->header.stamp).seconds(); // rclcpp::Time(msg->header.stamp).seconds();
         intensityTMP.range = msg->range;
         intensityTMP.increment = msg->step_size;
         std::vector<double> intensitiesVector;
@@ -279,7 +295,7 @@ private:
             firstSonarInput = false;
             return;
         }
-        //add a new edge and vertex to the graph defined by EKF and Intensity Measurement
+
 
         bool waitingForMessages = waitForEKFMessagesToArrive(rclcpp::Time(msg->header.stamp).seconds());
         if (!waitingForMessages) {
@@ -290,7 +306,9 @@ private:
         edge differenceOfEdge = slamToolsRos::calculatePoseDiffByTimeDepOnEKF(
                 this->graphSaved.getVertexList()->back().getTimeStamp(), rclcpp::Time(msg->header.stamp).seconds(),
                 this->ekfTransformationList, this->stateEstimationMutex);
-        slamToolsRos::clearSavingsOfPoses(this->graphSaved.getVertexList()->back().getTimeStamp() - 2.0,
+
+
+        slamToolsRos::clearSavingsOfPoses(this->graphSaved.getVertexList()->back().getTimeStamp() - 5.0,
                                           this->ekfTransformationList, this->currentPositionGTDeque,
                                           this->stateEstimationMutex);
 
@@ -306,11 +324,12 @@ private:
                                    intensityTMP,
                                    rclcpp::Time(msg->header.stamp).seconds(),
                                    PING360_MEASUREMENT);
-        if (SONAR_LOOKING_DOWN) {
-            //SAVE TUHH GT POSE
-            this->graphSaved.getVertexList()->back().setGroundTruthTransformation(getCurrentGTPosition());
-        }
 
+//        if (USES_GROUND_TRUTH) {
+//            //SAVE qualisys GT POSE
+//            this->graphSaved.getVertexList()->back().setGroundTruthTransformation(gtPosition);
+//            this->graphSaved.getVertexList()->back().setNumberOfMarkersSeen((double)(this->numberOfMarkersSeen));
+//        }
 
         Eigen::Matrix3d covarianceMatrix = Eigen::Matrix3d::Zero();
         covarianceMatrix(0, 0) = INTEGRATED_NOISE_XY;
@@ -322,13 +341,17 @@ private:
                                  covarianceMatrix, INTEGRATED_POSE);
 
 
+        slamToolsRos::visualizeCurrentPoseGraph(this->graphSaved, this->publisherSonarEcho,
+                                                this->publisherMarkerArray, this->sigmaScaling,
+                                                this->publisherPoseSLAM, this->publisherMarkerArrayLoopClosures,
+                                                this->publisherEKF);
+
         int indexOfLastKeyframe;
         double angleDiff = slamToolsRos::angleBetweenLastKeyframeAndNow(this->graphSaved);// i think this is always true
-//        std::cout << angleDiff << std::endl;
+
+        std::cout << angleDiff << std::endl;
         // best would be scan matching between this angle and transformation based last angle( i think this is currently done)
         if (abs(angleDiff) > 2 * M_PI / FACTOR_OF_MATCHING) {
-
-
             this->graphSaved.getVertexList()->back().setTypeOfVertex(INTENSITY_SAVED_AND_KEYFRAME);
             if (firstCompleteSonarScan) {
                 numberOfTimesFirstScan++;
@@ -344,9 +367,7 @@ private:
 //                pauseRosbag.call(srv);
 //            }
             //sort in GT
-            if (USES_GROUND_TRUTH) {
-                this->saveCurrentGTPosition();
-            }
+
 //
             std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
@@ -376,9 +397,9 @@ private:
                                                   this->initialGuessTransformation(0, 0));
 
             double *voxelData1;
-            double *voxelData2;
+            double *voxelData2Uncorrected;
             voxelData1 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
-            voxelData2 = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
+            voxelData2Uncorrected = (double *) malloc(sizeof(double) * NUMBER_OF_POINTS_DIMENSION * NUMBER_OF_POINTS_DIMENSION);
 
             double maximumVoxel1 = slamToolsRos::createVoxelOfGraphStartEndPoint(voxelData1, indexStart1, indexEnd1,
                                                                                  NUMBER_OF_POINTS_DIMENSION,
@@ -387,91 +408,56 @@ private:
                                                                                  DIMENSION_OF_VOXEL_DATA_FOR_MATCHING,
                                                                                  Eigen::Matrix4d::Identity());//get voxel
 
-
-            double maximumVoxel2 = slamToolsRos::createVoxelOfGraphStartEndPoint(voxelData2, indexStart2, indexEnd2,
+            double maximumVoxel2 = slamToolsRos::createVoxelOfGraphStartEndPointUncorrected(voxelData2Uncorrected, indexStart1, indexEnd1,
                                                                                  NUMBER_OF_POINTS_DIMENSION,
                                                                                  this->graphSaved,
                                                                                  IGNORE_DISTANCE_TO_ROBOT,
                                                                                  DIMENSION_OF_VOXEL_DATA_FOR_MATCHING,
                                                                                  Eigen::Matrix4d::Identity());//get voxel
 
+            this->numberOfScan++;
+
+
+            string ourString1 =
+                    std::string(PATH_TO_MATLAB_FOLDER) + std::string(NAME_OF_CURRENT_METHOD) + "/correctedScan" +
+                    std::to_string(numberOfScan) + ".csv";
+            string ourString2 =
+                    std::string(PATH_TO_MATLAB_FOLDER) + std::string(NAME_OF_CURRENT_METHOD) + "/uncorrectedScan" +
+                    std::to_string(numberOfScan) + ".csv";
+            std::ofstream outMatrix;
+            outMatrix.open(ourString1);
+            for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
+                for (int k = 0; k < NUMBER_OF_POINTS_DIMENSION; k++)
+                    outMatrix << voxelData1[j + NUMBER_OF_POINTS_DIMENSION * k] << ',';
+                outMatrix << '\n';
+            }
+            outMatrix.close();
+
+            outMatrix.open(ourString2);
+            for (int j = 0; j < NUMBER_OF_POINTS_DIMENSION; j++) {
+                for (int k = 0; k < NUMBER_OF_POINTS_DIMENSION; k++)
+                    outMatrix << voxelData2Uncorrected[j + NUMBER_OF_POINTS_DIMENSION * k] << ',';
+                outMatrix << '\n';
+            }
+            outMatrix.close();
+
+
+
+
+
             Eigen::Matrix3d covarianceEstimation = Eigen::Matrix3d::Zero();
             std::cout << "direct matching consecutive: " << std::endl;
             // result is matrix to transform scan 1 to scan 2 therefore later inversed + initial guess inversed
 
 
-            this->currentEstimatedTransformation = this->scanRegistrationObject.registrationOfTwoVoxelsSOFFTFast(
-                    voxelData1, maximumVoxel1, voxelData2, maximumVoxel2,
-                    this->initialGuessTransformation,
-                    covarianceEstimation, (double) DIMENSION_OF_VOXEL_DATA_FOR_MATCHING /
-                                          (double) NUMBER_OF_POINTS_DIMENSION);
-
-            slamToolsRos::saveResultingRegistrationTMPCOPY(indexStart1, indexEnd1, indexStart2, indexEnd2,
-                                                           this->graphSaved, NUMBER_OF_POINTS_DIMENSION,
-                                                           IGNORE_DISTANCE_TO_ROBOT,
-                                                           DIMENSION_OF_VOXEL_DATA_FOR_MATCHING,
-                                                           DEBUG_REGISTRATION, this->currentEstimatedTransformation,
-                                                           initialGuessTransformation);
-//            slamToolsRos::saveResultingRegistration(indexStart1, indexStart2,
-//                                                    this->graphSaved, NUMBER_OF_POINTS_DIMENSION,
-//                                                    IGNORE_DISTANCE_TO_ROBOT, DIMENSION_OF_VOXEL_DATA_FOR_MATCHING,
-//                                                    DEBUG_REGISTRATION, this->currentTransformation);
-
-            std::cout << this->initialGuessTransformation << std::endl;
-            std::cout << this->currentEstimatedTransformation << std::endl;
-
-            double differenceAngleBeforeAfter = generalHelpfulTools::angleDiff(
-                    std::atan2(this->currentEstimatedTransformation(1, 0), this->currentEstimatedTransformation(0, 0)),
-                    initialGuessAngle);
-
-
-
-            //only if angle diff is smaller than 40 degreece its ok
-            if (abs(differenceAngleBeforeAfter) < 40.0 / 180.0 * M_PI) {
-                //inverse the transformation because we want the robot transformation, not the scan transformation
-                Eigen::Matrix4d transformationEstimationRobot1_2 = this->currentEstimatedTransformation;
-                Eigen::Quaterniond qTMP(transformationEstimationRobot1_2.block<3, 3>(0, 0));
-
-                graphSaved.addEdge(indexStart2,
-                                   indexStart1,
-                                   transformationEstimationRobot1_2.block<3, 1>(0, 3), qTMP,
-                                   covarianceEstimation,
-                                   LOOP_CLOSURE);//@TODO still not sure about size
-
-            } else {
-                std::cout << "we just skipped that registration" << std::endl;
-            }
-            std::cout << "loopClosure: " << std::endl;
-
-            ////////////// look for loop closure  //////////////
-            slamToolsRos::loopDetectionByClosestPath(this->graphSaved, this->scanRegistrationObject,
-                                                     NUMBER_OF_POINTS_DIMENSION, IGNORE_DISTANCE_TO_ROBOT,
-                                                     DIMENSION_OF_VOXEL_DATA_FOR_MATCHING, DEBUG_REGISTRATION,
-                                                     USE_INITIAL_TRANSLATION_LOOP_CLOSURE, 250, 500,
-                                                     THRESHOLD_FOR_TRANSLATION_MATCHING, MAXIMUM_LOOP_CLOSURE_DISTANCE);
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            double timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-            std::cout << "timeToCalculate: " << timeToCalculate << std::endl;
-
-            this->graphSaved.isam2OptimizeGraph(true, 2);
-
-            slamToolsRos::visualizeCurrentPoseGraph(this->graphSaved, this->publisherSonarEcho,
-                                                    this->publisherMarkerArray, this->sigmaScaling,
-                                                    this->publisherPoseSLAM, this->publisherMarkerArrayLoopClosures,this->publisherEKF);
-            //            this->graphSaved.classicalOptimizeGraph(true);
-            std::cout << "next: " << std::endl;
-
-//            if (SHOULD_USE_ROSBAG) {
-//                std_srvs::SetBool srv;
-//                srv.request.data = false;
-//                pauseRosbag.call(srv);
-//            }
-
         }
-//        this->graphSaved.isam2OptimizeGraph(true,1);
-        slamToolsRos::visualizeCurrentPoseGraph(this->graphSaved, this->publisherSonarEcho,
-                                                this->publisherMarkerArray, this->sigmaScaling,
-                                                this->publisherPoseSLAM, this->publisherMarkerArrayLoopClosures,this->publisherEKF);
+
+
+
+
+
+
+
 //        std::cout << "huhu3" << std::endl;
     }
 
@@ -512,25 +498,32 @@ private:
         }
     }
 
+
     bool saveGraph(const std::shared_ptr<commonbluerovmsg::srv::SaveGraph::Request> req,
                    std::shared_ptr<commonbluerovmsg::srv::SaveGraph::Response> res) {
+        std::cout << "test for saving1" << std::endl;
+
         this->createMapAndSaveToFile();
         //create image without motion compensation
         //create image with motion compensation(saved images)
         //create image with SLAM compensation
-        std::cout << "test for saving1" << std::endl;
-        std::lock_guard<std::mutex> lock(this->graphSlamMutex);
         std::cout << "test for saving2" << std::endl;
+        std::lock_guard<std::mutex> lock(this->graphSlamMutex);
+        std::cout << "test for saving3" << std::endl;
 
-        std::ofstream myFile1, myFile2;
+        std::ofstream myFile1, myFile2, myFile3, myFile4;
         myFile1.open(
-                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/IROSResults/positionEstimationOverTime" +
+                std::string(PATH_TO_MATLAB_FOLDER) + "positionEstimationOverTime" +
                 std::string(NAME_OF_CURRENT_METHOD) + ".csv");
         myFile2.open(
-                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/IROSResults/groundTruthOverTime" +
+                std::string(PATH_TO_MATLAB_FOLDER) + "groundTruthOverTime" +
                 std::string(NAME_OF_CURRENT_METHOD) + ".csv");
-
-
+        myFile3.open(
+                std::string(PATH_TO_MATLAB_FOLDER) + "angleAndIntensities" +
+                std::string(NAME_OF_CURRENT_METHOD) + ".csv");
+        myFile4.open(
+                std::string(PATH_TO_MATLAB_FOLDER) + "numberOfMarkers" +
+                std::string(NAME_OF_CURRENT_METHOD) + ".csv");
         for (int k = 0; k < this->graphSaved.getVertexList()->size(); k++) {
 
             Eigen::Matrix4d tmpMatrix1 = this->graphSaved.getVertexList()->at(k).getTransformation();
@@ -550,12 +543,23 @@ private:
                 myFile2 << "\n";
             }
 
+            intensityMeasurement tmpIntensityMeasurements = this->graphSaved.getVertexList()->at(k).getIntensities();
+
+            myFile3 << tmpIntensityMeasurements.range << "," << tmpIntensityMeasurements.angle << ",";
+            for (auto intensity: tmpIntensityMeasurements.intensities) {
+                myFile3 << intensity << ",";
+            }
+            myFile3 << "\n";
+
+            myFile4 << this->graphSaved.getVertexList()->at(k).getNumberOfMarkersSeen();
+
+            myFile4 << "\n";
         }
 
 
         myFile1.close();
         myFile2.close();
-
+        myFile3.close();
         res->saved = true;
         return true;
     }
@@ -612,6 +616,34 @@ private:
         }
     }
 
+    bool waitForGTMessagesToArrive(double timeUntilWait) {
+
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+
+        double timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+//        std::cout << "tmp1" << std::endl;
+        while (this->currentPositionGTDeque.empty() && timeToCalculate < 2000) {
+            rclcpp::sleep_for(std::chrono::nanoseconds(2000000));
+            end = std::chrono::steady_clock::now();
+            timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+        }
+//        std::cout << "tmp2" << std::endl;
+        while (timeUntilWait > this->currentPositionGTDeque.back().timeStamp) {
+
+            rclcpp::sleep_for(std::chrono::nanoseconds(2000000));
+            end = std::chrono::steady_clock::now();
+            timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+            double timeToWait = 25000;
+            if (timeToCalculate > timeToWait) {
+                std::cout << "we break" << std::endl;
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     void groundTruthEvaluationCallback(const commonbluerovmsg::msg::StateRobotForEvaluation::SharedPtr msg) {
         std::lock_guard<std::mutex> lock(this->groundTruthMutex);
         //first time? calc current Position
@@ -624,6 +656,49 @@ private:
         tmpValue.transformation = tmpMatrix;
         tmpValue.timeStamp = msg->timestamp;
         this->currentPositionGTDeque.push_back(tmpValue);
+    }
+
+
+    void markersCallback(const mocap_msgs::msg::Markers::SharedPtr msg) {
+//        rclcpp::Time(msg->header.stamp).seconds();
+        this->numberOfMarkersSeen = msg->markers.size();
+
+    }
+
+    void gtCallback(const mocap_msgs::msg::RigidBodies::SharedPtr msg) {
+
+        std::lock_guard<std::mutex> lock(this->groundTruthMutex);
+        if (msg->rigidbodies.size() < 1) {
+            return;
+        }
+        for (auto bodies: msg->rigidbodies) {
+            if (bodies.rigid_body_name == "0") {
+                Eigen::Quaterniond rotation;
+                Eigen::Vector3d translation;
+                translation.x() = bodies.pose.position.x;
+                translation.y() = bodies.pose.position.y;
+                translation.z() = bodies.pose.position.z;
+
+
+                rotation.x() = bodies.pose.orientation.x;
+                rotation.y() = bodies.pose.orientation.y;
+                rotation.z() = bodies.pose.orientation.z;
+                rotation.w() = bodies.pose.orientation.w;
+
+
+                Eigen::Matrix4d tmpMatrix = generalHelpfulTools::getTransformationMatrix(translation, rotation);
+//                std:: cout << tmpMatrix << std::endl;
+                transformationStamped tmpValue;
+                tmpValue.transformation = tmpMatrix;
+                tmpValue.timeStamp = rclcpp::Time(msg->header.stamp).seconds();
+                this->currentGTPosition = tmpMatrix;
+
+                this->currentPositionGTDeque.push_back(tmpValue);
+
+            } else {
+                std::cout << "no not 0 there" << std::endl;
+            }
+        }
     }
 
     void groundTruthEvaluationTUHHCallback(const geometry_msgs::msg::Point::SharedPtr &msg) {
@@ -651,60 +726,6 @@ private:
         return this->currentGTPosition;
     }
 
-    void saveCurrentGTPosition() {
-        std::lock_guard<std::mutex> lock(this->groundTruthMutex);
-        while (!this->currentPositionGTDeque.empty()) {
-            double currentTimeStampOfInterest = this->currentPositionGTDeque[0].timeStamp;
-//            std::cout << currentTimeStampOfInterest << std::endl;
-            int i = this->graphSaved.getVertexList()->size() - 1;
-            while (this->graphSaved.getVertexList()->at(i).getTimeStamp() >= currentTimeStampOfInterest) {
-                i--;
-                if (i == -1) {
-                    break;
-                }
-            }
-            i++;
-            if (i == this->graphSaved.getVertexList()->size()) {
-                break;
-            }
-//            if (i == 0) {
-//                break;
-//            }
-
-//            std::cout << this->graphSaved.getVertexList()->at(i).getTimeStamp() << std::endl;
-//            std::cout << currentTimeStampOfInterest << std::endl;
-
-
-
-            //sort in
-            int j = 0;
-            while (this->graphSaved.getVertexList()->at(i).getTimeStamp() >=
-                   this->currentPositionGTDeque[j].timeStamp) {
-                j++;
-                if (j == this->currentPositionGTDeque.size()) {
-                    break;
-                }
-            }
-            if (j == this->currentPositionGTDeque.size()) {
-                break;
-            }
-//            std::cout << this->graphSaved.getVertexList()->at(i).getTimeStamp() << std::endl;
-//            std::cout << this->currentPositionGTDeque[j].timeStamp << std::endl;
-            this->graphSaved.getVertexList()->at(i).setGroundTruthTransformation(
-                    this->currentPositionGTDeque[j].transformation);
-
-
-            for (int k = 0; k < j + 1; k++) {
-                this->currentPositionGTDeque.pop_front();
-            }
-
-
-
-
-//            this->currentPositionGTDeque.pop_front();
-        }
-
-    }
 
     void createMapAndSaveToFile() {
 
@@ -823,7 +844,7 @@ private:
 
         std::ofstream myFile1;
         myFile1.open(
-                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/IROSResults/currentMap" +
+                std::string(PATH_TO_MATLAB_FOLDER) + "currentMap" +
                 std::string(NAME_OF_CURRENT_METHOD) + ".csv");
         for (int j = 0; j < NUMBER_OF_POINTS_MAP; j++) {
             for (int i = 0; i < NUMBER_OF_POINTS_MAP; i++) {
@@ -968,10 +989,7 @@ public:
                 occupanyMap.data.push_back((int) (mapData[j + NUMBER_OF_POINTS_MAP * i]));
             }
         }
-//        std::cout << "publishing occupancy map" << std::endl;
-
         this->publisherOccupancyMap->publish(occupanyMap);
-//        std::cout << "published occupancy map" << std::endl;
         free(voxelDataIndex);
         free(mapData);
     }
@@ -988,63 +1006,6 @@ int main(int argc, char **argv) {
     executor.add_node(node);
     executor.spin();
     rclcpp::shutdown();
-
-//    rclcpp::init(argc, argv, "ekfwithros");
-//
-//
-//    rclcpp::V_string nodes;
-//    int i = 0;
-//    std::string stringForRosClass;
-//    if (SHOULD_USE_ROSBAG) {
-//        slamToolsRos::getNodes(nodes);
-//
-//
-//        for (i = 0; i < nodes.size(); i++) {
-//
-//            if (nodes[i].substr(1, 4) == "play") {
-//                //            std::cout << "we found it" << std::endl;
-//                break;
-//            }
-//        }
-////            std::cout << nodes[i]+"/pause_playback" << std::endl;
-////        rclcpp::ServiceServer serviceResetEkf;
-//
-//
-//        if (rclcpp::service::exists(nodes[i] + "/pause_playback", true)) {
-//
-//        } else {
-//            exit(-1);
-//        }
-//
-//        stringForRosClass = nodes[i] + "/pause_playback";
-//    }
-//
-//
-//    rclcpp::start();
-//    rclcpp::NodeHandle n_;
-//    rosClassEKF rosClassForTests(n_, stringForRosClass);
-//
-//
-////    rclcpp::spin();
-//
-//
-//    rclcpp::Rate loop_rate(0.1);
-//    rclcpp::AsyncSpinner spinner(4); // Use 4 threads
-//    spinner.start();
-//    rclcpp::Duration(10).sleep();
-//
-//    while (rclcpp::ok()) {
-////        rclcpp::spinOnce();
-//
-//        //rosClassForTests.updateHilbertMap();
-////        rosClassForTests.updateMap();
-//        rosClassForTests.createImageOfAllScans();
-//
-//        loop_rate.sleep();
-//
-//        //std::cout << rclcpp::Time::now() << std::endl;
-//    }
-//
 
     return (0);
 }

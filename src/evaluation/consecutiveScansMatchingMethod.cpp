@@ -74,9 +74,9 @@ public:
                           this, std::placeholders::_1), sub1_opt);
 
 
-        this->subscriberIntensitySonar = this->create_subscription<ping360_sonar_msgs::msg::SonarEcho>(
+        this->subscriberPing360Sonar = this->create_subscription<ping360_sonar_msgs::msg::SonarEcho>(
                 "sonar/intensity", qos,
-                std::bind(&rosClassSlam::scanCallback,
+                std::bind(&rosClassSlam::ping360SonarCallback,
                           this, std::placeholders::_1), sub2_opt);
 
         this->serviceSaveGraph = this->create_service<commonbluerovmsg::srv::SaveGraph>("saveGraphOfSLAM",
@@ -142,7 +142,7 @@ private:
 
 
     rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr subscriberEKF;
-    rclcpp::Subscription<ping360_sonar_msgs::msg::SonarEcho>::SharedPtr subscriberIntensitySonar;
+    rclcpp::Subscription<ping360_sonar_msgs::msg::SonarEcho>::SharedPtr subscriberPing360Sonar;
 
 
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr publisherPoseSLAM;
@@ -192,7 +192,7 @@ private:
     int numberOfTimesFirstScan;
 
 
-    void scanCallback(const ping360_sonar_msgs::msg::SonarEcho::SharedPtr msg) {
+    void ping360SonarCallback(const ping360_sonar_msgs::msg::SonarEcho::SharedPtr msg) {
 
         std::lock_guard<std::mutex> lock(this->graphSlamMutex);
 
@@ -248,7 +248,7 @@ private:
                                    this->graphSaved.getVertexList()->back().getCovarianceMatrix(),
                                    intensityTMP,
                                    rclcpp::Time(msg->header.stamp).seconds(),
-                                   INTENSITY_SAVED);
+                                   PING360_MEASUREMENT);
 //        if (SONAR_LOOKING_DOWN) {
 //            //SAVE TUHH GT POSE
 //            this->graphSaved.getVertexList()->back().setGroundTruthTransformation(getCurrentGTPosition());

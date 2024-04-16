@@ -43,10 +43,10 @@
 #define MAXIMUM_LOOP_CLOSURE_DISTANCE 1.0 // 0.2 TUHH 2.0 valentin Keller 4.0 Valentin Oben // 2.0 simulation
 
 #define SONAR_LOOKING_DOWN false
-#define USES_GROUND_TRUTH true
-#define PATH_TO_MATLAB_FOLDER "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/datasetReleaseJournal/csvFiles/"
+#define USES_GROUND_TRUTH false
+#define PATH_TO_MATLAB_FOLDER "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/ICRA2024Scripts/dataFolder/"
 
-#define NAME_OF_CURRENT_METHOD "tracking7m2step"
+#define NAME_OF_CURRENT_METHOD "testFolder"
 
 
 class rosClassSlam : public rclcpp::Node {
@@ -93,9 +93,9 @@ public:
 
 //        rclcpp::sleep_for(std::chrono::nanoseconds(std::chrono::seconds(1)));
 
-        this->subscriberIntensitySonar = this->create_subscription<ping360_sonar_msgs::msg::SonarEcho>(
+        this->subscriberPing360Sonar = this->create_subscription<ping360_sonar_msgs::msg::SonarEcho>(
                 "sonar/intensity", qos,
-                std::bind(&rosClassSlam::scanCallback,
+                std::bind(&rosClassSlam::ping360SonarCallback,
                           this, std::placeholders::_1), sub2_opt);
 
         this->subscriberGroundTruth = this->create_subscription<mocap_msgs::msg::RigidBodies>(
@@ -107,7 +107,7 @@ public:
                 std::bind(&rosClassSlam::markersCallback,
                           this, std::placeholders::_1), sub5_opt);
 
-//        this->subscriberIntensitySonar = n_.subscribe("sonar/intensity", 10000, &rosClassSlam::scanCallback, this);
+//        this->subscriberPing360Sonar = n_.subscribe("sonar/intensity", 10000, &rosClassSlam::ping360SonarCallback, this);
         this->serviceSaveGraph = this->create_service<commonbluerovmsg::srv::SaveGraph>("saveGraphOfSLAM",
                                                                                         std::bind(
                                                                                                 &rosClassSlam::saveGraph,
@@ -193,7 +193,7 @@ private:
 
 
     rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr subscriberEKF;
-    rclcpp::Subscription<ping360_sonar_msgs::msg::SonarEcho>::SharedPtr subscriberIntensitySonar;
+    rclcpp::Subscription<ping360_sonar_msgs::msg::SonarEcho>::SharedPtr subscriberPing360Sonar;
     rclcpp::Subscription<mocap_msgs::msg::RigidBodies>::SharedPtr subscriberGroundTruth;
     rclcpp::Subscription<mocap_msgs::msg::Markers>::SharedPtr subscriberMarkersOfGroundTruth;
 
@@ -256,7 +256,7 @@ private:
     int numberOfTimesFirstScan;
 
 
-    void scanCallback(const ping360_sonar_msgs::msg::SonarEcho::SharedPtr msg) {
+    void ping360SonarCallback(const ping360_sonar_msgs::msg::SonarEcho::SharedPtr msg) {
 //        std::cout <<  std::setprecision(19);
 //        std::cout << "timeToAdd" << std::endl;
 //        std::cout << msg << std::endl;
@@ -295,25 +295,27 @@ private:
             return;
         }
         //add a new edge and vertex to the graph defined by EKF and Intensity Measurement
-        bool waitingForMessages = waitForGTMessagesToArrive(rclcpp::Time(msg->header.stamp).seconds());
-        Eigen::Matrix4d gtPosition;
-        if (waitingForMessages) {
-            gtPosition = slamToolsRos::calculatePoseBetweenPosesInterpolation(
-                    rclcpp::Time(msg->header.stamp).seconds(),
-                    this->currentPositionGTDeque, this->groundTruthMutex);
-        } else {
-            std::cout << "message not get" << std::endl;
-            gtPosition = Eigen::Matrix4d::Identity();
-            for (int i = 0; i < 4; i++) {
-                for (int j = 0; j < 4; j++) {
-                    gtPosition(i, j) = NAN;
-                }
-            }
 
-        }
+//            bool waitingForMessages = waitForGTMessagesToArrive(rclcpp::Time(msg->header.stamp).seconds());
+//            Eigen::Matrix4d gtPosition;
+//            if (waitingForMessages) {
+//                gtPosition = slamToolsRos::calculatePoseBetweenPosesInterpolation(
+//                        rclcpp::Time(msg->header.stamp).seconds(),
+//                        this->currentPositionGTDeque, this->groundTruthMutex);
+//            } else {
+//                std::cout << "message not get" << std::endl;
+//                gtPosition = Eigen::Matrix4d::Identity();
+//                for (int i = 0; i < 4; i++) {
+//                    for (int j = 0; j < 4; j++) {
+//                        gtPosition(i, j) = NAN;
+//                    }
+//                }
+//
+//            }
 
 
-        waitingForMessages = waitForEKFMessagesToArrive(rclcpp::Time(msg->header.stamp).seconds());
+
+        bool waitingForMessages = waitForEKFMessagesToArrive(rclcpp::Time(msg->header.stamp).seconds());
         if (!waitingForMessages) {
             std::cout << "return no message found: " << rclcpp::Time(msg->header.stamp).seconds() << "    "
                       << rclcpp::Clock(RCL_ROS_TIME).now().seconds() << std::endl;
@@ -339,13 +341,13 @@ private:
                                    this->graphSaved.getVertexList()->back().getCovarianceMatrix(),
                                    intensityTMP,
                                    rclcpp::Time(msg->header.stamp).seconds(),
-                                   INTENSITY_SAVED);
+                                   PING360_MEASUREMENT);
 
-        if (USES_GROUND_TRUTH) {
-            //SAVE qualisys GT POSE
-            this->graphSaved.getVertexList()->back().setGroundTruthTransformation(gtPosition);
-            this->graphSaved.getVertexList()->back().setNumberOfMarkersSeen((double)(this->numberOfMarkersSeen));
-        }
+//        if (USES_GROUND_TRUTH) {
+//            //SAVE qualisys GT POSE
+//            this->graphSaved.getVertexList()->back().setGroundTruthTransformation(gtPosition);
+//            this->graphSaved.getVertexList()->back().setNumberOfMarkersSeen((double)(this->numberOfMarkersSeen));
+//        }
 
         Eigen::Matrix3d covarianceMatrix = Eigen::Matrix3d::Zero();
         covarianceMatrix(0, 0) = INTEGRATED_NOISE_XY;

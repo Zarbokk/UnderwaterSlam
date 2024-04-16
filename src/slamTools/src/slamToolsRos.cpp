@@ -532,11 +532,124 @@ double slamToolsRos::createVoxelOfGraphStartEndPoint(double voxelData[], int ind
     do {
         //calculate the position of each intensity and create an index in two arrays. First in voxel data, and second save number of intensities.
 
+        if (usedGraph.getVertexList()->at(indexStart - i).getTypeOfVertex() != MICRON_MEASUREMENT) {
+            //get position of current intensityRay
+            Eigen::Matrix4d transformationOfIntensityRay =
+                    usedGraph.getVertexList()->at(indexStart).getTransformation().inverse() *
+                    usedGraph.getVertexList()->at(indexStart - i).getTransformation();
+
+            //positionOfIntensity has to be rotated by    graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
+            Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
+                                                                                                             usedGraph.getVertexList()->at(
+                                                                                                                     indexStart -
+                                                                                                                     i).getIntensities().angle);
+
+            int ignoreDistance = (int) (ignoreDistanceToRobot /
+                                        (usedGraph.getVertexList()->at(indexStart - i).getIntensities().range /
+                                         ((double) usedGraph.getVertexList()->at(
+                                                 indexStart - i).getIntensities().intensities.size())));
+
+
+            for (int j = ignoreDistance;
+                 j < usedGraph.getVertexList()->at(indexStart - i).getIntensities().intensities.size(); j++) {
+                double distanceOfIntensity =
+                        j / ((double) usedGraph.getVertexList()->at(
+                                indexStart - i).getIntensities().intensities.size()) *
+                        ((double) usedGraph.getVertexList()->at(indexStart - i).getIntensities().range);
+
+                int incrementOfScan = usedGraph.getVertexList()->at(indexStart - i).getIntensities().increment;
+                for (int l = -incrementOfScan - 5; l <= incrementOfScan + 5; l++) {
+                    Eigen::Vector4d positionOfIntensity(
+                            distanceOfIntensity,
+                            0,
+                            0,
+                            1);
+                    double rotationOfPoint = l / 400.0;
+                    Eigen::Matrix4d rotationForBetterView = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
+                                                                                                                rotationOfPoint);
+                    positionOfIntensity = rotationForBetterView * positionOfIntensity;
+
+                    positionOfIntensity = transformationInTheEndOfCalculation * transformationOfIntensityRay *
+                                          rotationOfSonarAngleMatrix * positionOfIntensity;
+                    //calculate index dependent on  DIMENSION_OF_VOXEL_DATA and numberOfPoints the middle
+                    int indexX =
+                            (int) (positionOfIntensity.x() / (dimensionOfVoxelData / 2) * numberOfPoints /
+                                   2) +
+                            numberOfPoints / 2;
+                    int indexY =
+                            (int) (positionOfIntensity.y() / (dimensionOfVoxelData / 2) * numberOfPoints /
+                                   2) +
+                            numberOfPoints / 2;
+
+
+                    if (indexX < numberOfPoints && indexY < numberOfPoints && indexY >= 0 &&
+                        indexX >= 0) {
+                        //                    std::cout << indexX << " " << indexY << std::endl;
+                        //if index fits inside of our data, add that data. Else Ignore
+                        voxelDataIndex[indexY + numberOfPoints * indexX] =
+                                voxelDataIndex[indexY + numberOfPoints * indexX] + 1;
+                        //                    std::cout << "Index: " << voxelDataIndex[indexY + numberOfPoints * indexX] << std::endl;
+                        voxelData[indexY + numberOfPoints * indexX] =
+                                voxelData[indexY + numberOfPoints * indexX] +
+                                usedGraph.getVertexList()->at(indexStart - i).getIntensities().intensities[j];
+                        //                    std::cout << "Intensity: " << voxelData[indexY + numberOfPoints * indexX] << std::endl;
+                        //                    std::cout << "random: " << std::endl;
+                    }
+                }
+            }
+        }
+        i++;
+
+    } while (usedGraph.getVertexList()->at(indexStart - i).getTypeOfVertex() != FIRST_ENTRY &&
+             indexStart - i != indexEnd);
+
+// std::cout << "number of intensity values used: " << i << std::endl;
+
+    double maximumOfVoxelData = 0;
+    for (i = 0; i < numberOfPoints * numberOfPoints; i++) {
+        if (voxelDataIndex[i] > 0) {
+            voxelData[i] = voxelData[i] / voxelDataIndex[i];
+            if (maximumOfVoxelData < voxelData[i]) {
+                maximumOfVoxelData = voxelData[i];
+            }
+            //std::cout << voxelData[i] << std::endl;
+
+        }
+    }// @TODO calculate the maximum and normalize "somehow"
+
+
+
+
+    free(voxelDataIndex);
+    return maximumOfVoxelData;
+}
+
+double slamToolsRos::createVoxelOfGraphStartEndPointUncorrected(double voxelData[], int indexStart, int indexEnd,
+                                                                int numberOfPoints, graphSlamSaveStructure &usedGraph,
+                                                                double ignoreDistanceToRobot,
+                                                                double dimensionOfVoxelData,
+                                                                Eigen::Matrix4d transformationInTheEndOfCalculation) {
+    int *voxelDataIndex;
+    voxelDataIndex = (int *) malloc(sizeof(int) * numberOfPoints * numberOfPoints);
+    //set zero voxel and index
+    for (int i = 0; i < numberOfPoints * numberOfPoints; i++) {
+        voxelDataIndex[i] = 0;
+        voxelData[i] = 0;
+    }
+
+
+    int i = 0;
+    do {
+        //calculate the position of each intensity and create an index in two arrays. First in voxel data, and second save number of intensities.
+
 
         //get position of current intensityRay
-        Eigen::Matrix4d transformationOfIntensityRay =
-                usedGraph.getVertexList()->at(indexStart).getTransformation().inverse() *
-                usedGraph.getVertexList()->at(indexStart - i).getTransformation();
+//        Eigen::Matrix4d transformationOfIntensityRay =
+//                usedGraph.getVertexList()->at(indexStart).getTransformation().inverse() *
+//                usedGraph.getVertexList()->at(indexStart - i).getTransformation();
+        Eigen::Matrix4d transformationOfIntensityRay = Eigen::Matrix4d::Identity();
+
+
 
         //positionOfIntensity has to be rotated by    graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
         Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0,
@@ -621,7 +734,6 @@ double slamToolsRos::createVoxelOfGraphStartEndPoint(double voxelData[], int ind
     free(voxelDataIndex);
     return maximumOfVoxelData;
 }
-
 //pcl::PointCloud<pcl::PointXYZ> slamToolsRos::createPCLFromGraphOneValue(int indexStart,
 //                                                                        Eigen::Matrix4d transformationInTheEndOfCalculation,
 //                                                                        graphSlamSaveStructure &usedGraph,
@@ -965,17 +1077,21 @@ slamToolsRos::getDatasetFromGraphForMap(std::vector<intensityValues> &dataSet, g
 //        std::uniform_real_distribution<> dis(0.0, 1.0);
     double maxOverall = 0;
     for (int i = 0; i < graphSaved.getVertexList()->size(); i++) {
-        intensityValues tmpInt;
-        tmpInt.transformation = graphSaved.getVertexList()->at(i).getTransformation();
-        tmpInt.intensity = graphSaved.getVertexList()->at(i).getIntensities();
+        if (graphSaved.getVertexList()->at(i).getTypeOfVertex() != MICRON_MEASUREMENT) {
 
 
-        double it = *max_element(std::begin(tmpInt.intensity.intensities),
-                                 std::end(tmpInt.intensity.intensities)); // C++11
-        if (it > maxOverall) {
-            maxOverall = it;
+            intensityValues tmpInt;
+            tmpInt.transformation = graphSaved.getVertexList()->at(i).getTransformation();
+            tmpInt.intensity = graphSaved.getVertexList()->at(i).getIntensities();
+
+
+            double it = *max_element(std::begin(tmpInt.intensity.intensities),
+                                     std::end(tmpInt.intensity.intensities)); // C++11
+            if (it > maxOverall) {
+                maxOverall = it;
+            }
+            dataSet.push_back(tmpInt);
         }
-        dataSet.push_back(tmpInt);
     }
 
 
@@ -1039,7 +1155,18 @@ bool slamToolsRos::calculateStartAndEndIndexForVoxelCreation(int indexMiddle, in
     double currentAngleOfScan;
     do {
         indexStart += 1;
+        if (!(indexStart >= usedGraph.getVertexList()->size())) {
+            while (usedGraph.getVertexList()->at(indexStart).getTypeOfVertex() == MICRON_MEASUREMENT) {
+//                std::cout << "how often did we skip sth" << std::endl;
+                indexStart += 1;
+            }
+        }
         indexEnd -= 1;
+        while (usedGraph.getVertexList()->at(indexEnd).getTypeOfVertex() == MICRON_MEASUREMENT) {
+            indexEnd -= 1;
+        }
+
+
         bool indexStartBool = false;
         bool indexEndBool = false;
         if (indexEnd <= 0) {
@@ -1082,6 +1209,9 @@ bool slamToolsRos::calculateEndIndexForVoxelCreationByStartIndex(int indexStart,
     double currentAngleOfScan;
     do {
         indexEnd -= 1;
+        while (usedGraph.getVertexList()->at(indexEnd).getTypeOfVertex() == MICRON_MEASUREMENT) {
+            indexEnd -= 1;
+        }
         if (indexEnd <= 0) {
             indexEnd = 0;
             return false;
@@ -1375,7 +1505,8 @@ slamToolsRos::loopDetectionByClosestPath(graphSlamSaveStructure &graphSaved,
                      graphSaved.getVertexList()->at(potentialLoopClosure).getPositionVertex().x()), 2) +
                 pow((estimatedPosLastPoint.y() -
                      graphSaved.getVertexList()->at(potentialLoopClosure).getPositionVertex().y()), 2));
-        if (d2 > d1 && maxLoopClosure > d1) {
+        if (d2 > d1 && maxLoopClosure > d1 &&
+            graphSaved.getVertexList()->at(s).getTypeOfVertex() != MICRON_MEASUREMENT) {
             potentialLoopClosure = s;
         }
     }
@@ -1454,8 +1585,8 @@ slamToolsRos::loopDetectionByClosestPath(graphSlamSaveStructure &graphSaved,
                                                                                                         initialGuessTransformation,
                                                                                                         covarianceEstimation,
                                                                                                         (double) distanceOfVoxelDataLengthSI /
-                                                                                                        (double) dimensionOfVoxelData,timeToCalculate);
-
+                                                                                                        (double) dimensionOfVoxelData,
+                                                                                                        timeToCalculate);
 
 
         slamToolsRos::saveResultingRegistrationTMPCOPY(indexStart1,
@@ -1697,7 +1828,8 @@ void slamToolsRos::saveResultingRegistrationTMPCOPY(int indexStart1, int indexEn
 
 
 pcl::PointCloud<pcl::PointXYZ>
-slamToolsRos::convertVoxelToPointcloud(double voxelData[], double thresholdFactor, double maximumVoxelData, int dimensionVoxel,double dimensionOfVoxelDataForMatching) {
+slamToolsRos::convertVoxelToPointcloud(double voxelData[], double thresholdFactor, double maximumVoxelData,
+                                       int dimensionVoxel, double dimensionOfVoxelDataForMatching) {
 
     pcl::PointCloud<pcl::PointXYZ> ourPCL;
     for (int j = 0; j < dimensionVoxel; j++) {
@@ -1719,12 +1851,13 @@ slamToolsRos::convertVoxelToPointcloud(double voxelData[], double thresholdFacto
 }
 
 Eigen::Matrix4d slamToolsRos::registrationOfDesiredMethod(pcl::PointCloud<pcl::PointXYZ> pclNotShifted,
-                                            pcl::PointCloud<pcl::PointXYZ> pclShifted,
-                                            pcl::PointCloud<pcl::PointXYZ> final, double voxelData[],
-                                            double voxelDataShifted[],
-                                            Eigen::Matrix4d initialGuess, double currentCellSize,
-                                            int whichMethod, bool useInitialGuess,
-                                            scanRegistrationClass *scanRegistrationObject,double &timeToCalculate) {
+                                                          pcl::PointCloud<pcl::PointXYZ> pclShifted,
+                                                          pcl::PointCloud<pcl::PointXYZ> final, double voxelData[],
+                                                          double voxelDataShifted[],
+                                                          Eigen::Matrix4d initialGuess, double currentCellSize,
+                                                          int whichMethod, bool useInitialGuess,
+                                                          scanRegistrationClass *scanRegistrationObject,
+                                                          double &timeToCalculate) {
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     std::chrono::steady_clock::time_point end;
     //1: GICP, 2: SUPER4PCS, 3: NDT D2D 2D, 4: NDT P2D, 5: FourierMellinTransform,
@@ -1776,14 +1909,15 @@ Eigen::Matrix4d slamToolsRos::registrationOfDesiredMethod(pcl::PointCloud<pcl::P
                                                                                         voxelDataShifted, 1,
                                                                                         initialGuess,
                                                                                         covarianceEstimation,
-                                                                                        currentCellSize,timeToCalculate);
+                                                                                        currentCellSize,
+                                                                                        timeToCalculate);
 
             } else {
                 scanRegistrationObject->registrationOfTwoVoxelsSOFFTAllSoluations(voxelData, 1,
                                                                                   voxelDataShifted, 1,
                                                                                   initialGuess,
                                                                                   covarianceEstimation,
-                                                                                  currentCellSize,timeToCalculate);
+                                                                                  currentCellSize, timeToCalculate);
             }
 //            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 //            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
@@ -1797,14 +1931,15 @@ Eigen::Matrix4d slamToolsRos::registrationOfDesiredMethod(pcl::PointCloud<pcl::P
                                                                                         voxelDataShifted, 1,
                                                                                         initialGuess,
                                                                                         covarianceEstimation,
-                                                                                        currentCellSize,timeToCalculate);
+                                                                                        currentCellSize,
+                                                                                        timeToCalculate);
 
             } else {
                 scanRegistrationObject->registrationOfTwoVoxelsSOFFTAllSoluations(voxelData, 1,
                                                                                   voxelDataShifted, 1,
                                                                                   initialGuess,
                                                                                   covarianceEstimation,
-                                                                                  currentCellSize,timeToCalculate);
+                                                                                  currentCellSize, timeToCalculate);
             }
 //            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 //            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
@@ -1817,14 +1952,15 @@ Eigen::Matrix4d slamToolsRos::registrationOfDesiredMethod(pcl::PointCloud<pcl::P
                                                                                         voxelDataShifted, 1,
                                                                                         initialGuess,
                                                                                         covarianceEstimation,
-                                                                                        currentCellSize,timeToCalculate);
+                                                                                        currentCellSize,
+                                                                                        timeToCalculate);
 
             } else {
                 scanRegistrationObject->registrationOfTwoVoxelsSOFFTAllSoluations(voxelData, 1,
                                                                                   voxelDataShifted, 1,
                                                                                   initialGuess,
                                                                                   covarianceEstimation,
-                                                                                  currentCellSize,timeToCalculate);
+                                                                                  currentCellSize, timeToCalculate);
             }
 //           std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 //            timeToCalculate = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
@@ -1901,7 +2037,6 @@ Eigen::Matrix4d slamToolsRos::registrationOfDesiredMethod(pcl::PointCloud<pcl::P
 //            std::cout << "test" << std::endl;
             break;
     }
-
 
 
     return returnMatrix;
