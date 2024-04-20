@@ -16,25 +16,36 @@
 #include "micron_driver_ros/msg/scan_line.hpp"
 
 
-#define NUMBER_OF_POINTS_DIMENSION 128
-#define DIMENSION_OF_VOXEL_DATA_FOR_MATCHING 40 // was 50 //tuhh tank 6
+struct sonarMeasurement {
+    ping360_sonar_msgs::msg::SonarEcho pingMSG;
+    micron_driver_ros::msg::ScanLine micronMSG;
+    int typeMeasurement;
+    double timeStamp;
+};
+
+#define TEST_MM_INSTEAD_OF_METER true
+
+
+
+#define NUMBER_OF_POINTS_DIMENSION 256
+#define DIMENSION_OF_VOXEL_DATA_FOR_MATCHING 45 // was 50 //tuhh tank 6
 #define NUMBER_OF_POINTS_MAP 512//was 512
 // 80 simulation ;300 valentin; 45.0 for Keller; 10.0 TUHH TANK ;15.0 Ocean ;35.0 DFKI
-#define DIMENSION_OF_MAP 35.0
+#define DIMENSION_OF_MAP 40.0
 
-#define IGNORE_DISTANCE_TO_ROBOT 1.0 // was 1.0 // TUHH 0.2
+#define IGNORE_DISTANCE_TO_ROBOT 0.5 // was 1.0 // TUHH 0.2
 #define DEBUG_REGISTRATION false
 
 #define ROTATION_SONAR M_PI // sonar on robot M_PI // simulation 0
 #define SHOULD_USE_ROSBAG false
-#define FACTOR_OF_MATCHING 1.0 //1.5
-#define THRESHOLD_FOR_TRANSLATION_MATCHING 0.1 // standard is 0.1, 0.05 und 0.01  // 0.05 for valentin Oben
+#define FACTOR_OF_MATCHING 1.5 //1.5
+#define THRESHOLD_FOR_TRANSLATION_MATCHING 0.01 // standard is 0.1, 0.05 und 0.01  // 0.05 for valentin Oben
 
 #define INTEGRATED_NOISE_XY 0.03 // was 0.03  // TUHH 0.005
 #define INTEGRATED_NOISE_YAW 0.03 // was 0.03 // TUHH 0.005
 
 #define USE_INITIAL_TRANSLATION_LOOP_CLOSURE true
-#define MAXIMUM_LOOP_CLOSURE_DISTANCE 1.0 // 0.2 TUHH 2.0 valentin Keller 4.0 Valentin Oben // 2.0 simulation
+#define MAXIMUM_LOOP_CLOSURE_DISTANCE 4.0 // 0.2 TUHH 2.0 valentin Keller 4.0 Valentin Oben // 2.0 simulation
 
 #define SONAR_LOOKING_DOWN false
 #define USES_GROUND_TRUTH false
@@ -66,9 +77,6 @@ public:
         qos.liveliness_lease_duration(rmw_time_t(RMW_DURATION_INFINITE));
         qos.avoid_ros_namespace_conventions(false);
 
-//        auto ourQOSSLAM = rmw_qos_profile_system_default;
-//        ourQOSSLAM.history = rmw_qos_history_policy_e::RMW_QOS_POLICY_HISTORY_KEEP_ALL;
-//        ourQOSSLAM.depth = ;
 
 
 
@@ -89,6 +97,12 @@ public:
         auto sub2_opt = rclcpp::SubscriptionOptions();
         sub2_opt.callback_group = callback_group_subscriber2_;
 
+        this->callback_group_subscriber3_ = this->create_callback_group(
+                rclcpp::CallbackGroupType::MutuallyExclusive);
+        auto sub3_opt = rclcpp::SubscriptionOptions();
+        sub3_opt.callback_group = callback_group_subscriber3_;
+
+
         this->subscriberEKF = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
                 "publisherPoseEkf", qos,
                 std::bind(&rosClassSlam::stateEstimationCallback,
@@ -99,14 +113,23 @@ public:
 
         this->subscriberPing360Sonar = this->create_subscription<ping360_sonar_msgs::msg::SonarEcho>(
                 "sonar/intensity", qos,
-                std::bind(&rosClassSlam::ping360SonarCallback,
+                std::bind(&rosClassSlam::ping360HelperCallback,
                           this, std::placeholders::_1), sub2_opt);
 
 
-//        this->subscriberMicronSonar = this->create_subscription<micron_driver_ros::msg::ScanLine>(
-//                "tritech_sonar/scan_lines", qos,
-//                std::bind(&rosClassSlam::micronSonarCallback,
-//                          this, std::placeholders::_1), sub2_opt);
+        this->subscriberMicronSonar = this->create_subscription<micron_driver_ros::msg::ScanLine>(
+                "tritech_sonar/scan_lines", qos,
+                std::bind(&rosClassSlam::micronHelperCallback,
+                          this, std::placeholders::_1), sub2_opt);
+
+//        this->sonarTimer_ = this->create_wall_timer(
+//                10ms, std::bind(&rosClassSlam::startSonarFunction, this), this->callback_group_subscriber3_);
+
+        this->sonarTimer_ = this->create_wall_timer(
+                10ms, std::bind(&rosClassSlam::testSonarFunction, this), this->callback_group_subscriber3_);
+
+
+
 
 
 //        this->subscriberPing360Sonar = n_.subscribe("sonar/intensity", 10000, &rosClassSlam::ping360SonarCallback, this);
@@ -143,11 +166,16 @@ public:
         this->publisherPoseSLAM = this->create_publisher<geometry_msgs::msg::PoseStamped>(
                 "slamEndPose", qos);
 
-        std::chrono::duration<double> my_timer_duration = std::chrono::duration<double>(5.0);
+        std::chrono::duration<double> my_timer_duration = std::chrono::duration<double>(10.0);
         this->timer_ = this->create_wall_timer(
                 my_timer_duration, std::bind(&rosClassSlam::createImageOfAllScans, this));
 
-//        if (SHOULD_USE_ROSBAG) {
+//        std::chrono::duration<double>  my_timer_duration2 = std::chrono::duration<double>(1/100.0);
+
+
+
+
+        //        if (SHOULD_USE_ROSBAG) {
 //            pauseRosbag = n_.serviceClient<std_srvs::SetBoolRequest>(nameOfTheServiceCall);
 //        }
 
@@ -202,12 +230,14 @@ private:
 
     rclcpp::CallbackGroup::SharedPtr callback_group_subscriber1_;
     rclcpp::CallbackGroup::SharedPtr callback_group_subscriber2_;
+    rclcpp::CallbackGroup::SharedPtr callback_group_subscriber3_;
     rclcpp::TimerBase::SharedPtr timer_;
-
+    rclcpp::TimerBase::SharedPtr sonarTimer_;
 
     std::mutex stateEstimationMutex;
     std::mutex groundTruthMutex;
     std::mutex graphSlamMutex;
+    std::mutex sonarInputMutex;
     //GraphSlam things
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherSonarEcho;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherEKF;
@@ -250,10 +280,192 @@ private:
     //hilbertMap occupancyMap;
     int numberOfTimesFirstScan;
 
+    std::deque<sonarMeasurement> ourListOfSonarMeasurements;
+
+
+    void ping360HelperCallback(const ping360_sonar_msgs::msg::SonarEcho::SharedPtr msg) {
+        std::lock_guard<std::mutex> lock(this->sonarInputMutex);
+
+
+        sonarMeasurement tmpSonarMeas;
+
+        tmpSonarMeas.pingMSG = *msg;
+        tmpSonarMeas.timeStamp = rclcpp::Time(msg->header.stamp).seconds();
+        tmpSonarMeas.typeMeasurement = 1;
+//        std::cout << "sonarMessage is coming in" << std::endl;
+        this->ourListOfSonarMeasurements.push_back(tmpSonarMeas);
+    }
+
+    void micronHelperCallback(const micron_driver_ros::msg::ScanLine::SharedPtr msg) {
+        std::lock_guard<std::mutex> lock(this->sonarInputMutex);
+
+
+        sonarMeasurement tmpSonarMeas;
+
+        tmpSonarMeas.micronMSG = *msg;
+        tmpSonarMeas.timeStamp = rclcpp::Time(msg->header.stamp).seconds();
+        tmpSonarMeas.typeMeasurement = 2;
+        this->ourListOfSonarMeasurements.push_back(tmpSonarMeas);
+    }
+
+    void testSonarFunction() {
+        std::cout << "before" << std::endl;
+        std::lock_guard<std::mutex> lock(this->sonarInputMutex);
+        std::cout << "after" << std::endl;
+
+        if (this->ourListOfSonarMeasurements.size() > 50) {
+            int indexFirstPing = 0;
+            int indexSecondPing = 0;
+//            std::vector<int> micronIndexList;
+            double correctionTime = this->ourListOfSonarMeasurements[0].timeStamp;
+
+            //find 3 ping
+            int numberOfPingMessagesToSkip = 4;
+            int i = 0;
+            int counter = 0;
+            while (counter < numberOfPingMessagesToSkip) {
+                if (this->ourListOfSonarMeasurements[i].typeMeasurement == 1) {
+                    counter++;
+                }
+                i++;
+            }
+
+            indexFirstPing = i - 1;
+
+            // find 4 ping
+            i = 0;
+            counter = 0;
+            while (counter < numberOfPingMessagesToSkip + 1) {
+                if (this->ourListOfSonarMeasurements[i].typeMeasurement == 1) {
+                    counter++;
+                }
+                i++;
+            }
+            indexSecondPing = i - 1;
+
+
+            //calculate EKF estimation 3->4(ping)
+
+            edge differenceOfEdgeEKF = slamToolsRos::calculatePoseDiffByTimeDepOnEKF(
+                    this->ourListOfSonarMeasurements[indexFirstPing].timeStamp,
+                    this->ourListOfSonarMeasurements[indexSecondPing].timeStamp,
+                    this->ekfTransformationList, this->stateEstimationMutex);
+            Eigen::Matrix4d transofrmationDiffEKF = differenceOfEdgeEKF.getTransformation();
+
+//            std::cout << std::setprecision(15) << "EKF Time: "
+//                      << this->ourListOfSonarMeasurements[indexFirstPing].timeStamp << " "
+//                      << this->ourListOfSonarMeasurements[indexSecondPing].timeStamp << std::endl;
+            std::cout << "------------------------EKF----------------------" << std::endl;
+
+            //calculate every T between 3  and 4 with Microns.
+            std::vector<edge> listOfEdges;
+            Eigen::Matrix4d transofrmationDiffMicron = Eigen::Matrix4d::Identity();
+            for (i = indexFirstPing; i < indexSecondPing; i++) {
+                edge tmpEdge = slamToolsRos::calculatePoseDiffByTimeDepOnEKF(
+                        this->ourListOfSonarMeasurements[i].timeStamp,
+                        this->ourListOfSonarMeasurements[i + 1].timeStamp,
+                        this->ekfTransformationList, this->stateEstimationMutex);
+
+//                std::cout << std::setprecision(15) << "micron Time: " << this->ourListOfSonarMeasurements[i].timeStamp
+//                          << " "
+//                          << this->ourListOfSonarMeasurements[i + 1].timeStamp << std::endl;
+                std::cout << "----------------------------------------------" << std::endl;
+                transofrmationDiffMicron = generalHelpfulTools::addTwoTransformationMatrixInBaseFrame(
+                        transofrmationDiffMicron, tmpEdge.getTransformation());
+                std::cout << tmpEdge.getTransformation() << std::endl;
+                std::cout << transofrmationDiffMicron << std::endl;
+                std::cout << transofrmationDiffEKF << std::endl;
+                listOfEdges.push_back(tmpEdge);
+
+            }
+
+
+
+
+
+            //show difference
+
+            std::cout << transofrmationDiffEKF << std::endl;
+            std::cout << transofrmationDiffMicron << std::endl;
+            Eigen::Vector3d positionEKF, positionMicron;
+            Eigen::Quaterniond rotationEKF, rotationMicron;
+            generalHelpfulTools::splitTransformationMatrixToQuadAndTrans(positionEKF, rotationEKF,
+                                                                         transofrmationDiffEKF);
+            generalHelpfulTools::splitTransformationMatrixToQuadAndTrans(positionMicron, rotationMicron,
+                                                                         transofrmationDiffMicron);
+
+            std::cout << generalHelpfulTools::getRollPitchYaw(rotationEKF)[2] << std::endl;
+            std::cout << generalHelpfulTools::getRollPitchYaw(rotationMicron)[2] << std::endl;
+
+
+            std::cout << "transofrmationDiffEKF" << std::endl;
+
+
+        }
+    }
+
+    void startSonarFunction() {
+//        std::cout << "beforeSonarMutex" << std::endl;
+
+        this->sonarInputMutex.lock();
+//        std::cout << "afterSonarMutex" << std::endl;
+        std::cout << this->ourListOfSonarMeasurements.size() << std::endl;
+        if (this->ourListOfSonarMeasurements.empty()) {
+            this->sonarInputMutex.unlock();
+//            std::cout << "empty" << std::endl;
+            return;
+        }
+        if (this->ourListOfSonarMeasurements.size() < 5) {
+            this->sonarInputMutex.unlock();
+//            std::cout << "less than 5" << std::endl;
+            return;
+        }
+        double timeToBeat = this->ourListOfSonarMeasurements[0].timeStamp;
+        int indexToBeat = 0;
+        for (int i = 0; i < this->ourListOfSonarMeasurements.size(); i++) {
+            if (this->ourListOfSonarMeasurements[i].timeStamp < timeToBeat) {
+                indexToBeat = i;
+                timeToBeat = this->ourListOfSonarMeasurements[i].timeStamp;
+            }
+
+
+        }
+        ping360_sonar_msgs::msg::SonarEcho::SharedPtr pingMSG;
+        micron_driver_ros::msg::ScanLine::SharedPtr micronMSG;
+        int messageTypeUsed = this->ourListOfSonarMeasurements[indexToBeat].typeMeasurement;
+
+
+        if (messageTypeUsed == 1) {
+            //ping360 msg
+            pingMSG = std::make_shared<ping360_sonar_msgs::msg::SonarEcho>(
+                    this->ourListOfSonarMeasurements[indexToBeat].pingMSG);
+        } else {
+            //micron msg
+            micronMSG = std::make_shared<micron_driver_ros::msg::ScanLine>(
+                    this->ourListOfSonarMeasurements[indexToBeat].micronMSG);
+        }
+
+
+        this->ourListOfSonarMeasurements.erase(this->ourListOfSonarMeasurements.begin() + indexToBeat);
+        this->sonarInputMutex.unlock();
+        if (messageTypeUsed == 1) {
+            //ping360 msg
+//            std::cout << "starting ping stuff" << std::endl;
+            ping360SonarCallback(pingMSG);
+        } else {
+            //micron msg
+            micronSonarCallback(micronMSG);
+        }
+//        std::cout << "doneWithPingStuff" << std::endl;
+
+        return;
+    }
+
 
     void ping360SonarCallback(const ping360_sonar_msgs::msg::SonarEcho::SharedPtr msg) {
-
+//        std::cout << "ping360 before mutex" << std::endl;
         std::lock_guard<std::mutex> lock(this->graphSlamMutex);
+//        std::cout << "ping360 callback" << std::endl;
         intensityMeasurement intensityTMP;
         if (SONAR_LOOKING_DOWN) {
             intensityTMP.angle = std::fmod(-msg->angle / 400.0 * M_PI * 2.0 + ROTATION_SONAR,
@@ -363,9 +575,12 @@ private:
 
             //we inverse the initial guess, because the registration creates a T from scan 1 to scan 2.
             // But the graph creates a transformation from 1 -> 2 by the robot, therefore inverse.
+//            this->initialGuessTransformation =
+//                            this->graphSaved.getVertexList()->at(indexStart1).getTransformation().inverse()*
+//                            this->graphSaved.getVertexList()->at(indexStart2).getTransformation();
             this->initialGuessTransformation =
-                    (this->graphSaved.getVertexList()->at(indexStart2).getTransformation().inverse() *
-                     this->graphSaved.getVertexList()->at(indexStart1).getTransformation());
+                    this->graphSaved.getVertexList()->at(indexStart2).getTransformation().inverse() *
+                    this->graphSaved.getVertexList()->at(indexStart1).getTransformation();
 
 //            std::cout << "this->initialGuessTransformation.inverse()" << std::endl;
 //            std::cout << this->initialGuessTransformation.inverse() << std::endl;
@@ -454,13 +669,16 @@ private:
                                                          USE_INITIAL_TRANSLATION_LOOP_CLOSURE, 250, 500,
                                                          THRESHOLD_FOR_TRANSLATION_MATCHING,
                                                          MAXIMUM_LOOP_CLOSURE_DISTANCE);
+                this->graphSaved.isam2OptimizeGraph(true, 2);
+
             }
+//            this->graphSaved.isam2OptimizeGraph(true, 2);
+
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 
 //            double timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 //            std::cout << "timeToCalculate: " << timeToCalculate << std::endl;
 
-            this->graphSaved.isam2OptimizeGraph(true, 2);
 
             slamToolsRos::visualizeCurrentPoseGraph(this->graphSaved, this->publisherSonarEcho,
                                                     this->publisherMarkerArray, this->sigmaScaling,
@@ -560,7 +778,13 @@ private:
         if (i == this->ekfTransformationList.size() || i == 0) {
             Eigen::Quaterniond tmpQuad(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x,
                                        msg->pose.pose.orientation.y, msg->pose.pose.orientation.z);
-            Eigen::Vector3d tmpVec(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z);
+            Eigen::Vector3d tmpVec;
+            if(TEST_MM_INSTEAD_OF_METER){
+                tmpVec = Eigen::Vector3d(msg->pose.pose.position.x*100000.0, msg->pose.pose.position.y*100000.0, msg->pose.pose.position.z*100000.0);
+            }else{
+                tmpVec = Eigen::Vector3d(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z);
+            }
+//            Eigen::Vector3d tmpVec(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z);
             Eigen::Matrix4d transformationMatrix = generalHelpfulTools::getTransformationMatrix(tmpVec, tmpQuad);
 
             transformationStamped tmpTransformationStamped;
@@ -1045,62 +1269,37 @@ int main(int argc, char **argv) {
     executor.spin();
     rclcpp::shutdown();
 
-//    rclcpp::init(argc, argv, "ekfwithros");
+//    Eigen::Matrix4d firstTransformation = Eigen::Matrix4d::Identity();
+//    Eigen::Matrix4d secondTransformation = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0, 1);
+//    secondTransformation(0, 3) = 2.5;
+//    secondTransformation(1, 3) = 1.5;
+//
+//    double t = 0.01;
+//
+//    Eigen::Matrix4d completeTransformation1 = Eigen::Matrix4d::Identity();
+//    Eigen::Matrix4d completeTransformation2 = Eigen::Matrix4d::Identity();
+//    Eigen::Matrix4d completeTransformation3 = Eigen::Matrix4d::Identity();
+//    Eigen::Matrix4d completeTransformation4 = Eigen::Matrix4d::Identity();
+//    for (int i = 0; i < 100; i++) {
+//        double interpolationFactor1 = t*i;
+//        double interpolationFactor2 = t*(i+1);
 //
 //
-//    rclcpp::V_string nodes;
-//    int i = 0;
-//    std::string stringForRosClass;
-//    if (SHOULD_USE_ROSBAG) {
-//        slamToolsRos::getNodes(nodes);
+//        Eigen::Matrix4d tmp1 = generalHelpfulTools::interpolationTwo4DTransformations(
+//                firstTransformation, secondTransformation, interpolationFactor1);
+//        Eigen::Matrix4d tmp2 = generalHelpfulTools::interpolationTwo4DTransformations(
+//                firstTransformation, secondTransformation, interpolationFactor2);
 //
 //
-//        for (i = 0; i < nodes.size(); i++) {
-//
-//            if (nodes[i].substr(1, 4) == "play") {
-//                //            std::cout << "we found it" << std::endl;
-//                break;
-//            }
-//        }
-////            std::cout << nodes[i]+"/pause_playback" << std::endl;
-////        rclcpp::ServiceServer serviceResetEkf;
+//        completeTransformation1 = completeTransformation1*(tmp1.inverse()*tmp2);
 //
 //
-//        if (rclcpp::service::exists(nodes[i] + "/pause_playback", true)) {
-//
-//        } else {
-//            exit(-1);
-//        }
-//
-//        stringForRosClass = nodes[i] + "/pause_playback";
 //    }
+//    std::cout << completeTransformation1 << std::endl;
 //
-//
-//    rclcpp::start();
-//    rclcpp::NodeHandle n_;
-//    rosClassEKF rosClassForTests(n_, stringForRosClass);
-//
-//
-////    rclcpp::spin();
-//
-//
-//    rclcpp::Rate loop_rate(0.1);
-//    rclcpp::AsyncSpinner spinner(4); // Use 4 threads
-//    spinner.start();
-//    rclcpp::Duration(10).sleep();
-//
-//    while (rclcpp::ok()) {
-////        rclcpp::spinOnce();
-//
-//        //rosClassForTests.updateHilbertMap();
-////        rosClassForTests.updateMap();
-//        rosClassForTests.createImageOfAllScans();
-//
-//        loop_rate.sleep();
-//
-//        //std::cout << rclcpp::Time::now() << std::endl;
-//    }
-//
+//    std::cout << secondTransformation << std::endl;
+
+
 
     return (0);
 }

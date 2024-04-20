@@ -42,6 +42,8 @@ public:
                                                         Eigen::Matrix4d &transformationMatrix);
 
     static Eigen::Matrix4d getTransformationMatrixTF2(tf2::Vector3 &translation, tf2::Quaternion &rotation);
+    static Eigen::Matrix4d addTwoTransformationMatrixInBaseFrame(Eigen::Matrix4d transformationMatrix1,Eigen::Matrix4d transformationMatrix2);
+    static Eigen::Matrix4d addTwoTransformationMatrixInBaseFrameFirstIsInverted(Eigen::Matrix4d transformationMatrix1,Eigen::Matrix4d transformationMatrix2);
 
 };
 

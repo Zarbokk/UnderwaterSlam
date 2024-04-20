@@ -945,22 +945,116 @@ slamToolsRos::calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endT
     }
     indexOfEnd--;
 
-    Eigen::Matrix4d transformationTMP = Eigen::Matrix4d::Identity();
+//    std::cout << "IndexStart: " << indexOfStart << " IndexEnd: " << indexOfEnd << std::endl;
+//    std::cout <<std::setprecision(15)<< transformationList[indexOfStart].timeStamp << " : " << transformationList[indexOfEnd+1].timeStamp << std::endl;
+    if (indexOfStart == indexOfEnd) {
+//        std::cout << "Relax " << std::endl;
 
-    if (indexOfStart > 0) {
-        double interpolationFactor = 1.0 - ((transformationList[indexOfStart + 1].timeStamp - startTimetoAdd) /
-                                            (transformationList[indexOfStart + 1].timeStamp -
-                                             transformationList[indexOfStart].timeStamp));
+
+        double interpolationFactor1 = (startTimetoAdd-transformationList[indexOfStart].timeStamp ) /
+                                      (transformationList[indexOfStart + 1].timeStamp -
+                                       transformationList[indexOfStart].timeStamp);
+        double interpolationFactor2 = (endTimeToAdd-transformationList[indexOfStart].timeStamp ) /
+                                      (transformationList[indexOfStart + 1].timeStamp -
+                                       transformationList[indexOfStart].timeStamp);
+//        std::cout << "interpolationFactor: " << interpolationFactor << std::endl;
 
         Eigen::Matrix4d transformationOfEKFStart = transformationList[indexOfStart].transformation;
 
         Eigen::Matrix4d transformationOfEKFEnd = transformationList[indexOfStart + 1].transformation;
 
+        Eigen::Matrix4d transformationTMP = generalHelpfulTools::interpolationTwo4DTransformations(
+                transformationOfEKFStart, transformationOfEKFEnd, interpolationFactor1).inverse() *
+                                            generalHelpfulTools::interpolationTwo4DTransformations(
+                                                    transformationOfEKFStart,
+                                                    transformationOfEKFEnd,
+                                                    interpolationFactor2);
+
+
+
+
+//                generalHelpfulTools::addTwoTransformationMatrixInBaseFrameFirstIsInverted(transformationOfEKFStart,
+//                                                                                          generalHelpfulTools::interpolationTwo4DTransformations(
+//                                                                                                  transformationOfEKFStart,
+//                                                                                                  transformationOfEKFEnd,
+//                                                                                                  interpolationFactor));
+
+//        Eigen::Matrix4d transformationTMP = generalHelpfulTools::interpolationTwo4DTransformations(transformationOfEKFStart,
+//                                                                                   transformationOfEKFEnd,
+//                                                                                   interpolationFactor);
+//        std::cout << transformationTMP << std::endl;
+//        interpolationFactor = 1-interpolationFactor;
+//        transformationTMP = generalHelpfulTools::interpolationTwo4DTransformations(transformationOfEKFStart,
+//                                                                                                   transformationOfEKFEnd,
+//                                                                                                   interpolationFactor);
+
+//        std::cout << transformationTMP << std::endl;
+
+//        std::cout << transformationOfEKFStart << std::endl;
+//        std::cout << transformationOfEKFEnd << std::endl;
+//        std::cout << transformationOfEKFStart.inverse() * transformationOfEKFEnd << std::endl;
+//
+//        std::cout << transformationTMP << std::endl;
+
+        Eigen::Vector3d tmpPosition = transformationTMP.block<3, 1>(0, 3);
+        tmpPosition[2] = 0;
+        Eigen::Quaterniond tmpRot(transformationTMP.block<3, 3>(0, 0));
+        Eigen::Vector3d rpyTMP = generalHelpfulTools::getRollPitchYaw(tmpRot);
+        //set rp on zero only yaw interesting
+        tmpRot = generalHelpfulTools::getQuaternionFromRPY(0, 0, rpyTMP[2]);//was +0.00001
+        Eigen::Matrix3d positionCovariance = Eigen::Matrix3d::Zero();
+        edge tmpEdge(0, 0, tmpPosition, tmpRot, positionCovariance, 3,
+                     INTEGRATED_POSE, 0);
+        return tmpEdge;
+    }
+
+//    std::cout << "IndexStart: " << indexOfStart << std::endl;
+//    std::cout << "IndexEnd: " << indexOfEnd << std::endl;
+
+
+    Eigen::Matrix4d transformationTMP = Eigen::Matrix4d::Identity();
+
+    if (indexOfStart > 0) {
+
+
+        double interpolationFactor = ((startTimetoAdd-transformationList[indexOfStart ].timeStamp ) /
+                                      (transformationList[indexOfStart + 1].timeStamp -
+                                       transformationList[indexOfStart].timeStamp));
+
+
+
+
+
+
+        Eigen::Matrix4d transformationOfEKFStart = transformationList[indexOfStart].transformation;
+
+        Eigen::Matrix4d transformationOfEKFEnd = transformationList[indexOfStart + 1].transformation;
+
+
+
+
+
+
+
+
         transformationTMP = transformationTMP *
-                            generalHelpfulTools::interpolationTwo4DTransformations(transformationOfEKFStart,
-                                                                                   transformationOfEKFEnd,
-                                                                                   interpolationFactor).inverse() *
-                            transformationOfEKFEnd;
+                (generalHelpfulTools::interpolationTwo4DTransformations(
+                        transformationOfEKFStart,
+                        transformationOfEKFEnd,
+                        interpolationFactor).inverse()*transformationOfEKFEnd);
+//        std::cout << "interpolationFactor: " << interpolationFactor << std::endl;
+//
+//        std::cout << transformationOfEKFStart << std::endl;
+//        std::cout << transformationOfEKFEnd << std::endl;
+//        std::cout << transformationOfEKFStart.inverse() * transformationOfEKFEnd << std::endl;
+//
+//        std::cout << generalHelpfulTools::interpolationTwo4DTransformations(transformationOfEKFStart,
+//                                                                            transformationOfEKFEnd,
+//                                                                            interpolationFactor).inverse() *
+//                     transformationOfEKFEnd << std::endl;
+//        std::cout << "tmp" << std::endl;
+
+
     }
 
 
@@ -970,6 +1064,10 @@ slamToolsRos::calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endT
         Eigen::Matrix4d transformationOfEKFStart = transformationList[i - 1].transformation;
 
         transformationTMP = transformationTMP * (transformationOfEKFStart.inverse() * transformationOfEKFEnd);
+//                                                                                       (generalHelpfulTools::addTwoTransformationMatrixInBaseFrameFirstIsInverted(
+//                                                                                               transformationOfEKFStart,
+//                                                                                               transformationOfEKFEnd)));
+//        std::cout << "interpolationFactor: " << 1 << std::endl;
         i++;
     }
 
@@ -983,10 +1081,22 @@ slamToolsRos::calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endT
         Eigen::Matrix4d transformationOfEKFEnd = transformationList[indexOfEnd + 1].transformation;
 
 
-        transformationTMP = transformationTMP * transformationOfEKFStart.inverse() *
-                            generalHelpfulTools::interpolationTwo4DTransformations(transformationOfEKFStart,
-                                                                                   transformationOfEKFEnd,
-                                                                                   interpolationFactor);
+        transformationTMP = transformationTMP * (transformationOfEKFStart.inverse() *
+                                                 generalHelpfulTools::interpolationTwo4DTransformations(
+                                                         transformationOfEKFStart, transformationOfEKFEnd,
+                                                         interpolationFactor));
+//        std::cout << "interpolationFactor: " << interpolationFactor << std::endl;
+//        std::cout << transformationOfEKFStart << std::endl;
+//        std::cout << transformationOfEKFEnd << std::endl;
+//        std::cout << transformationOfEKFStart.inverse() * transformationOfEKFEnd << std::endl;
+//
+//        std::cout << generalHelpfulTools::interpolationTwo4DTransformations(transformationOfEKFStart,
+//                                                                            transformationOfEKFEnd,
+//                                                                            interpolationFactor).inverse() *
+//                     transformationOfEKFEnd << std::endl;
+//        std::cout << "tmp" << std::endl;
+
+
     }
     //std::cout << diffMatrix << std::endl;
     Eigen::Vector3d tmpPosition = transformationTMP.block<3, 1>(0, 3);
@@ -1004,6 +1114,7 @@ slamToolsRos::calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endT
     Eigen::Matrix3d positionCovariance = Eigen::Matrix3d::Zero();
     edge tmpEdge(0, 0, tmpPosition, tmpRot, positionCovariance, 3,
                  INTEGRATED_POSE, 0);
+
 
     return tmpEdge;
 }
@@ -1575,7 +1686,8 @@ slamToolsRos::loopDetectionByClosestPath(graphSlamSaveStructure &graphSaved,
 
         Eigen::Matrix4d initialGuessTransformation =
                 (graphSaved.getVertexList()->at(indexStart1).getTransformation().inverse() *
-                 graphSaved.getVertexList()->at(indexStart2).getTransformation()).inverse();
+                 graphSaved.getVertexList()->at(
+                         indexStart2).getTransformation()).inverse();// @TODO this is probably weird/wrong
         Eigen::Matrix3d covarianceEstimation = Eigen::Matrix3d::Zero();
         double timeToCalculate;
         Eigen::Matrix4d currentTransformation = scanRegistrationObject.registrationOfTwoVoxelsSOFFTFast(voxelData1,

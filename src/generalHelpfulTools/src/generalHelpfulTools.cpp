@@ -45,11 +45,12 @@ double generalHelpfulTools::angleDiff(double first, double second) {//first-seco
 
 Eigen::Matrix4d generalHelpfulTools::interpolationTwo4DTransformations(Eigen::Matrix4d &transformation1,
                                                                        Eigen::Matrix4d &transformation2, double &t) {
-    //computes the transofrmation matrix at time point t between 2 and 1
+    //computes the transofrmation matrix at time point t between 1 and 2 Means, 2 to 3 with t=0.2 means 2.2
     if (t < 0 || t > 1) {
         std::cout << "t value not between 0 and 1: " << t << std::endl;
         exit(-1);
     }
+//    t = t-1;
     Eigen::Vector3d translation1 = transformation1.block<3, 1>(0, 3);
     Eigen::Vector3d translation2 = transformation2.block<3, 1>(0, 3);
     Eigen::Quaterniond rot1(transformation1.block<3, 3>(0, 0));
@@ -61,13 +62,28 @@ Eigen::Matrix4d generalHelpfulTools::interpolationTwo4DTransformations(Eigen::Ma
 //    Eigen::Matrix4d resultingTransformation = Eigen::Matrix4d::Identity();
 //    resultingTransformation.block<3, 3>(0, 0) = resultingRot.toRotationMatrix();
 //    resultingTransformation.block<3, 1>(0, 3) = resultingTranslation;
-
     Eigen::Quaterniond resultingRot = rot1.slerp(t, rot2);
-    Eigen::Vector3d resultingTranslation = translation1 * t + translation2 * (1.0 - t);
+
+
+
+
+
+    Eigen::Vector3d resultingTranslation = translation1 * (1.0-t) + translation2 * t;
 
     Eigen::Matrix4d resultingTransformation = Eigen::Matrix4d::Identity();
     resultingTransformation.block<3, 3>(0, 0) = resultingRot.toRotationMatrix();
     resultingTransformation.block<3, 1>(0, 3) = resultingTranslation;
+
+
+//    std::cout << generalHelpfulTools::getRollPitchYaw(rot1)[2] << std::endl;
+//    std::cout << generalHelpfulTools::getRollPitchYaw(rot2)[2] << std::endl;
+//    std::cout << generalHelpfulTools::getRollPitchYaw(resultingRot)[2] << std::endl;
+//
+//    std::cout << translation1[0] << std::endl;
+//    std::cout << translation2[0] << std::endl;
+//    std::cout << resultingTranslation[0] << std::endl;
+//    std::cout << "t: " << t <<std::endl;
+
 
     return resultingTransformation;
 
@@ -176,4 +192,39 @@ generalHelpfulTools::getTransformationMatrixTF2(tf2::Vector3 &translation, tf2::
     Eigen::Vector3d translationEigen(translation.x(), translation.y(), translation.z());
     Eigen::Quaterniond rotationEigen(rotation.w(), rotation.x(), rotation.y(), rotation.z());
     return generalHelpfulTools::getTransformationMatrix(translationEigen, rotationEigen);
+}
+
+Eigen::Matrix4d generalHelpfulTools::addTwoTransformationMatrixInBaseFrame(Eigen::Matrix4d transformationMatrix1,Eigen::Matrix4d transformationMatrix2){
+
+    Eigen::Quaterniond resultingRotation1;
+    Eigen::Vector3d resultingPosition1;
+    generalHelpfulTools::splitTransformationMatrixToQuadAndTrans(resultingPosition1,resultingRotation1,transformationMatrix1);
+
+    Eigen::Quaterniond resultingRotation2;
+    Eigen::Vector3d resultingPosition2;
+    generalHelpfulTools::splitTransformationMatrixToQuadAndTrans(resultingPosition2,resultingRotation2,transformationMatrix2);
+
+    Eigen::Vector3d completePosition = resultingPosition1+resultingPosition2;
+    Eigen::Quaterniond completeRotation = Eigen::Quaterniond(resultingRotation1.toRotationMatrix()*resultingRotation2.toRotationMatrix());
+
+    return generalHelpfulTools::getTransformationMatrix(completePosition,completeRotation);
+
+
+}
+Eigen::Matrix4d generalHelpfulTools::addTwoTransformationMatrixInBaseFrameFirstIsInverted(Eigen::Matrix4d transformationMatrix1,Eigen::Matrix4d transformationMatrix2){
+
+    Eigen::Quaterniond resultingRotation1;
+    Eigen::Vector3d resultingPosition1;
+    generalHelpfulTools::splitTransformationMatrixToQuadAndTrans(resultingPosition1,resultingRotation1,transformationMatrix1);
+
+    Eigen::Quaterniond resultingRotation2;
+    Eigen::Vector3d resultingPosition2;
+    generalHelpfulTools::splitTransformationMatrixToQuadAndTrans(resultingPosition2,resultingRotation2,transformationMatrix2);
+
+    Eigen::Vector3d completePosition = -resultingPosition1+resultingPosition2;
+    Eigen::Quaterniond completeRotation = Eigen::Quaterniond(resultingRotation1.toRotationMatrix().inverse()*resultingRotation2.toRotationMatrix());
+
+    return generalHelpfulTools::getTransformationMatrix(completePosition,completeRotation);
+
+
 }
