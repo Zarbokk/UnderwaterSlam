@@ -11,10 +11,11 @@
 #include <Eigen/Geometry>
 #include <Eigen/StdVector>
 #include <iostream>
-
+#include <iomanip>
 class generalHelpfulTools {
 public:
     static Eigen::Vector3d getRollPitchYaw(Eigen::Quaterniond quat);
+    static Eigen::Vector3<long double> getRollPitchYaw(Eigen::Quaternion<long double> quat);
 
     static Eigen::Quaterniond getQuaternionFromRPY(double roll, double pitch, double yaw);
 

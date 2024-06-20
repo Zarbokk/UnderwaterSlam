@@ -52,6 +52,7 @@ struct DvlData {
 struct intensityValues {
     Eigen::Matrix4d transformation;
     intensityMeasurement intensity;
+    int type;
 };
 struct transformationStamped {
     Eigen::Matrix4d transformation;
@@ -110,7 +111,7 @@ public:
     static int getLastIntensityKeyframe(graphSlamSaveStructure &graphSaved);
 
     static double getDatasetFromGraphForMap(std::vector<intensityValues> &dataSet, graphSlamSaveStructure &graphSaved,
-                                            std::mutex &graphSlamMutex);
+                                            std::mutex &graphSlamMutex, bool includeMicronMessages);
 
     static void clearSavingsOfPoses(double upToTime,std::deque<transformationStamped> &transformationList,
                                     std::deque<transformationStamped> &currentPositionGTDeque,

@@ -85,7 +85,7 @@ Cell<PointT>* NDTCell<PointT>::copy() const
 */
 template<typename PointT>
 inline
-void NDTCell<PointT>::updateSampleVariance(const Eigen::Matrix3d &cov2,const Eigen::Vector3d &m2, unsigned int numpointsindistribution, 
+void NDTCell<PointT>::updateSampleVariance(const Eigen::Matrix3d &cov2,const Eigen::Vector3d &m2, unsigned int numpointsindistribution,
 																					bool updateOccupancyFlag, float max_occu, unsigned int maxnumpoints)
 {
 

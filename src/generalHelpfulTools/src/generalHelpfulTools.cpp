@@ -13,6 +13,15 @@ Eigen::Vector3d generalHelpfulTools::getRollPitchYaw(Eigen::Quaterniond quat) {
     return returnVector;
 }
 
+Eigen::Vector3<long double> generalHelpfulTools::getRollPitchYaw(Eigen::Quaternion<long double> quat) {
+    tf2::Quaternion tmp(quat.x(), quat.y(), quat.z(), quat.w());
+    tf2::Matrix3x3 m(tmp);
+    double r, p, y;
+    m.getRPY(r, p, y);
+    Eigen::Vector3<long double> returnVector(r, p, y);
+    return returnVector;
+}
+
 Eigen::Matrix4d generalHelpfulTools::getTransformationMatrixFromRPY(double roll, double pitch, double yaw) {
     Eigen::Quaterniond rotationAsQuaternion = generalHelpfulTools::getQuaternionFromRPY(roll, pitch, yaw);
     Eigen::Matrix4d returnMatrix = Eigen::Matrix4d::Identity();
@@ -43,6 +52,61 @@ double generalHelpfulTools::angleDiff(double first, double second) {//first-seco
 }
 
 
+//Eigen::Matrix4d generalHelpfulTools::interpolationTwo4DTransformations(Eigen::Matrix4d &transformation1,
+//                                                                       Eigen::Matrix4d &transformation2, double &t) {
+//    //computes the transofrmation matrix at time point t between 1 and 2 Means, 2 to 3 with t=0.2 means 2.2
+//    if (t < 0 || t > 1) {
+//        std::cout << "t value not between 0 and 1: " << t << std::endl;
+//        exit(-1);
+//    }
+//
+////    Eigen::Matrix4<long double> accurateTrans1(transformation1.cast<long double>());
+////    Eigen::Matrix4<long double> accurateTrans2(transformation2.cast<long double>());
+////    long double tLong = t;
+//
+////    t = t-1;
+//    Eigen::Vector3d translation1 = transformation1.block<3, 1>(0, 3);
+//    Eigen::Vector3d translation2 = transformation2.block<3, 1>(0, 3);
+//    Eigen::Quaterniond rot1(transformation1.block<3, 3>(0, 0));
+//    Eigen::Quaterniond rot2(transformation2.block<3, 3>(0, 0));
+//
+////    Eigen::Quaterniond rotTMP = rot1.inverse()*rot2;
+////    Eigen::Quaterniond resultingRot = rotTMP.slerp(t, Eigen::Quaterniond(1,0,0,0));
+////    Eigen::Vector3d resultingTranslation = (translation2-translation1)*t;
+////    Eigen::Matrix4d resultingTransformation = Eigen::Matrix4d::Identity();
+////    resultingTransformation.block<3, 3>(0, 0) = resultingRot.toRotationMatrix();
+////    resultingTransformation.block<3, 1>(0, 3) = resultingTranslation;
+//    Eigen::Quaterniond resultingRot = rot1.slerp(t, rot2);
+//
+//
+//
+//
+//
+//    Eigen::Vector3d resultingTranslation = translation1 * (1.0-t) + translation2 * t;
+//
+//    Eigen::Matrix4d resultingTransformation = Eigen::Matrix4d::Identity();
+//    resultingTransformation.block<3, 3>(0, 0) = resultingRot.toRotationMatrix();
+//    resultingTransformation.block<3, 1>(0, 3) = resultingTranslation;
+//
+//
+////    std::cout << generalHelpfulTools::getRollPitchYaw(rot1)[2] << std::endl;
+////    std::cout << generalHelpfulTools::getRollPitchYaw(rot2)[2] << std::endl;
+////    std::cout << generalHelpfulTools::getRollPitchYaw(resultingRot)[2] << std::endl;
+////
+////    std::cout << translation1[0] << std::endl;
+////    std::cout << translation2[0] << std::endl;
+////    std::cout << resultingTranslation[0] << std::endl;
+////
+////    std::cout <<std::setprecision(15)<< "pos: " << (resultingTranslation[0]-translation1[0])/(translation2[0]-translation1[0]) <<std::endl;
+////    std::cout <<std::setprecision(15)<< "rot: " << (generalHelpfulTools::getRollPitchYaw(resultingRot)[2]-generalHelpfulTools::getRollPitchYaw(rot1)[2])/(generalHelpfulTools::getRollPitchYaw(rot2)[2]-generalHelpfulTools::getRollPitchYaw(rot1)[2])<< std::endl;
+////    std::cout <<std::setprecision(15)<< "t: " << t <<std::endl;
+////    std::cout <<std::setprecision(15)<< "diff: " << t/((resultingTranslation[0]-translation1[0])/(translation2[0]-translation1[0])) << " ______ " <<t/((generalHelpfulTools::getRollPitchYaw(resultingRot)[2]-generalHelpfulTools::getRollPitchYaw(rot1)[2])/(generalHelpfulTools::getRollPitchYaw(rot2)[2]-generalHelpfulTools::getRollPitchYaw(rot1)[2]))<< std::endl;
+//
+//    Eigen::Matrix4d returnMatrix(resultingTransformation);
+//    return returnMatrix;
+//
+//
+//}
 Eigen::Matrix4d generalHelpfulTools::interpolationTwo4DTransformations(Eigen::Matrix4d &transformation1,
                                                                        Eigen::Matrix4d &transformation2, double &t) {
     //computes the transofrmation matrix at time point t between 1 and 2 Means, 2 to 3 with t=0.2 means 2.2
@@ -50,11 +114,16 @@ Eigen::Matrix4d generalHelpfulTools::interpolationTwo4DTransformations(Eigen::Ma
         std::cout << "t value not between 0 and 1: " << t << std::endl;
         exit(-1);
     }
+
+    Eigen::Matrix4<long double> accurateTrans1(transformation1.cast<long double>());
+    Eigen::Matrix4<long double> accurateTrans2(transformation2.cast<long double>());
+    long double tLong = t;
+
 //    t = t-1;
-    Eigen::Vector3d translation1 = transformation1.block<3, 1>(0, 3);
-    Eigen::Vector3d translation2 = transformation2.block<3, 1>(0, 3);
-    Eigen::Quaterniond rot1(transformation1.block<3, 3>(0, 0));
-    Eigen::Quaterniond rot2(transformation2.block<3, 3>(0, 0));
+    Eigen::Vector3<long double> translation1 = accurateTrans1.block<3, 1>(0, 3);
+    Eigen::Vector3<long double> translation2 = accurateTrans2.block<3, 1>(0, 3);
+    Eigen::Quaternion<long double> rot1(accurateTrans1.block<3, 3>(0, 0));
+    Eigen::Quaternion<long double> rot2(accurateTrans2.block<3, 3>(0, 0));
 
 //    Eigen::Quaterniond rotTMP = rot1.inverse()*rot2;
 //    Eigen::Quaterniond resultingRot = rotTMP.slerp(t, Eigen::Quaterniond(1,0,0,0));
@@ -62,15 +131,15 @@ Eigen::Matrix4d generalHelpfulTools::interpolationTwo4DTransformations(Eigen::Ma
 //    Eigen::Matrix4d resultingTransformation = Eigen::Matrix4d::Identity();
 //    resultingTransformation.block<3, 3>(0, 0) = resultingRot.toRotationMatrix();
 //    resultingTransformation.block<3, 1>(0, 3) = resultingTranslation;
-    Eigen::Quaterniond resultingRot = rot1.slerp(t, rot2);
+    Eigen::Quaternion<long double> resultingRot = rot1.slerp(tLong, rot2);
 
 
 
 
 
-    Eigen::Vector3d resultingTranslation = translation1 * (1.0-t) + translation2 * t;
+    Eigen::Vector3<long double> resultingTranslation = translation1 * (1.0-tLong) + translation2 * tLong;
 
-    Eigen::Matrix4d resultingTransformation = Eigen::Matrix4d::Identity();
+    Eigen::Matrix4<long double> resultingTransformation = Eigen::Matrix4<long double>::Identity();
     resultingTransformation.block<3, 3>(0, 0) = resultingRot.toRotationMatrix();
     resultingTransformation.block<3, 1>(0, 3) = resultingTranslation;
 
@@ -82,13 +151,19 @@ Eigen::Matrix4d generalHelpfulTools::interpolationTwo4DTransformations(Eigen::Ma
 //    std::cout << translation1[0] << std::endl;
 //    std::cout << translation2[0] << std::endl;
 //    std::cout << resultingTranslation[0] << std::endl;
-//    std::cout << "t: " << t <<std::endl;
+//
+//    std::cout <<std::setprecision(15)<< "pos: " << (resultingTranslation[0]-translation1[0])/(translation2[0]-translation1[0]) <<std::endl;
+//    std::cout <<std::setprecision(15)<< "rot: " << (generalHelpfulTools::getRollPitchYaw(resultingRot)[2]-generalHelpfulTools::getRollPitchYaw(rot1)[2])/(generalHelpfulTools::getRollPitchYaw(rot2)[2]-generalHelpfulTools::getRollPitchYaw(rot1)[2])<< std::endl;
+//    std::cout <<std::setprecision(15)<< "t: " << t <<std::endl;
+//    std::cout <<std::setprecision(15)<< "diff: " << t/((resultingTranslation[0]-translation1[0])/(translation2[0]-translation1[0])) << " ______ " <<t/((generalHelpfulTools::getRollPitchYaw(resultingRot)[2]-generalHelpfulTools::getRollPitchYaw(rot1)[2])/(generalHelpfulTools::getRollPitchYaw(rot2)[2]-generalHelpfulTools::getRollPitchYaw(rot1)[2]))<< std::endl;
 
-
-    return resultingTransformation;
+    Eigen::Matrix4d returnMatrix(resultingTransformation.cast<double>());
+    return returnMatrix;
 
 
 }
+
+
 
 
 Eigen::Matrix4d

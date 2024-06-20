@@ -943,18 +943,18 @@ slamToolsRos::calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endT
     while (transformationList[indexOfEnd].timeStamp < endTimeToAdd && transformationList.size() > indexOfEnd) {
         indexOfEnd++;
     }
-    indexOfEnd--;
+//    indexOfEnd--;
 
 //    std::cout << "IndexStart: " << indexOfStart << " IndexEnd: " << indexOfEnd << std::endl;
 //    std::cout <<std::setprecision(15)<< transformationList[indexOfStart].timeStamp << " : " << transformationList[indexOfEnd+1].timeStamp << std::endl;
-    if (indexOfStart == indexOfEnd) {
+    if (indexOfStart == indexOfEnd - 1) {
 //        std::cout << "Relax " << std::endl;
 
 
-        double interpolationFactor1 = (startTimetoAdd-transformationList[indexOfStart].timeStamp ) /
+        double interpolationFactor1 = (startTimetoAdd - transformationList[indexOfStart].timeStamp) /
                                       (transformationList[indexOfStart + 1].timeStamp -
                                        transformationList[indexOfStart].timeStamp);
-        double interpolationFactor2 = (endTimeToAdd-transformationList[indexOfStart].timeStamp ) /
+        double interpolationFactor2 = (endTimeToAdd - transformationList[indexOfStart].timeStamp) /
                                       (transformationList[indexOfStart + 1].timeStamp -
                                        transformationList[indexOfStart].timeStamp);
 //        std::cout << "interpolationFactor: " << interpolationFactor << std::endl;
@@ -1017,13 +1017,9 @@ slamToolsRos::calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endT
     if (indexOfStart > 0) {
 
 
-        double interpolationFactor = ((startTimetoAdd-transformationList[indexOfStart ].timeStamp ) /
+        double interpolationFactor = ((startTimetoAdd - transformationList[indexOfStart].timeStamp) /
                                       (transformationList[indexOfStart + 1].timeStamp -
                                        transformationList[indexOfStart].timeStamp));
-
-
-
-
 
 
         Eigen::Matrix4d transformationOfEKFStart = transformationList[indexOfStart].transformation;
@@ -1031,17 +1027,11 @@ slamToolsRos::calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endT
         Eigen::Matrix4d transformationOfEKFEnd = transformationList[indexOfStart + 1].transformation;
 
 
-
-
-
-
-
-
         transformationTMP = transformationTMP *
-                (generalHelpfulTools::interpolationTwo4DTransformations(
-                        transformationOfEKFStart,
-                        transformationOfEKFEnd,
-                        interpolationFactor).inverse()*transformationOfEKFEnd);
+                            (generalHelpfulTools::interpolationTwo4DTransformations(
+                                    transformationOfEKFStart,
+                                    transformationOfEKFEnd,
+                                    interpolationFactor).inverse() * transformationOfEKFEnd);
 //        std::cout << "interpolationFactor: " << interpolationFactor << std::endl;
 //
 //        std::cout << transformationOfEKFStart << std::endl;
@@ -1059,9 +1049,9 @@ slamToolsRos::calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endT
 
 
     int i = indexOfStart + 1;
-    while (i < indexOfEnd) {
-        Eigen::Matrix4d transformationOfEKFEnd = transformationList[i].transformation;
-        Eigen::Matrix4d transformationOfEKFStart = transformationList[i - 1].transformation;
+    while (i < indexOfEnd - 1) {
+        Eigen::Matrix4d transformationOfEKFEnd = transformationList[i + 1].transformation;
+        Eigen::Matrix4d transformationOfEKFStart = transformationList[i].transformation;
 
         transformationTMP = transformationTMP * (transformationOfEKFStart.inverse() * transformationOfEKFEnd);
 //                                                                                       (generalHelpfulTools::addTwoTransformationMatrixInBaseFrameFirstIsInverted(
@@ -1073,12 +1063,12 @@ slamToolsRos::calculatePoseDiffByTimeDepOnEKF(double startTimetoAdd, double endT
 
     if (indexOfEnd > 0) {
 
-        double interpolationFactor = ((endTimeToAdd - transformationList[indexOfEnd].timeStamp) /
-                                      (transformationList[indexOfEnd + 1].timeStamp -
-                                       transformationList[indexOfEnd].timeStamp));
+        double interpolationFactor = ((endTimeToAdd - transformationList[indexOfEnd - 1].timeStamp) /
+                                      (transformationList[indexOfEnd].timeStamp -
+                                       transformationList[indexOfEnd - 1].timeStamp));
 
-        Eigen::Matrix4d transformationOfEKFStart = transformationList[indexOfEnd].transformation;
-        Eigen::Matrix4d transformationOfEKFEnd = transformationList[indexOfEnd + 1].transformation;
+        Eigen::Matrix4d transformationOfEKFStart = transformationList[indexOfEnd - 1].transformation;
+        Eigen::Matrix4d transformationOfEKFEnd = transformationList[indexOfEnd].transformation;
 
 
         transformationTMP = transformationTMP * (transformationOfEKFStart.inverse() *
@@ -1179,7 +1169,7 @@ slamToolsRos::calculatePoseBetweenPosesInterpolation(double timeToAdd,
 
 double
 slamToolsRos::getDatasetFromGraphForMap(std::vector<intensityValues> &dataSet, graphSlamSaveStructure &graphSaved,
-                                        std::mutex &graphSlamMutex) {
+                                        std::mutex &graphSlamMutex, bool includeMicronMessages) {
     std::lock_guard<std::mutex> lock(graphSlamMutex);
 //        std::vector<dataPointStruct> dataSet;
 
@@ -1194,7 +1184,7 @@ slamToolsRos::getDatasetFromGraphForMap(std::vector<intensityValues> &dataSet, g
             intensityValues tmpInt;
             tmpInt.transformation = graphSaved.getVertexList()->at(i).getTransformation();
             tmpInt.intensity = graphSaved.getVertexList()->at(i).getIntensities();
-
+            tmpInt.type = graphSaved.getVertexList()->at(i).getTypeOfVertex();
 
             double it = *max_element(std::begin(tmpInt.intensity.intensities),
                                      std::end(tmpInt.intensity.intensities)); // C++11
@@ -1202,6 +1192,22 @@ slamToolsRos::getDatasetFromGraphForMap(std::vector<intensityValues> &dataSet, g
                 maxOverall = it;
             }
             dataSet.push_back(tmpInt);
+        } else {
+            if (includeMicronMessages) {
+
+                intensityValues tmpInt;
+                tmpInt.transformation = graphSaved.getVertexList()->at(i).getTransformation();
+                tmpInt.intensity = graphSaved.getVertexList()->at(i).getIntensities();
+                tmpInt.type = graphSaved.getVertexList()->at(i).getTypeOfVertex();
+
+                double it = *max_element(std::begin(tmpInt.intensity.intensities),
+                                         std::end(tmpInt.intensity.intensities)); // C++11
+                if (it > maxOverall) {
+                    maxOverall = it;
+                }
+
+                dataSet.push_back(tmpInt);
+            }
         }
     }
 
@@ -1233,10 +1239,31 @@ double slamToolsRos::angleBetweenLastKeyframeAndNow(graphSlamSaveStructure &grap
 
         Eigen::Vector3d rpy = generalHelpfulTools::getRollPitchYaw(currentRot);
         resultingAngleMovement += rpy(2);
-        resultingAngleSonar += generalHelpfulTools::angleDiff(
-                graphSaved.getVertexList()->at(i + 1).getIntensities().angle,
-                graphSaved.getVertexList()->at(i).getIntensities().angle);
     }
+
+
+
+    int lastAngleIndex = lastKeyframeIndex;
+    int i = lastKeyframeIndex+1;
+    while(i<graphSaved.getVertexList()->size()){
+        while(graphSaved.getVertexList()->at(i).getTypeOfVertex() == MICRON_MEASUREMENT){
+            i++;
+        }
+
+        resultingAngleSonar += generalHelpfulTools::angleDiff(
+                graphSaved.getVertexList()->at(i).getIntensities().angle,
+                graphSaved.getVertexList()->at(lastAngleIndex).getIntensities().angle);
+
+
+
+        lastAngleIndex = i;
+        i++;
+    }
+
+
+//    resultingAngleSonar += generalHelpfulTools::angleDiff(
+//            graphSaved.getVertexList()->at(i + 1).getIntensities().angle,
+//            graphSaved.getVertexList()->at(i).getIntensities().angle);
 
     return resultingAngleMovement + resultingAngleSonar;
 
@@ -1293,8 +1320,10 @@ bool slamToolsRos::calculateStartAndEndIndexForVoxelCreation(int indexMiddle, in
         }
         double resultingAngleSonar = 0;
         double resultingAngleMovement = 0;
-
+        //calc pose rotation
         for (int i = indexEnd; i < indexStart; i++) {
+
+
             Eigen::Quaterniond currentRot =
                     usedGraph.getVertexList()->at(i).getRotationVertex().inverse() *
                     usedGraph.getVertexList()->at(i + 1).getRotationVertex();
@@ -1302,13 +1331,34 @@ bool slamToolsRos::calculateStartAndEndIndexForVoxelCreation(int indexMiddle, in
 
             Eigen::Vector3d rpy = generalHelpfulTools::getRollPitchYaw(currentRot);
             resultingAngleMovement += rpy(2);
-            resultingAngleSonar += generalHelpfulTools::angleDiff(
-                    usedGraph.getVertexList()->at(i + 1).getIntensities().angle,
-                    usedGraph.getVertexList()->at(i).getIntensities().angle);
         }
+
+        int lastAngleIndex = indexEnd;
+
+        int i = indexEnd+1;
+        while(i<=indexStart){
+            while(usedGraph.getVertexList()->at(i).getTypeOfVertex() == MICRON_MEASUREMENT){
+                i++;
+            }
+
+            resultingAngleSonar += generalHelpfulTools::angleDiff(
+                    usedGraph.getVertexList()->at(i).getIntensities().angle,
+                    usedGraph.getVertexList()->at(lastAngleIndex).getIntensities().angle);
+
+
+
+            lastAngleIndex = i;
+            i++;
+        }
+
+
+
         currentAngleOfScan = resultingAngleMovement + resultingAngleSonar;
     } while (abs(currentAngleOfScan) < 2 * M_PI);
 
+    if (indexStart - indexEnd < 100) {
+        std::cout << "test" << std::endl;
+    }
 
     return true;
 }
@@ -1338,10 +1388,26 @@ bool slamToolsRos::calculateEndIndexForVoxelCreationByStartIndex(int indexStart,
 
             Eigen::Vector3d rpy = generalHelpfulTools::getRollPitchYaw(currentRot);
             resultingAngleMovement += rpy(2);
-            resultingAngleSonar += generalHelpfulTools::angleDiff(
-                    usedGraph.getVertexList()->at(i + 1).getIntensities().angle,
-                    usedGraph.getVertexList()->at(i).getIntensities().angle);
+
         }
+
+        int lastAngleIndex = indexEnd;
+        int i = indexEnd+1;
+        while(i<=indexStart){
+            while(usedGraph.getVertexList()->at(i).getTypeOfVertex() == MICRON_MEASUREMENT){
+                i++;
+            }
+
+            resultingAngleSonar += generalHelpfulTools::angleDiff(
+                    usedGraph.getVertexList()->at(i).getIntensities().angle,
+                    usedGraph.getVertexList()->at(lastAngleIndex).getIntensities().angle);
+
+
+
+            lastAngleIndex = i;
+            i++;
+        }
+
         currentAngleOfScan = resultingAngleMovement + resultingAngleSonar;
     } while (abs(currentAngleOfScan) < 2 * M_PI);
 
@@ -1699,6 +1765,10 @@ slamToolsRos::loopDetectionByClosestPath(graphSlamSaveStructure &graphSaved,
                                                                                                         (double) distanceOfVoxelDataLengthSI /
                                                                                                         (double) dimensionOfVoxelData,
                                                                                                         timeToCalculate);
+
+
+        std::cout << initialGuessTransformation << std::endl;
+        std::cout << currentTransformation << std::endl;
 
 
         slamToolsRos::saveResultingRegistrationTMPCOPY(indexStart1,

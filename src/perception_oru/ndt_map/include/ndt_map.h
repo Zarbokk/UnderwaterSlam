@@ -243,7 +243,7 @@ public:
     	* @param maxz threshold for the maximum z-coordinate value for the measurement point_cloud
     	* @param sensor_noise The expected standard deviation of the sensor noise
     	*/
-    virtual void addPointCloud(const Eigen::Vector3d &origin, const pcl::PointCloud<PointT> &pc, double classifierTh=0.06, 
+    virtual void addPointCloud(const Eigen::Vector3d &origin, const pcl::PointCloud<PointT> &pc, double classifierTh=0.06,
 																double maxz = 100.0, double sensor_noise = 0.25, double occupancy_limit = 255);
 
     /**
@@ -267,7 +267,7 @@ public:
      * @param maxz threshold for the maximum z-coordinate value for the measurement point_cloud
      * @param sensor_noise The expected standard deviation of the sensor noise
      */
-    virtual void addPointCloudMeanUpdate(const Eigen::Vector3d &origin, 
+    virtual void addPointCloudMeanUpdate(const Eigen::Vector3d &origin,
 	    const pcl::PointCloud<PointT> &pc, 
 	    const Eigen::Vector3d &localmapsize,
 	    unsigned int maxnumpoints = 1e9, float occupancy_limit=255 ,double maxz = 100.0, double sensor_noise = 0.25);
@@ -288,7 +288,7 @@ public:
     * @param r,g,b -- optional color parameters
     * @param maxnumpoints -- optional adaptation of the gaussians
     */
-    void addDistributionToCell(const Eigen::Matrix3d &ucov,const Eigen::Vector3d &umean, unsigned int numpointsindistribution, 
+    void addDistributionToCell(const Eigen::Matrix3d &ucov,const Eigen::Vector3d &umean, unsigned int numpointsindistribution,
 															float r=0, float g=0,float b=0, unsigned int maxnumpoints=1e9, float max_occupancy=1024);
 
 

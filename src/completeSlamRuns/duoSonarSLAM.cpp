@@ -23,8 +23,7 @@ struct sonarMeasurement {
     double timeStamp;
 };
 
-#define TEST_MM_INSTEAD_OF_METER true
-
+#define TEST_MM_INSTEAD_OF_METER false
 
 
 #define NUMBER_OF_POINTS_DIMENSION 256
@@ -34,7 +33,7 @@ struct sonarMeasurement {
 #define DIMENSION_OF_MAP 40.0
 
 #define IGNORE_DISTANCE_TO_ROBOT 0.5 // was 1.0 // TUHH 0.2
-#define DEBUG_REGISTRATION false
+
 
 #define ROTATION_SONAR M_PI // sonar on robot M_PI // simulation 0
 #define SHOULD_USE_ROSBAG false
@@ -50,6 +49,7 @@ struct sonarMeasurement {
 #define SONAR_LOOKING_DOWN false
 #define USES_GROUND_TRUTH false
 
+#define DEBUG_REGISTRATION false
 #define USES_REGISTRATIONS true
 #define NAME_OF_CURRENT_METHOD "randomTest"
 
@@ -122,11 +122,11 @@ public:
                 std::bind(&rosClassSlam::micronHelperCallback,
                           this, std::placeholders::_1), sub2_opt);
 
-//        this->sonarTimer_ = this->create_wall_timer(
-//                10ms, std::bind(&rosClassSlam::startSonarFunction, this), this->callback_group_subscriber3_);
-
         this->sonarTimer_ = this->create_wall_timer(
-                10ms, std::bind(&rosClassSlam::testSonarFunction, this), this->callback_group_subscriber3_);
+                10ms, std::bind(&rosClassSlam::startSonarFunction, this), this->callback_group_subscriber3_);
+
+//        this->sonarTimer_ = this->create_wall_timer(
+//                10ms, std::bind(&rosClassSlam::testSonarFunction, this), this->callback_group_subscriber3_);
 
 
 
@@ -396,8 +396,9 @@ private:
 
             std::cout << generalHelpfulTools::getRollPitchYaw(rotationEKF)[2] << std::endl;
             std::cout << generalHelpfulTools::getRollPitchYaw(rotationMicron)[2] << std::endl;
-
-
+            std::cout << "diff factor Pos: " << positionEKF[0] / positionMicron[0] << std::endl;
+            std::cout << "diff factor Rot: " << generalHelpfulTools::getRollPitchYaw(rotationEKF)[2] /
+                                                generalHelpfulTools::getRollPitchYaw(rotationMicron)[2] << std::endl;
             std::cout << "transofrmationDiffEKF" << std::endl;
 
 
@@ -409,7 +410,7 @@ private:
 
         this->sonarInputMutex.lock();
 //        std::cout << "afterSonarMutex" << std::endl;
-        std::cout << this->ourListOfSonarMeasurements.size() << std::endl;
+//        std::cout << this->ourListOfSonarMeasurements.size() << std::endl;
         if (this->ourListOfSonarMeasurements.empty()) {
             this->sonarInputMutex.unlock();
 //            std::cout << "empty" << std::endl;
@@ -547,7 +548,7 @@ private:
 //        std::cout << angleDiff << std::endl;
         // best would be scan matching between this angle and transformation based last angle( i think this is currently done)
         if (abs(angleDiff) > 2 * M_PI / FACTOR_OF_MATCHING) {
-
+            std::cout << this->ourListOfSonarMeasurements.size() << std::endl;
 
             this->graphSaved.getVertexList()->back().setTypeOfVertex(INTENSITY_SAVED_AND_KEYFRAME);
             if (firstCompleteSonarScan) {
@@ -572,7 +573,17 @@ private:
             std::cout << "scanAcusitionTime: " << this->graphSaved.getVertexList()->at(indexStart2).getTimeStamp() -
                                                   this->graphSaved.getVertexList()->at(indexEnd2).getTimeStamp()
                       << std::endl;
-
+            if (this->graphSaved.getVertexList()->at(indexStart2).getTimeStamp() -
+                this->graphSaved.getVertexList()->at(indexEnd2).getTimeStamp() < 20.0) {
+                std::cout << "scanAcusitionTime2: "
+                          << this->graphSaved.getVertexList()->at(indexStart2).getTimeStamp() -
+                             this->graphSaved.getVertexList()->at(indexEnd2).getTimeStamp()
+                          << std::endl;
+                std::cout << "scanAcusitionTime1: "
+                          << this->graphSaved.getVertexList()->at(indexStart1).getTimeStamp() -
+                             this->graphSaved.getVertexList()->at(indexEnd1).getTimeStamp()
+                          << std::endl;
+            }
             //we inverse the initial guess, because the registration creates a T from scan 1 to scan 2.
             // But the graph creates a transformation from 1 -> 2 by the robot, therefore inverse.
 //            this->initialGuessTransformation =
@@ -621,12 +632,12 @@ private:
             }
 
 
-//            slamToolsRos::saveResultingRegistrationTMPCOPY(indexStart1, indexEnd1, indexStart2, indexEnd2,
-//                                                           this->graphSaved, NUMBER_OF_POINTS_DIMENSION,
-//                                                           IGNORE_DISTANCE_TO_ROBOT,
-//                                                           DIMENSION_OF_VOXEL_DATA_FOR_MATCHING,
-//                                                           DEBUG_REGISTRATION, this->currentEstimatedTransformation,
-//                                                           initialGuessTransformation);
+            slamToolsRos::saveResultingRegistrationTMPCOPY(indexStart1, indexEnd1, indexStart2, indexEnd2,
+                                                           this->graphSaved, NUMBER_OF_POINTS_DIMENSION,
+                                                           IGNORE_DISTANCE_TO_ROBOT,
+                                                           DIMENSION_OF_VOXEL_DATA_FOR_MATCHING,
+                                                           DEBUG_REGISTRATION, this->currentEstimatedTransformation,
+                                                           initialGuessTransformation);
 
 //            slamToolsRos::saveResultingRegistration(indexStart1, indexStart2,
 //                                                    this->graphSaved, NUMBER_OF_POINTS_DIMENSION,
@@ -666,7 +677,7 @@ private:
                 slamToolsRos::loopDetectionByClosestPath(this->graphSaved, this->scanRegistrationObject,
                                                          NUMBER_OF_POINTS_DIMENSION, IGNORE_DISTANCE_TO_ROBOT,
                                                          DIMENSION_OF_VOXEL_DATA_FOR_MATCHING, DEBUG_REGISTRATION,
-                                                         USE_INITIAL_TRANSLATION_LOOP_CLOSURE, 250, 500,
+                                                         USE_INITIAL_TRANSLATION_LOOP_CLOSURE, 2500, 2500,
                                                          THRESHOLD_FOR_TRANSLATION_MATCHING,
                                                          MAXIMUM_LOOP_CLOSURE_DISTANCE);
                 this->graphSaved.isam2OptimizeGraph(true, 2);
@@ -675,7 +686,8 @@ private:
 //            this->graphSaved.isam2OptimizeGraph(true, 2);
 
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-
+            slamToolsRos::calculateStartAndEndIndexForVoxelCreation(
+                    this->graphSaved.getVertexList()->back().getKey() - 5, indexStart1, indexEnd1, this->graphSaved);
 //            double timeToCalculate = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 //            std::cout << "timeToCalculate: " << timeToCalculate << std::endl;
 
@@ -716,6 +728,7 @@ private:
         intensityTMP.time = rclcpp::Time(msg->header.stamp).seconds();
         intensityTMP.range = msg->bins.back().distance;//msg->bin_distance_step * msg->bins.size();
         intensityTMP.increment = msg->bin_distance_step;
+
         std::vector<double> intensitiesVector;
         for (int i = 0; i < msg->bins.size(); i++) {
             intensitiesVector.push_back((double) (msg->bins[i].intensity));
@@ -779,10 +792,12 @@ private:
             Eigen::Quaterniond tmpQuad(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x,
                                        msg->pose.pose.orientation.y, msg->pose.pose.orientation.z);
             Eigen::Vector3d tmpVec;
-            if(TEST_MM_INSTEAD_OF_METER){
-                tmpVec = Eigen::Vector3d(msg->pose.pose.position.x*100000.0, msg->pose.pose.position.y*100000.0, msg->pose.pose.position.z*100000.0);
-            }else{
-                tmpVec = Eigen::Vector3d(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z);
+            if (TEST_MM_INSTEAD_OF_METER) {
+                tmpVec = Eigen::Vector3d(msg->pose.pose.position.x * 100000.0, msg->pose.pose.position.y * 100000.0,
+                                         msg->pose.pose.position.z * 100000.0);
+            } else {
+                tmpVec = Eigen::Vector3d(msg->pose.pose.position.x, msg->pose.pose.position.y,
+                                         msg->pose.pose.position.z);
             }
 //            Eigen::Vector3d tmpVec(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z);
             Eigen::Matrix4d transformationMatrix = generalHelpfulTools::getTransformationMatrix(tmpVec, tmpQuad);
@@ -990,7 +1005,7 @@ private:
 
         std::vector<intensityValues> dataSet;
         double maximumIntensity = slamToolsRos::getDatasetFromGraphForMap(dataSet, this->graphSaved,
-                                                                          this->graphSlamMutex);
+                                                                          this->graphSlamMutex, false);
         //homePosition is 0 0
         //size of mapData is defined in NUMBER_OF_POINTS_MAP
 
@@ -1114,8 +1129,212 @@ private:
         myFile1.close();
 
 
+        // here save the graph in a file
+
+
+
+        std::vector<intensityValues> fullDataSetWithMicron;
+        double maximumIntensityFullSet = slamToolsRos::getDatasetFromGraphForMap(fullDataSetWithMicron,
+                                                                                 this->graphSaved,
+                                                                                 this->graphSlamMutex, true);
+
+
+//        compute3DEnvironment(fullDataSetWithMicron);
+
+
+        Json::Value keyFrames;
+        int currentKeyFrameNumber = 0;
+        for (int j = 0; j < fullDataSetWithMicron.size(); j++) {
+//            if(fullDataSetWithMicron[j].type == MICRON_MEASUREMENT){
+//                myFile2 <<
+//            }
+//            if(fullDataSetWithMicron[j].type == PING360_MEASUREMENT){
+//
+//
+//            }
+            // if point cloud is used then save this keyframe
+
+            Eigen::Vector3d positionIntensity;
+            Eigen::Vector3d rpy;
+            Eigen::Quaterniond rotationTMP;
+
+            generalHelpfulTools::splitTransformationMatrixToQuadAndTrans(positionIntensity, rotationTMP,
+                                                                         fullDataSetWithMicron[j].transformation);
+            rpy = generalHelpfulTools::getRollPitchYaw(rotationTMP);
+
+
+            Json::Value positionOfKeyframe;
+            positionOfKeyframe["x"] = positionIntensity.x();
+            positionOfKeyframe["y"] = positionIntensity.y();
+            positionOfKeyframe["z"] = positionIntensity.z();
+            positionOfKeyframe["roll"] = 0;
+            positionOfKeyframe["pitch"] = 0;
+            positionOfKeyframe["yaw"] = rpy.z();
+            Json::Value intensities;
+            for (int i = 0; i < fullDataSetWithMicron[j].intensity.intensities.size(); i++) {
+                intensities["intensity"][i] = fullDataSetWithMicron[j].intensity.intensities[i];
+            }
+            intensities["range"] = fullDataSetWithMicron[j].intensity.range;
+            intensities["angle"] = fullDataSetWithMicron[j].intensity.angle;
+            intensities["increment"] = fullDataSetWithMicron[j].intensity.increment;
+            intensities["time"] = fullDataSetWithMicron[j].intensity.time;
+            intensities["type"] = fullDataSetWithMicron[j].type;
+
+            keyFrames[j]["position"] = positionOfKeyframe;
+            keyFrames[j]["intensityValues"] = intensities;
+
+        }
+
+
+
+
+
+
+
+
+        // create the main object
+        Json::Value outputText;
+        outputText["keyFrames"] = keyFrames;
+
+        std::ofstream ifs;
+        ifs.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/csvFiles/IROSResults/fullGraphDataset.csv");
+        ifs << outputText << '\n';
+        ifs.close();
+
+
     }
 
+    void compute3DEnvironment(std::vector<intensityValues> fullDataSetWithMicron) {
+        int *voxelDataIndex;
+        voxelDataIndex = (int *) malloc(
+                sizeof(int) * NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP);
+        double *mapData;
+        mapData = (double *) malloc(
+                sizeof(double) * NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP);
+        //set zero voxel and index
+        for (int i = 0; i < NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP; i++) {
+            voxelDataIndex[i] = 0;
+            mapData[i] = 0;
+        }
+
+        for (int currentPosition = 0;
+             currentPosition < fullDataSetWithMicron.size(); currentPosition++) {
+            //calculate the position of each intensity and create an index in two arrays. First in voxel data, and second save number of intensities.
+            //was 90 yaw and 180 roll
+
+            if (fullDataSetWithMicron[currentPosition].type == MICRON_MEASUREMENT) {
+
+
+
+                //this is Micron Sonar
+                Eigen::Matrix4d transformationOfSonarPosition = fullDataSetWithMicron[currentPosition].transformation;
+                //positionOfIntensity has to be rotated by   this->graphSaved.getVertexList()->at(indexVertex).getIntensities().angle
+                Eigen::Matrix4d rotationOfSonarAngleMatrix = generalHelpfulTools::getTransformationMatrixFromRPY(
+                        fullDataSetWithMicron[currentPosition].intensity.angle + M_PI, 0,
+                        0);
+
+                int ignoreDistance = (int) (IGNORE_DISTANCE_TO_ROBOT /
+                                            (fullDataSetWithMicron[currentPosition].intensity.range /
+                                             ((double) fullDataSetWithMicron[currentPosition].intensity.intensities.size())));
+
+
+                for (int j = ignoreDistance;
+                     j < fullDataSetWithMicron[currentPosition].intensity.intensities.size(); j++) {
+
+                    double distanceOfIntensity =
+                            j / ((double) fullDataSetWithMicron[currentPosition].intensity.intensities.size()) *
+                            ((double) fullDataSetWithMicron[currentPosition].intensity.range);
+
+//                    int incrementOfScan = fullDataSetWithMicron[currentPosition].intensity.increment;
+                    for (int l = -5; l <= +5; l++) {
+                        for (int openingAngle = -35; l <= +35; l++) {
+                            Eigen::Vector4d positionOfIntensity(
+                                    0,
+                                    0,
+                                    distanceOfIntensity,
+                                    1);
+                            double incrementAngle = l / 400.0 * 2 * M_PI;
+                            double openingAngleFor3D = openingAngle / 180 * M_PI;
+                            Eigen::Matrix4d rotationForBetterView = generalHelpfulTools::getTransformationMatrixFromRPY(
+                                    incrementAngle,
+                                    0,
+                                    0);
+                            Eigen::Matrix4d openingAngleRotation = generalHelpfulTools::getTransformationMatrixFromRPY(
+                                    0,
+                                    openingAngleFor3D,
+                                    0);
+                            positionOfIntensity =
+                                    rotationOfSonarAngleMatrix * openingAngleRotation * rotationForBetterView *
+                                    positionOfIntensity;
+
+//                            positionOfIntensity =
+//                                    transformationOfIntensityRay * rotationOfSonarAngleMatrix * positionOfIntensity;
+                            //calculate index dependent on  DIMENSION_OF_VOXEL_DATA and numberOfPoints the middle
+                            int indexX =
+                                    (int) (positionOfIntensity.x() / (DIMENSION_OF_MAP / 2) * NUMBER_OF_POINTS_MAP /
+                                           2) +
+                                    NUMBER_OF_POINTS_MAP / 2;
+                            int indexY =
+                                    (int) (positionOfIntensity.y() / (DIMENSION_OF_MAP / 2) * NUMBER_OF_POINTS_MAP /
+                                           2) +
+                                    NUMBER_OF_POINTS_MAP / 2;
+                            int indexZ =
+                                    (int) (positionOfIntensity.z() / (DIMENSION_OF_MAP / 2) * NUMBER_OF_POINTS_MAP /
+                                           2) +
+                                    NUMBER_OF_POINTS_MAP / 2;
+
+
+                            if (indexX < NUMBER_OF_POINTS_MAP && indexY < NUMBER_OF_POINTS_MAP &&
+                                indexZ < NUMBER_OF_POINTS_MAP && indexY >= 0 &&
+                                indexX >= 0 && indexZ >= 0) {
+                                //                    std::cout << indexX << " " << indexY << std::endl;
+                                //if index fits inside of our data, add that data. Else Ignore
+                                voxelDataIndex[indexX + NUMBER_OF_POINTS_MAP * indexY + NUMBER_OF_POINTS_MAP*NUMBER_OF_POINTS_MAP*indexZ] =
+                                        voxelDataIndex[indexX + NUMBER_OF_POINTS_MAP * indexY+ NUMBER_OF_POINTS_MAP*NUMBER_OF_POINTS_MAP*indexZ] + 1;
+                                //                    std::cout << "Index: " << voxelDataIndex[indexY + numberOfPoints * indexX] << std::endl;
+                                mapData[indexX + NUMBER_OF_POINTS_MAP * indexY+ NUMBER_OF_POINTS_MAP*NUMBER_OF_POINTS_MAP*indexZ] =
+                                        mapData[indexX + NUMBER_OF_POINTS_MAP * indexY+ NUMBER_OF_POINTS_MAP*NUMBER_OF_POINTS_MAP*indexZ] +
+                                                fullDataSetWithMicron[currentPosition].intensity.intensities[j];
+                                //                    std::cout << "Intensity: " << voxelData[indexY + numberOfPoints * indexX] << std::endl;
+                                //                    std::cout << "random: " << std::endl;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+
+        for (int i = 0; i < NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP; i++) {
+            if(voxelDataIndex[i]>0){
+                mapData[i] = mapData[i]/voxelDataIndex[i];
+            }
+        }
+
+        std::ofstream myFile1;
+        myFile1.open(
+                "/home/tim-external/Documents/matlabTestEnvironment/registrationFourier/3D/csvFiles/current3DMap" +
+                std::string(NAME_OF_CURRENT_METHOD) + ".csv");
+        for (int k = 0; k < NUMBER_OF_POINTS_MAP; k++) {
+            for (int j = 0; j < NUMBER_OF_POINTS_MAP; j++) {
+                for (int i = 0; i < NUMBER_OF_POINTS_MAP; i++) {
+
+                    myFile1 << mapData[k + NUMBER_OF_POINTS_MAP * j +
+                                       NUMBER_OF_POINTS_MAP * NUMBER_OF_POINTS_MAP * i]
+                            << std::endl;//number of possible rotations
+                }
+            }
+        }
+
+
+        myFile1.close();
+
+
+
+
+    }
 
 public:
 
@@ -1123,7 +1342,7 @@ public:
 //        std::cout << "starting map Creation" << std::endl;
         std::vector<intensityValues> dataSet;
         double maximumIntensity = slamToolsRos::getDatasetFromGraphForMap(dataSet, this->graphSaved,
-                                                                          this->graphSlamMutex);
+                                                                          this->graphSlamMutex, false);
         //homePosition is 0 0
         //size of mapData is defined in NUMBER_OF_POINTS_MAP
 
@@ -1271,33 +1490,85 @@ int main(int argc, char **argv) {
 
 //    Eigen::Matrix4d firstTransformation = Eigen::Matrix4d::Identity();
 //    Eigen::Matrix4d secondTransformation = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0, 1);
+//    Eigen::Matrix4d thirdTransformation = generalHelpfulTools::getTransformationMatrixFromRPY(0, 0, 2);
+//
 //    secondTransformation(0, 3) = 2.5;
 //    secondTransformation(1, 3) = 1.5;
 //
-//    double t = 0.01;
+//    thirdTransformation(0, 3) = 3.5;
+//    thirdTransformation(1, 3) = 2.5;
+//
+//    double t = 0.00199600798;
 //
 //    Eigen::Matrix4d completeTransformation1 = Eigen::Matrix4d::Identity();
 //    Eigen::Matrix4d completeTransformation2 = Eigen::Matrix4d::Identity();
 //    Eigen::Matrix4d completeTransformation3 = Eigen::Matrix4d::Identity();
 //    Eigen::Matrix4d completeTransformation4 = Eigen::Matrix4d::Identity();
-//    for (int i = 0; i < 100; i++) {
-//        double interpolationFactor1 = t*i;
-//        double interpolationFactor2 = t*(i+1);
+//    for (int i = 0; i < 1002; i++) {
+//        double currentTimeOfInterestStart = t*i;
+//        double currentTimeOfInterestEnd = t*(i+1);
+//
+//        if(currentTimeOfInterestStart<1 && currentTimeOfInterestEnd<1){
+//
+//            double interpolationFactor1 = currentTimeOfInterestStart;
+//            double interpolationFactor2 = currentTimeOfInterestEnd;
 //
 //
-//        Eigen::Matrix4d tmp1 = generalHelpfulTools::interpolationTwo4DTransformations(
-//                firstTransformation, secondTransformation, interpolationFactor1);
-//        Eigen::Matrix4d tmp2 = generalHelpfulTools::interpolationTwo4DTransformations(
-//                firstTransformation, secondTransformation, interpolationFactor2);
+//            Eigen::Matrix4d tmp1 = generalHelpfulTools::interpolationTwo4DTransformations(
+//                    firstTransformation, secondTransformation, interpolationFactor1);
+//            Eigen::Matrix4d tmp2 = generalHelpfulTools::interpolationTwo4DTransformations(
+//                    firstTransformation, secondTransformation, interpolationFactor2);
 //
 //
-//        completeTransformation1 = completeTransformation1*(tmp1.inverse()*tmp2);
+//            completeTransformation1 = completeTransformation1*(tmp1.inverse()*tmp2);
+//
+//        }
+//
+//        if(currentTimeOfInterestStart<1 && currentTimeOfInterestEnd>1){
+//
+//
+//            double interpolationFactor1 = currentTimeOfInterestStart;
+//            double interpolationFactor2 = currentTimeOfInterestEnd-1;
+//
+//
+//            Eigen::Matrix4d tmp1 = generalHelpfulTools::interpolationTwo4DTransformations(
+//                    firstTransformation, secondTransformation, interpolationFactor1);
+//
+//            Eigen::Matrix4d tmp2 = generalHelpfulTools::interpolationTwo4DTransformations(
+//                    secondTransformation, thirdTransformation, interpolationFactor2);
+//
+//            completeTransformation1 = completeTransformation1*((tmp1.inverse()*secondTransformation)*(secondTransformation.inverse()*tmp2));
+//
+//
+//        }
+//        if(currentTimeOfInterestStart>1 && currentTimeOfInterestEnd>1){
+//
+//
+//            double interpolationFactor1 = currentTimeOfInterestStart-1;
+//            double interpolationFactor2 = currentTimeOfInterestEnd-1;
+//
+//
+//            Eigen::Matrix4d tmp1 = generalHelpfulTools::interpolationTwo4DTransformations(
+//                    secondTransformation, thirdTransformation, interpolationFactor1);
+//            Eigen::Matrix4d tmp2 = generalHelpfulTools::interpolationTwo4DTransformations(
+//                    secondTransformation, thirdTransformation, interpolationFactor2);
+//
+//
+//            completeTransformation1 = completeTransformation1*(tmp1.inverse()*tmp2);
+//
+//        }
+//
+//
+//
+//
+//
+//
 //
 //
 //    }
 //    std::cout << completeTransformation1 << std::endl;
 //
-//    std::cout << secondTransformation << std::endl;
+//    std::cout << thirdTransformation << std::endl;
 
 
 

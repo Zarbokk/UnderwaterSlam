@@ -87,9 +87,9 @@ private:
     Eigen::Vector3d covariancePosition;//estimated covariance for this measurement in x y z
     double covarianceQuaternion;//estimated covariance for this measurement in q = w x y z (rotation)
     Eigen::Vector3d positionDifference;
-//    Eigen::Vector3<long double> positionDifference;
+//    Eigen::Vector3d positionDifference;
     Eigen::Quaterniond rotationDifference;
-//    Eigen::Quaternion<long double> rotationDifference;
+//    Eigen::Quaterniond rotationDifference;
 
     int typeOfEdge;
     int keyOfEdgeInGraph;

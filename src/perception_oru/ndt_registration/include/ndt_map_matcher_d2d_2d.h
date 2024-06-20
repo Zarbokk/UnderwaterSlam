@@ -112,7 +112,7 @@ class NDTMapMatcherD2D_2D{
 			ndts = nd_map.getAllCells();
 			fprintf(stderr,"NDTMapMatcherD2D_2D::Inserting %d gaussians to map\n",ndts.size());
 			for(unsigned int i=0;i<ndts.size();i++){
-				Eigen::Vector3d m = ndts[i]->getMean();	
+				Eigen::Vector3d m = ndts[i]->getMean();
 				if(m[2]>min_z && m[2] < max_z){
 					Eigen::Matrix3d cov = ndts[i]->getCov();
 					unsigned int nump = ndts[i]->getN();

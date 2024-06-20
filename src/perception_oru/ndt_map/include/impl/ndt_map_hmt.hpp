@@ -470,7 +470,7 @@ void NDTMapHMT<PointT>::addPointCloud(const Eigen::Vector3d &origin, const pcl::
 * @param sensor_noise The expected standard deviation of the sensor noise
 */
 template<typename PointT>
-void NDTMapHMT<PointT>::addPointCloudMeanUpdate(const Eigen::Vector3d &origin, 
+void NDTMapHMT<PointT>::addPointCloudMeanUpdate(const Eigen::Vector3d &origin,
 	const pcl::PointCloud<PointT> &pc, 
 	const Eigen::Vector3d &localmapsize,
 	unsigned int maxnumpoints, float occupancy_limit,double maxz, double sensor_noise){
@@ -640,7 +640,7 @@ void NDTMapHMT<PointT>::addPointCloudMeanUpdate(const Eigen::Vector3d &origin,
  * Add a distribution to the map
  */
 template<typename PointT>
-void NDTMapHMT<PointT>::addDistributionToCell(const Eigen::Matrix3d &ucov, const Eigen::Vector3d &umean, unsigned int numpointsindistribution, 
+void NDTMapHMT<PointT>::addDistributionToCell(const Eigen::Matrix3d &ucov, const Eigen::Vector3d &umean, unsigned int numpointsindistribution,
 	float r, float g,float b,  unsigned int maxnumpoints, float max_occupancy)
 {
     PointT pt;

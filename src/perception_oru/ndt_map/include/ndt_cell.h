@@ -162,7 +162,7 @@ public:
     * which have been computed from @numpointsindistribution number of points
     */
 
-    inline void updateSampleVariance(const Eigen::Matrix3d &cov2,const Eigen::Vector3d &m2, unsigned int numpointsindistribution, 
+    inline void updateSampleVariance(const Eigen::Matrix3d &cov2,const Eigen::Vector3d &m2, unsigned int numpointsindistribution,
 																			bool updateOccupancyFlag=true,  float max_occu=1024, unsigned int maxnumpoints=1e9);
 
     /**

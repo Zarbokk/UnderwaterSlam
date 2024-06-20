@@ -209,8 +209,13 @@ add_executable(duoSonarSlam src/completeSlamRuns/duoSonarSLAM.cpp )
 ament_target_dependencies(duoSonarSlam GTSAM geometry_msgs ping360_sonar_msgs nav_msgs commonbluerovmsg micron_driver_ros)
 target_link_libraries(duoSonarSlam ${OpenCV_LIBS} posegraph slamtools generalhelpfullib )
 
+add_executable(compute3DMap src/completeSlamRuns/testSLAMRUNS.cpp )
+ament_target_dependencies(compute3DMap  Eigen3)
+target_link_libraries(compute3DMap ${OpenCV_LIBS} json generalhelpfullib)
+
+
 add_executable(gtSAMTest src/gtsamTests/simpleExample.cpp )
-ament_target_dependencies(gtSAMTest GTSAM Eigen3)
+ament_target_dependencies(gtSAMTest GTSAM Eigen3 )
 target_link_libraries(gtSAMTest PUBLIC gtsam)
 
 
